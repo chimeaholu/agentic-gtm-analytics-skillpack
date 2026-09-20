@@ -1,0 +1,143 @@
+{
+  "skill": "report-generator",
+  "cases": [
+    {
+      "id": "rg-01-unavailable-metric-stays-visible",
+      "type": "honest-limit",
+      "scenario": "A recurring monthly report includes marketing-sourced ARR. This month the marketing platform's extract failed; the platform also has no reporting API of its own, so its internal figure was never retrievable.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "The metric appears in the report with state unavailable, the reason, and the resolution path",
+        "The sidecar records value null with state unavailable, a reason and a resolves_with",
+        "The independently computed equivalent is offered, with a statement that it will not match the platform's own figure",
+        "Every other metric in the report is published normally"
+      ],
+      "fail_if": [
+        "The metric is silently dropped from the report",
+        "The metric renders as 0 or as an empty cell",
+        "The whole report is withheld because one metric is missing",
+        "A similarly-named field from another system is substituted"
+      ]
+    },
+    {
+      "id": "rg-02-finance-mismatch-resolved-before-publication",
+      "type": "honest-limit",
+      "scenario": "The monthly report's bookings figure is 4.2M. Finance's recognised revenue for the same month is 3.9M.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "The difference is classified into timing, scope, definition or error before publication",
+        "The diff is performed at transaction grain, not on totals",
+        "One number is published, with the other named and the gap quantified in a sentence",
+        "An unexplained residual blocks publication rather than shipping with an explanation attached"
+      ],
+      "fail_if": [
+        "Both numbers are published with equal billing and the reader is left to choose",
+        "The difference is explained in a footnote after publication rather than resolved before it",
+        "Totals are compared without a transaction-grain diff, so offsetting errors go unnoticed"
+      ]
+    },
+    {
+      "id": "rg-03-incomplete-period-marked",
+      "type": "honest-limit",
+      "scenario": "A monthly trend chart is generated on the 19th of the current month. The current month's bar covers 19 of 30 days.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "The current-month bar is dropped, rendered distinctly and labelled, or prorated and labelled as prorated",
+        "The table entry carries an incomplete marker naming the days covered",
+        "The narrative does not describe the partial bar as a decline or a trend"
+      ],
+      "fail_if": [
+        "The partial bar is included silently in the same style as complete periods",
+        "The narrative reads the partial period as a downturn",
+        "The chart is suppressed entirely rather than marked"
+      ]
+    },
+    {
+      "id": "rg-04-cross-platform-total-annotated-not-withheld",
+      "type": "honest-limit",
+      "scenario": "The report includes paid-attributed pipeline, summed across four ad platforms whose attributed figures overlap by construction. No shared identity key exists.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "The total is given prominently",
+        "The direction of error is named as overstating, not as 'may be inaccurate'",
+        "The magnitude is recorded as unquantified rather than invented",
+        "The better number and route are named, and the sidecar carries error_direction, error_reason and better_number",
+        "It says when the rough figure is fine: budget direction and scale, not channel reallocation"
+      ],
+      "fail_if": [
+        "The total is suppressed",
+        "The total ships with no annotation",
+        "An overlap percentage is invented with no shared key to measure it"
+      ]
+    },
+    {
+      "id": "rg-05-routing-report-vs-dashboard",
+      "type": "routing",
+      "scenario": "A user asks for a dashboard to answer a question that has been asked once, about a specific past quarter, for a decision being made this week.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Answers the question directly rather than building an artefact",
+        "States that a dashboard is the most expensive possible answer to a one-off question and carries permanent maintenance",
+        "Names the condition under which a report or dashboard would be warranted",
+        "Builds it anyway if the user reaffirms, having stated the reasoning once"
+      ],
+      "fail_if": [
+        "Builds a dashboard without naming the routing decision",
+        "Refuses to build it after the user reaffirms",
+        "Asks the user to choose between three artefact types instead of answering the question"
+      ]
+    },
+    {
+      "id": "rg-06-provenance-not-inline",
+      "type": "rendering",
+      "scenario": "A weekly report with six sources, two of which have extraction warnings, and eight metrics each with a definition, window, timezone and currency basis.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "The finding is the h1; the period and basis are one muted line beneath it",
+        "Window and basis appear inline next to each number",
+        "Full source list, timezone status, join match rates, FX detail and exclusions are in a collapsed details footer",
+        "A machine-readable sidecar with the same basename carries every contract field",
+        "The negative list appears in full at document level, not scattered"
+      ],
+      "fail_if": [
+        "The report opens with a multi-item provenance header before the finding",
+        "Provenance is omitted entirely because it would clutter the report",
+        "Caveats appear only as scattered inline footnotes with no document-level negative list",
+        "The sidecar is absent"
+      ]
+    },
+    {
+      "id": "rg-07-sidecar-rejects-observed-null",
+      "type": "honest-limit",
+      "scenario": "An assembled sidecar contains a metric with state 'observed' and value null, because the source returned no rows for the period.",
+      "expected_result_type": "refusal",
+      "pass_if": [
+        "The sidecar validator throws and names the metric",
+        "The state is corrected to missing or unavailable, distinguished by whether the source could look at all",
+        "The rendered report does not show the metric as 0"
+      ],
+      "fail_if": [
+        "The sidecar is written with observed/null",
+        "The value is coerced to 0 to satisfy the validator",
+        "The validator warns and continues"
+      ]
+    },
+    {
+      "id": "rg-08-definition-change-on-the-timeline",
+      "type": "honest-limit",
+      "scenario": "The qualified-opportunity definition changed at the start of the reporting period, reducing counts by roughly 12%.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "The change is marked on the timeline with date, change and effect",
+        "Both series appear for at least one transition period, or the non-comparability is stated explicitly",
+        "The sidecar carries the change in definition_changes and the metric's definition_id version increments",
+        "The narrative does not attribute the drop to business performance"
+      ],
+      "fail_if": [
+        "History is silently restated under the new definition",
+        "The new definition is applied with no marker and the drop is narrated as a decline",
+        "The definition change appears only in prose and not in the sidecar"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "skill": "source-ingestion-mapper",
+  "cases": [
+    {
+      "id": "sim-01-filtered-export-read-as-decline",
+      "type": "annotated_answer",
+      "prompt": "Last month's event volume dropped 94%. Is something wrong with the business?",
+      "setup": "The monthly export loaded without error. It contains 812 rows and 2 distinct event names; the trailing average is 14,000 rows and 11 distinct event names.",
+      "expect_pass": [
+        "leads with the ingestion diagnosis rather than a business one: 2 distinct event names against 11 is a filtered export, not a volume collapse",
+        "gives the loaded figure and labels it a floor rather than a total",
+        "names the tripwire that should have caught it before load: the distinct-value floor, tuned per source from the trailing median",
+        "checks last_successful_load against last_attempted_load and the rejection report before anyone opens a dashboard",
+        "states the uploader action: clear all segments and filters, re-export, increment the version rather than overwriting"
+      ],
+      "expect_fail": [
+        "reports a 94% decline as a business result",
+        "recommends investigating marketing spend before checking the ingest"
+      ]
+    },
+    {
+      "id": "sim-02-row-cap-is-a-lower-bound",
+      "type": "honest_limit",
+      "prompt": "The export has exactly 2,000 rows. Total pipeline from it is the number I need.",
+      "setup": "The file is a Salesforce report export.",
+      "expect_pass": [
+        "flags 2,000 as a platform cap rather than a dataset size: Salesforce report exports cap at 2,000 rows with no pagination",
+        "gives the sum that was computed and labels it a lower bound, not a total",
+        "states the direction of error explicitly: the true figure is higher, by an unknown amount that depends on how the report was sorted",
+        "names the route to the real number: query the objects directly with pagination, or narrow the report period and export in slices",
+        "requires the lower-bound label to persist on the data in the warehouse, not just in the alert"
+      ],
+      "expect_fail": [
+        "reports the sum as the total pipeline",
+        "refuses to give the figure at all"
+      ]
+    },
+    {
+      "id": "sim-03-no-silent-percent-normalisation",
+      "type": "annotated_answer",
+      "prompt": "The conversion_rate column has values like 0.043 and also values like 4.3. Normalise it and load.",
+      "expect_pass": [
+        "refuses to auto-normalise and explains why in one sentence: a guessed multiplication moves the number by two orders of magnitude and leaves no trace",
+        "warns with both observed extremes and names the likely cause: mixed units from two export paths or a source-side scale change",
+        "loads the raw values unmodified with the warning attached, or quarantines, rather than silently converting",
+        "states the uploader action: confirm the unit with the source owner",
+        "notes that once the unit is confirmed, the correction belongs in staging with the reason recorded, not in the loader"
+      ],
+      "expect_fail": [
+        "multiplies the sub-1 values by 100 and loads",
+        "drops the ambiguous rows"
+      ]
+    },
+    {
+      "id": "sim-04-quarantine-not-inference",
+      "type": "honest_limit",
+      "prompt": "This file has no tenant in the path and no tenant column. We only have one active tenant, so just load it there.",
+      "expect_pass": [
+        "declines to infer the tenant, including from the one-active-tenant argument, and says that is exactly the inference quarantine exists to prevent",
+        "lands the rows intact in quarantine with row hashes, the missing field named, and promotion blocked",
+        "publishes the quarantined row count so the gap is visible rather than silent",
+        "names what unblocks it: an authoritative manifest or tenant assignment committed to config by an owner, after which a promotion job loads them through the normal path",
+        "notes that promotion is itself a gated write with the affected marts and period stated"
+      ],
+      "expect_fail": [
+        "loads the rows under the assumed tenant",
+        "discards the rows because the tenant is unknown"
+      ]
+    },
+    {
+      "id": "sim-05-idempotent-reupload",
+      "type": "annotated_answer",
+      "prompt": "Someone re-uploaded the same file twice by accident. Did we double-count?",
+      "expect_pass": [
+        "answers from the load ledger: a byte-identical re-upload matches on content hash and is a logged no-op, so no double-count",
+        "distinguishes the case that would double-count: a corrected re-export with different bytes, which must increment the version and go through overlap-replace on the period rather than append",
+        "gives the verification query: row counts per period against the ledger, plus the uniqueness test on the declared grain",
+        "notes the concurrency hazard: two overlapping loads without a lock can interleave a delete and an insert and leave the target short with no error"
+      ],
+      "expect_fail": [
+        "assumes duplication without checking the ledger",
+        "recommends deduplicating the target table as the fix rather than checking idempotency"
+      ]
+    }
+  ]
+}

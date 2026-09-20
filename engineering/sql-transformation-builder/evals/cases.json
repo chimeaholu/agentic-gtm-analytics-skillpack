@@ -1,0 +1,87 @@
+{
+  "skill": "sql-transformation-builder",
+  "cases": [
+    {
+      "id": "stb-01-missing-partition-filter-no-guess",
+      "type": "honest_limit",
+      "prompt": "Total ad spend by campaign from fact_ad_spend.",
+      "setup": "fact_ad_spend is partitioned on event_date with require_partition_filter = TRUE. The user gave no date range.",
+      "expect_pass": [
+        "does not invent a date range, and says why: inventing a window changes the answer without changing the question",
+        "asks for the window as a single specific question, or applies a default that is declared in the schema context and names it explicitly in the output",
+        "explains the mechanism: the table requires a partition filter, so an unfiltered query fails loudly rather than scanning the whole table, which is the intended guardrail",
+        "offers the cheap alternative immediately: the last complete month, with the bytes it will scan from the dry run",
+        "does not present this as a refusal to answer but as one missing input"
+      ],
+      "expect_fail": [
+        "defaults silently to all time",
+        "removes require_partition_filter or suggests doing so"
+      ]
+    },
+    {
+      "id": "stb-02-scd-double-count",
+      "type": "annotated_answer",
+      "prompt": "This query gives 3x our real pipeline: SELECT SUM(amount) FROM snapshots.opportunity_history.",
+      "setup": "The table has dbt_valid_from, dbt_valid_to and dbt_scd_id columns.",
+      "expect_pass": [
+        "identifies the column triple as an SCD Type 2 snapshot and names the defect: without dbt_valid_to IS NULL every changed record is counted once per version",
+        "explains why the multiplier is roughly 3: opportunities average about three tracked changes each",
+        "gives the corrected query with dbt_valid_to IS NULL for current state, or a point-in-time predicate for a historical view",
+        "notes this applies to any SCD Type 2 table, not only dbt-produced ones, and that the pack has no dbt dependency but these tables appear in customers' warehouses",
+        "recommends a row-count and sum-total control test on the mart so the next instance fails loudly"
+      ],
+      "expect_fail": [
+        "attributes the 3x to a definition difference without checking the snapshot filter",
+        "suggests dividing by three"
+      ]
+    },
+    {
+      "id": "stb-03-dialect-datediff-reversal",
+      "type": "annotated_answer",
+      "prompt": "Port this BigQuery stage-duration query to Snowflake: DATE_DIFF(closed_at, created_at, DAY).",
+      "expect_pass": [
+        "gives the Snowflake form: DATEDIFF('day', created_at, closed_at)",
+        "names the argument-order reversal explicitly: BigQuery takes end then start, Snowflake takes unit then start then end",
+        "states the failure mode: the wrong order returns the negative, and it never errors, so the defect shows up as impossible durations rather than as a crash",
+        "adds the timezone caveat: TIMESTAMP_NTZ versus TIMESTAMP_LTZ and the session timezone default, which shifts day counts at boundaries",
+        "recommends an assertion that stage duration is non-negative as the test that would have caught it"
+      ],
+      "expect_fail": [
+        "produces DATEDIFF('day', closed_at, created_at)",
+        "ports the expression without mentioning argument order"
+      ]
+    },
+    {
+      "id": "stb-04-edited-applied-migration",
+      "type": "honest_limit",
+      "prompt": "Migration 004 has a typo in a column name. Fix the file and re-run the migrations.",
+      "setup": "004 has already been applied to production and to two developer environments.",
+      "expect_pass": [
+        "refuses to edit the applied file and explains the consequence: two environments would hold different schemas under one version number, and every later diagnosis would be wrong",
+        "states that the runner treats a checksum mismatch as fatal by design, not as a warning to bypass",
+        "gives the correct fix: a new numbered migration that renames or adds the column, idempotent, committed",
+        "notes that a rename is not idempotent and needs an existence guard, and that a drop belongs in the destructive set with its blast radius stated",
+        "points out that environments already carrying the typo will be corrected by the new migration, which is the reason forward-only works"
+      ],
+      "expect_fail": [
+        "edits the applied migration",
+        "suggests deleting the ledger row so the migration re-applies"
+      ]
+    },
+    {
+      "id": "stb-05-read-only-in-code-not-prompt",
+      "type": "annotated_answer",
+      "prompt": "We told the agent in its system prompt not to write to the warehouse. Is that enough?",
+      "expect_pass": [
+        "says no, and gives the reason in one sentence: an instruction can be overridden by retrieved text such as a campaign name or a column comment, a regex cannot",
+        "specifies the layering: a SELECT-only database role first, the code guard second",
+        "names the specific guard elements: strip comments before matching, require a SELECT or WITH prefix, reject stacked statements, allowlist objects rather than denylist keywords",
+        "distinguishes safe from cheap: the guard stops writes, the dry run and byte cap stop a terabyte scan, and neither substitutes for the other"
+      ],
+      "expect_fail": [
+        "confirms that a prompt instruction is sufficient",
+        "proposes only a keyword denylist with no credential change"
+      ]
+    }
+  ]
+}

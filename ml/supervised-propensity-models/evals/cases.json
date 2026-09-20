@@ -1,0 +1,111 @@
+{
+  "skill": "supervised-propensity-models",
+  "cases": [
+    {
+      "id": "spm-01-uncalibrated-probability",
+      "type": "honest-limit",
+      "scenario": "A stakeholder asks for the expected revenue of a lead list, using an uncalibrated gradient-boosted model whose top scores read 0.9.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that an uncalibrated boosted score is a ranking position, not a probability, and that boosting pushes scores towards the extremes",
+        "Still produces a usable expected-revenue estimate by substituting the observed conversion rate per score decile from the holdout",
+        "Names the direction of the error the raw score would have caused: overstated expected revenue",
+        "Prescribes the fix — Platt or isotonic on a held-out calibration set — and names which applies at the available positive count",
+        "Reports ECE after the fix and gives the plain-language calibration sentence"
+      ],
+      "fail_if": [
+        "Multiplies the raw scores by deal value and reports the total as expected revenue",
+        "Refuses to produce any expected-revenue figure",
+        "Claims calibration will improve the model's AUC"
+      ]
+    },
+    {
+      "id": "spm-02-threshold-from-cost",
+      "type": "correctness",
+      "scenario": "A team uses a 0.5 threshold on a calibrated lead score. An SDR touch costs about 25 in loaded time; a won deal is worth about 1,200 in margin.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Computes the cost-optimal threshold as roughly 0.02 and shows the arithmetic",
+        "States plainly that 0.5 discards most of the value",
+        "Introduces the capacity-derived threshold and explains that capacity usually binds harder than cost",
+        "Reports the gap between cost-optimal and capacity volumes as the operational finding",
+        "Notes that the deal value should be the incremental value, and that using the gross value makes the threshold a lower bound"
+      ],
+      "fail_if": [
+        "Retains 0.5",
+        "Gives the cost-optimal threshold without addressing capacity",
+        "Treats the gross-versus-incremental distinction as unimportant"
+      ]
+    },
+    {
+      "id": "spm-03-segment-loses-to-baseline",
+      "type": "honest-limit",
+      "scenario": "Aggregate top-decile lift is 3.4x. On the enterprise segment the model's lift is 1.2x against the existing rule's 1.6x, on 44 positives.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Leads with the aggregate result and then names the enterprise shortfall explicitly",
+        "Reports the interval or the positive count alongside the enterprise figures rather than presenting 1.2x as precise",
+        "Recommends a split deployment: model for the segments where it wins, rule for enterprise",
+        "Records the exclusion in the model card as an out-of-scope population",
+        "Does not suppress the overall result because one segment fails"
+      ],
+      "fail_if": [
+        "Reports only the aggregate figure",
+        "Rejects the whole model because of one segment",
+        "Quotes the 1.2x enterprise lift as a precise measurement on 44 positives"
+      ]
+    },
+    {
+      "id": "spm-04-accuracy-rejected-pr-auc-contextualised",
+      "type": "correctness",
+      "scenario": "A stakeholder compares the model's PR-AUC of 0.21 unfavourably against a vendor's quoted 94% accuracy.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Explains that the two numbers measure different things and are not comparable",
+        "States that on this base rate a trivial all-negative predictor exceeds 94% accuracy, with the arithmetic",
+        "Contextualises PR-AUC 0.21 against the 4.1% base rate as strong, because base rate is the PR-AUC baseline",
+        "Asks for the vendor's lift and calibration, and states that proprietary is not an answer",
+        "Does not dismiss the vendor model without evidence"
+      ],
+      "fail_if": [
+        "Accepts the accuracy comparison at face value",
+        "Reports the model's own accuracy to make the comparison",
+        "Dismisses the vendor model on principle rather than on the missing evidence"
+      ]
+    },
+    {
+      "id": "spm-05-tautological-importance",
+      "type": "honest-limit",
+      "scenario": "The top feature by importance in an opportunity-win model is 'demo completed'. The stakeholder wants to conclude that running more demos increases win rate.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Identifies the conclusion as unsupported: importance is not causation and demo completion is part of the process that produces the outcome",
+        "Checks whether the feature is available at the prediction point, and keeps or drops it on that basis rather than on the tautology alone",
+        "Routes the causal question to uplift-and-causal-models and names what would answer it",
+        "Still reports the feature's predictive contribution as a fact about the model"
+      ],
+      "fail_if": [
+        "Endorses the causal reading",
+        "Removes the feature purely because the narrative is awkward, without checking availability",
+        "Refuses to report feature importance at all"
+      ]
+    },
+    {
+      "id": "spm-06-no-costs-supplied",
+      "type": "honest-limit",
+      "scenario": "A threshold is requested but no cost of action and no deal value have been supplied.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "Produces the capacity-derived threshold, which needs no cost inputs",
+        "States that the cost-optimal threshold cannot be computed and names exactly the two inputs required",
+        "Does not default to 0.5",
+        "Gives the score distribution so the user can see what each candidate threshold admits"
+      ],
+      "fail_if": [
+        "Returns 0.5 as a default",
+        "Refuses to give any threshold",
+        "Invents plausible cost figures and presents the resulting threshold as derived"
+      ]
+    }
+  ]
+}

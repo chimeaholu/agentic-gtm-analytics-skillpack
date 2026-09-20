@@ -1,0 +1,129 @@
+{
+  "skill": "account-based-analytics",
+  "cases": [
+    {
+      "id": "aba-01-person-rate-against-account-benchmark",
+      "type": "annotated_answer",
+      "prompt": "Our MQL-to-opportunity rate is 4.1% and the ABM benchmark we were shown is 25%. Is the programme failing?",
+      "setup": "Enterprise B2B. Median 6 contacts per won opportunity. The 4.1% is computed at person grain; the benchmark is account grain.",
+      "expect_pass": [
+        "identifies that the two numbers are at different grains and are therefore not comparable",
+        "states the rough relationship: a person-grain rate is approximately the account-grain rate divided by contacts per buying group, so 4.1% at six contacts per deal is in the region of 25% at account grain",
+        "computes or offers to compute the account-grain rate directly from distinct accounts rather than relying on the divide-by-six heuristic",
+        "names the heuristic as a heuristic and says the direct computation is the better number",
+        "does not conclude the programme is failing from the person-grain figure"
+      ],
+      "expect_fail": [
+        "compares 4.1% to 25% and reports underperformance",
+        "refuses to give any comparison because the grains differ"
+      ]
+    },
+    {
+      "id": "aba-02-role-coverage-unavailable",
+      "type": "honest-limit",
+      "prompt": "What share of our target accounts have an engaged economic buyer?",
+      "setup": "OpportunityContactRole exists but Role is populated on 18% of opportunity-contact rows. No other role field exists.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "reports the role-population rate of 18% before any coverage figure",
+        "gives the coverage figure computed over the populated subset and labels it as describing that subset only",
+        "states the direction of error: true coverage is unknown and the computed figure is not a floor or a ceiling for the full list, because populated rows are not a random sample",
+        "names the resolving change: making Role required at a stage gate, or a buying-group field maintained by sellers",
+        "offers the computable proxy with its bias named, for example seniority-derived role inference from title text, and says title inference misclassifies systematically in flat-title orgs"
+      ],
+      "expect_fail": [
+        "reports a coverage percentage for the full target list as if the role field were complete",
+        "returns unavailable and offers nothing computable"
+      ]
+    },
+    {
+      "id": "aba-03-linkedin-company-pivot-not-a-target-list",
+      "type": "honest-limit",
+      "prompt": "LinkedIn says we reached 340 companies last month. That's 71% of our 480 target accounts, right?",
+      "setup": "The 340 figure comes from a MEMBER_COMPANY pivot on adAnalytics. No join to the target list has been performed.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "states that MEMBER_COMPANY output is companies where members saw the ad, not accounts targeted, and includes multi-employer members, job-switchers, audience expansion and parent/child structures",
+        "states that 340 ÷ 480 is not a reach rate because the numerator is not a subset of the denominator",
+        "names the computable alternative: join the resolved company URNs to the target list and report the intersection, which is a genuine reach figure",
+        "notes the top-100-values-per-creative-per-day cap and the sub-3-event drop, so the intersection will be a lower bound",
+        "notes that LinkedIn's own guidance is to query at the highest level and full period rather than summing lower levels"
+      ],
+      "expect_fail": [
+        "reports 71% reach",
+        "presents the company pivot as account coverage with only a vague accuracy caveat"
+      ]
+    },
+    {
+      "id": "aba-04-unnormalised-engagement-ranking",
+      "type": "annotated_answer",
+      "prompt": "Give me our top 10 most engaged target accounts so the SDRs know where to focus.",
+      "setup": "Raw engagement scores are sums of weighted touches. Account sizes on the target list range from 40 to 90,000 employees.",
+      "expect_pass": [
+        "gives the top 10 by raw score, because it is computable and was asked for",
+        "states plainly that raw engagement is a sum with no denominator and therefore tracks account size as much as account interest",
+        "supplies the normalised ranking alongside: engagement per known contact, or per in-group contact where a buying group is defined",
+        "names which ranking it would send to SDRs and why",
+        "notes that engagement-per-known-contact is partly a data-completeness artefact, since it rises when contact mapping is poor"
+      ],
+      "expect_fail": [
+        "returns only the raw ranking with no size caveat",
+        "refuses to produce a ranking until normalisation is agreed"
+      ]
+    },
+    {
+      "id": "aba-05-linkedin-attributed-revenue-silent-null",
+      "type": "honest-limit",
+      "prompt": "Pull LinkedIn's attributed open opportunity value for last quarter.",
+      "setup": "The requested dateRange ends on the last day of the prior quarter, not today. The response returns nulls for opportunityAmountInUsd and openOpportunities.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "recognises the nulls as the documented behaviour that opportunityAmountInUsd and openOpportunities only return when dateRange.end is today in UTC, not as zero and not as an outage",
+        "does not report zero open opportunity value",
+        "states the available alternative: a dateRange ending today, which returns the fields but covers a different window, and the closed-won fields which are available for the historical window",
+        "notes the 30-to-366-day dateRange constraint",
+        "flags that revenue fields are USD while cost is in the account currency, so the two must not be divided without conversion"
+      ],
+      "expect_fail": [
+        "reports zero or no open pipeline for the quarter",
+        "retries the identical request repeatedly",
+        "substitutes the CRM's own open pipeline figure and presents it as LinkedIn-attributed"
+      ]
+    },
+    {
+      "id": "aba-06-bizible-reproducibility",
+      "type": "honest-limit",
+      "prompt": "Last week this report said marketing influenced $4.2M. Today the same report says $3.9M and nobody changed anything. Which is right?",
+      "setup": "The report reads bizible2__Bizible_Attribution_Touchpoint__c in Salesforce.",
+      "expect_pass": [
+        "identifies bulk retroactive recalculation of Bizible touchpoints on the vendor's own schedule as the likely cause, and says attribution weights on existing opportunities change without any user edit",
+        "states that both figures were correct as of their run time and that neither is a data error",
+        "names snapshotting the attribution output at run time as the fix for reproducibility",
+        "advises never presenting Bizible attribution as immutable",
+        "names the cheap confirmation: compare touchpoint weights on a single unchanged opportunity across the two run dates"
+      ],
+      "expect_fail": [
+        "declares one figure wrong without evidence",
+        "attributes the change to a data pipeline bug without considering vendor recalculation",
+        "suggests the difference is immaterial and moves on"
+      ]
+    },
+    {
+      "id": "aba-07-free-mail-domain-contamination",
+      "type": "annotated_answer",
+      "prompt": "One account is showing 4,100 engagement points, ten times the next highest. What's going on there?",
+      "setup": "The roll-up uses email domain matching. The account's domain record was populated with a consumer webmail domain during a data import.",
+      "expect_pass": [
+        "treats the outlier as a roll-up defect hypothesis before a genuine-interest hypothesis",
+        "names free-mail or shared domain contamination as the first thing to check, and names internal and test domains as the second",
+        "gives the diagnostic: count distinct contacts behind the score and inspect their email domains",
+        "states the downstream effect: every rate using this account is contaminated and the account-level totals are inflated",
+        "names the fix as a domain exclusion list with the affected contacts routed to unmatched, not to a different account"
+      ],
+      "expect_fail": [
+        "reports the account as the most engaged target and recommends sales focus there",
+        "removes the account from the data without disclosing the change"
+      ]
+    }
+  ]
+}

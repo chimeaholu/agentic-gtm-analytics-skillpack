@@ -1,0 +1,135 @@
+{
+  "skill": "attribution-algorithmic",
+  "cases": [
+    {
+      "id": "aa-01-converter-only-paths",
+      "type": "refusal",
+      "prompt": "Here's our conversion path export — 41,000 paths. Run Markov removal effect and tell me what to cut.",
+      "setup": "The export is a conversion report and contains only paths that converted.",
+      "expect_pass": [
+        "returns unavailable for both Markov and Shapley, and names the reason: every path converted, so the model is conditioned on success",
+        "explains the mechanism in one sentence: with no transitions to Null, absorption in Conversion is near certain from everywhere and removal effects collapse toward zero",
+        "does not run the model and caveat the output",
+        "names the resolving change: export all journeys in the window, converted and not, on the same identity basis and channel classification",
+        "still delivers rule-based attribution over the same converting paths, which estimates no probability and is unaffected"
+      ],
+      "expect_fail": [
+        "runs Markov on converter-only paths and reports removal effects with a caveat",
+        "returns nothing actionable"
+      ]
+    },
+    {
+      "id": "aa-02-not-worth-running",
+      "type": "annotated_answer",
+      "prompt": "Run Shapley attribution on our data.",
+      "setup": "Converting and non-converting paths are both present. 71% of paths have a single touch; median path length is 1; 620 conversions in the window.",
+      "expect_pass": [
+        "reports the path-length distribution before anything else",
+        "states that with 71% single-touch paths both models collapse toward last-touch and would reproduce it at much greater cost",
+        "notes the volume is also below the ~1,000-conversion guideline",
+        "still gives the answer the user needs: last-touch and the rule-based spread over the multi-touch minority, with that subset's size stated",
+        "says what would make the models worth running: more multi-touch journeys, which usually means better cross-session identity rather than more traffic"
+      ],
+      "expect_fail": [
+        "runs Shapley and presents the result as an improvement over last-touch",
+        "refuses without giving the last-touch and rule-based answer"
+      ]
+    },
+    {
+      "id": "aa-03-negative-shapley-value",
+      "type": "annotated_answer",
+      "prompt": "Our Shapley model gives paid social a negative value. Does that mean paid social is destroying conversions?",
+      "expect_pass": [
+        "says no, and identifies the likely cause first: a rate-based characteristic function, which is not monotone",
+        "explains that adding a channel that brings lower-intent volume can lower a coalition's conversion rate, which makes a negative Shapley value an artefact rather than a finding",
+        "recommends recomputing with conversion counts as the characteristic function, which is monotone and gives non-negative values summing to total conversions",
+        "states that normalising negative values to 100% produces credits outside 0-100% and must not be shipped",
+        "notes that if the count-based version is also negative, the input has duplicated or mis-set coalitions and the data is the problem"
+      ],
+      "expect_fail": [
+        "interprets the negative value as evidence that the channel harms conversion",
+        "normalises the negative value into a percentage credit"
+      ]
+    },
+    {
+      "id": "aa-04-removal-effect-read-as-causal",
+      "type": "annotated_answer",
+      "prompt": "Markov says removing paid search costs us 24% of conversions. So cutting that budget costs us 24% of revenue?",
+      "expect_pass": [
+        "gives the 24% figure plainly and then names the direction of its error: it is an upper bound on the loss",
+        "explains substitution in one sentence: the chain cannot represent demand arriving through another channel instead, so some of those conversions would still happen",
+        "states that the removal effect is about the channel's role in observed paths, not about what the spend caused",
+        "names the evidence that would settle it: a geo holdout or a spend-down test, and routes to incrementality-and-mmm",
+        "says when the 24% is fine as it stands: confirming paid search is a material contributor rather than a passenger"
+      ],
+      "expect_fail": [
+        "confirms that cutting the budget costs 24% of revenue",
+        "refuses to give the figure because the model is not causal"
+      ]
+    },
+    {
+      "id": "aa-05-granularity-sensitivity",
+      "type": "annotated_answer",
+      "prompt": "Break paid social out by campaign in the Markov model so we can see which campaigns matter.",
+      "expect_pass": [
+        "runs it, and also runs the model at channel-group level for comparison",
+        "reports how much paid social's total credit moves between the two levels, and states that every other channel's number moves too",
+        "explains why: splitting a state makes its internal transitions visible and fragments its removal effect",
+        "recommends the coarser level for the reported totals and the finer level for within-channel ranking only",
+        "applies the per-state volume floor, naming campaigns with too few paths to estimate"
+      ],
+      "expect_fail": [
+        "reports campaign-level credit as directly comparable to the previous channel-level report",
+        "declines to break out by campaign"
+      ]
+    },
+    {
+      "id": "aa-06-vendor-dda-auditability",
+      "type": "annotated_answer",
+      "prompt": "Can you reproduce our GA4 data-driven attribution numbers and show the CFO how each channel's credit was calculated?",
+      "expect_pass": [
+        "says the reproduction is not possible and names why: DDA's weights, features and decision rules are not inspectable",
+        "does not present this as a temporary access problem",
+        "states the two further consequences: DDA only sees the vendor's own observable surface, and vendor model changes restate history with no change on your side",
+        "offers the route that does satisfy the CFO requirement: an inspectable model on your own path data, naming google/fractribution as the open fractional implementation and the Markov and Shapley models in this skill",
+        "presents the industry argument about preferential credit to high-frequency Google-property touches as a disputed claim rather than a finding, if raised at all"
+      ],
+      "expect_fail": [
+        "claims the DDA numbers can be reproduced from the API",
+        "asserts the preferential-credit claim as established"
+      ]
+    },
+    {
+      "id": "aa-07-sampled-shapley-no-error",
+      "type": "annotated_answer",
+      "prompt": "We have 34 channels. Give me the exact Shapley values.",
+      "expect_pass": [
+        "states that exact computation is O(2^n) and 34 channels is far past the practical ceiling of roughly 15 to 20",
+        "offers the two viable routes: reduce to channel groups, or Monte Carlo permutation sampling",
+        "if sampling, reports the permutation count, the random seed and the standard error on every channel",
+        "applies the ranking rule: channels within two standard errors of each other are reported as tied, not ranked",
+        "recommends grouping first, because 34 channels usually means the classification is at campaign grain rather than channel grain"
+      ],
+      "expect_fail": [
+        "reports sampled values as exact",
+        "reports a 34-channel ranking with no error estimate"
+      ]
+    },
+    {
+      "id": "aa-08-first-order-gap",
+      "type": "annotated_answer",
+      "prompt": "The Markov baseline conversion probability is 22% but our actual conversion rate is 11%. Is the model broken?",
+      "expect_pass": [
+        "says the two figures are not expected to be identical, because a first-order chain reassembles journeys from pairwise transitions and generates paths that never occurred",
+        "states that a gap this large is nonetheless a warning sign, not normal approximation error",
+        "requires the order-2 comparison before reporting any removal effect from this model",
+        "names the usual causes: strong path-order structure the first-order chain cannot hold, or repeated consecutive touches inflating transition counts",
+        "reports the removal effects with the gap disclosed rather than suppressing them entirely"
+      ],
+      "expect_fail": [
+        "asserts the two numbers should match and declares the implementation broken",
+        "ignores the gap and reports removal effects as clean"
+      ]
+    }
+  ]
+}

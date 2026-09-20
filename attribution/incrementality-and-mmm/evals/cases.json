@@ -1,0 +1,137 @@
+{
+  "skill": "incrementality-and-mmm",
+  "cases": [
+    {
+      "id": "imm-01-underpowered-test",
+      "type": "refusal",
+      "prompt": "Design a two-week geo holdout on our smallest 4 markets to see whether paid social works.",
+      "setup": "Power simulation on the actual market history gives an MDE of 34% at 80% power. The effect worth acting on is 10%.",
+      "expect_pass": [
+        "returns the verdict that this test cannot answer this question, with the MDE and the target effect both stated",
+        "refuses to run a smaller or shorter version",
+        "names the three levers: more treated markets, a longer window, a larger spend change, with the rough magnitude each would need",
+        "states explicitly why running it anyway is worse than not testing: the null will be reported as the channel not working",
+        "offers what is available now without a test: the rule-based spread, the algorithmic models if volume supports them, and MER as a guardrail"
+      ],
+      "expect_fail": [
+        "designs the two-week four-market test with a caveat about power",
+        "reports the MDE without translating it into a go or no-go verdict"
+      ]
+    },
+    {
+      "id": "imm-02-null-result-readout",
+      "type": "annotated_answer",
+      "prompt": "The geo test came back non-significant. So the channel doesn't work and we should cut it?",
+      "setup": "Lift estimate 4%, 80% interval -4% to +11%. Pre-registered MDE was 12%. Break-even lift is 7%.",
+      "expect_pass": [
+        "answers no, and states the correct reading: the test could not detect an effect of 12% or larger, so an 8% effect would have looked exactly like this",
+        "reports the interval rather than only the non-significance",
+        "extracts the finding the interval does support: any effect is probably below 11%",
+        "compares the interval against the 7% break-even and says plainly that the result neither clears nor excludes it",
+        "names what a conclusive test would take, and notes the decision depends on how much budget rides on it"
+      ],
+      "expect_fail": [
+        "agrees the channel does not work",
+        "reports no effect without the interval or the MDE",
+        "declares the result uninformative and stops"
+      ]
+    },
+    {
+      "id": "imm-03-channel-with-no-spend-variation",
+      "type": "refusal",
+      "prompt": "Our MMM gives our sponsorship channel an ROI of 0.3. Should we cut it?",
+      "setup": "Sponsorship spend has been a flat monthly amount for three years with no variation.",
+      "expect_pass": [
+        "states the 0.3 is not an estimate of anything: with no spend variation the channel is unidentifiable and the coefficient is whatever the collinear channels left over",
+        "returns unavailable for that channel's ROI rather than reporting the number as a finding",
+        "does not read a low coefficient as evidence of poor performance",
+        "names what would identify it: a deliberate spend change, ideally geographic, or a period when the spend genuinely differed",
+        "still reports the identifiable channels' contributions from the same model"
+      ],
+      "expect_fail": [
+        "recommends cutting sponsorship based on the 0.3",
+        "invalidates the whole model because one channel is unidentifiable"
+      ]
+    },
+    {
+      "id": "imm-04-uncalibrated-mmm-as-causal",
+      "type": "annotated_answer",
+      "prompt": "The MMM says TV contributes 14% of revenue. Can I put that in the board deck as what TV drives?",
+      "setup": "No incrementality experiments have been run. The model has not been calibrated.",
+      "expect_pass": [
+        "gives the 14% and says it can go in the deck with its basis named",
+        "states plainly that an uncalibrated MMM is a regression on observational data, so 14% is an association, not a measured causal contribution",
+        "names the direction of uncertainty honestly: it is unquantified without an experiment, rather than inventing a range",
+        "reports the specification range if several defensible specs were fitted, as the concrete measure of how much the number depends on modelling choices",
+        "names the route to a defensible number: a geo test on TV used to calibrate the coefficient, and says roughly what that would involve"
+      ],
+      "expect_fail": [
+        "presents 14% as what TV caused",
+        "refuses to give the figure because the model is uncalibrated"
+      ]
+    },
+    {
+      "id": "imm-05-history-floor",
+      "type": "annotated_answer",
+      "prompt": "Build us an MMM. We have 38 weeks of clean data.",
+      "expect_pass": [
+        "states that 38 weeks is below the 52-week floor, which is itself widely considered thin, and that 2 to 3 years is the real requirement",
+        "explains the specific consequence rather than asserting a rule: fewer than two annual cycles means seasonality and media effects are not separable",
+        "does not build the model and caveat it",
+        "routes to what does work at this history length: geo-lift on the biggest budget decision, which needs 1 to 2 years of geo history rather than 3 years of national weekly data",
+        "says what to start collecting now so an MMM is possible later, naming the volume columns as the usual gap"
+      ],
+      "expect_fail": [
+        "fits an MMM on 38 weeks and reports channel ROIs",
+        "declines and offers no alternative route"
+      ]
+    },
+    {
+      "id": "imm-06-library-routing",
+      "type": "annotated_answer",
+      "prompt": "Which MMM tool should we use? I read PyMC-Marketing is much better than Meridian.",
+      "expect_pass": [
+        "identifies the claim as a vendor-authored benchmark by PyMC Labs, reporting roughly 2-20x faster sampling and about 40% lower channel-contribution error, and presents it as a claim rather than a settled result",
+        "routes on the actual decision criteria: team language, whether geo-level data exists, and whether experiment calibration is the plan",
+        "names Meridian's fit when geo data exists and calibration is intended, Robyn's fit for the fastest defensible recommendation, PyMC-Marketing's fit for custom priors or CLV in the same stack",
+        "flags Robyn's candidate-model menu as both its strength and its main researcher-degrees-of-freedom hazard",
+        "states that all three need a data scientist and clean weekly data, and that the tool choice matters less than the calibration"
+      ],
+      "expect_fail": [
+        "asserts PyMC-Marketing is measurably better on the strength of the vendor benchmark",
+        "recommends a tool without reference to geo data availability or calibration intent"
+      ]
+    },
+    {
+      "id": "imm-07-lift-generalised",
+      "type": "annotated_answer",
+      "prompt": "The Q2 geo test measured 9% lift. Apply that to next year's paid social plan so we can forecast the return.",
+      "expect_pass": [
+        "gives the arithmetic the user asked for, since it is computable",
+        "names the direction and nature of the error: the 9% is local to the tested period, creative, spend level and markets, and applying it to a different spend level assumes a linear response the test did not measure",
+        "points out specifically that the plan's spend level is the binding issue if it differs materially from the tested level, because that is where the saturation curve bites",
+        "offers the better number: the saturation curve from a calibrated MMM, with this test as the calibration input",
+        "says when the rough figure is fine: a scale sanity check or a directional plan, not a committed forecast"
+      ],
+      "expect_fail": [
+        "refuses to do the arithmetic",
+        "produces the forecast with no statement that the lift is local to its test conditions"
+      ]
+    },
+    {
+      "id": "imm-08-spillover-direction",
+      "type": "annotated_answer",
+      "prompt": "Our control markets border the treatment markets. Does that invalidate the test?",
+      "expect_pass": [
+        "says no, it biases the result in a known direction: contamination of controls pushes measured lift toward zero, so the measured lift is conservative",
+        "gives the practical consequence: a significant positive result is still trustworthy and probably understated, while a null is harder to interpret",
+        "recommends the diagnostics: compare border to interior control markets, and exclude adjacent markets from the control pool in the next design",
+        "does not discard the result"
+      ],
+      "expect_fail": [
+        "declares the test invalid",
+        "describes spillover as making the result inaccurate without naming the direction"
+      ]
+    }
+  ]
+}

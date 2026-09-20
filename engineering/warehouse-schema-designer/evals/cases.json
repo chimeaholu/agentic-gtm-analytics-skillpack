@@ -1,0 +1,89 @@
+{
+  "skill": "warehouse-schema-designer",
+  "cases": [
+    {
+      "id": "wsd-01-dry-run-zero-under-rls",
+      "type": "honest_limit",
+      "prompt": "Dry run says this query processes 0 bytes. Safe to run it on a schedule every 15 minutes?",
+      "setup": "The query reads a BigQuery table that has a row-level access policy applied.",
+      "expect_pass": [
+        "does not treat 0 bytes as free",
+        "states the specific cause: BigQuery deliberately returns 0 bytes from a dry run on a table with row-level security, to prevent the dry run acting as a side channel",
+        "labels the cost estimate unavailable rather than zero",
+        "gives the bound that can still be set: maximumBytesBilled on every job, plus a per-service-account daily query quota",
+        "names the input that would produce a real estimate: run once with a byte cap and read total_bytes_billed from INFORMATION_SCHEMA.JOBS_BY_PROJECT, or dry-run an equivalent query against an unprotected table of the same shape",
+        "flags the 15-minute cadence separately as the larger risk regardless of the estimate"
+      ],
+      "expect_fail": [
+        "reports the query as free or zero-cost",
+        "refuses to give any guidance because the estimate is unavailable"
+      ]
+    },
+    {
+      "id": "wsd-02-cost-estimate-is-computable",
+      "type": "annotated_answer",
+      "prompt": "How much will this dashboard cost us per month?",
+      "setup": "Six tiles over a partitioned touchpoint table, hourly refresh, 90-day default window. Partition sizes are readable from INFORMATION_SCHEMA.PARTITIONS.",
+      "expect_pass": [
+        "computes a figure rather than deferring: bytes per query from partitions touched times average partition bytes times the selected-column fraction, times refresh count times 30, at the stated list rate",
+        "states the rate used and that it should be checked against current list pricing",
+        "names the direction of error on each assumption: drill-downs are uncounted so the query count understates, clustering prunes further than the estimate assumes so bytes overstate, BI-tool caching overstates",
+        "identifies the dominant term and the structural fix: materialise the aggregate and refresh at the cadence of the data rather than the dashboard, since GA4-derived data finishes processing daily",
+        "recommends require_partition_filter and a per-credential daily quota as the guardrails independent of the estimate"
+      ],
+      "expect_fail": [
+        "answers that warehouse cost depends on too many factors to estimate",
+        "gives a figure with no rate, no assumptions and no direction of error"
+      ]
+    },
+    {
+      "id": "wsd-03-incremental-without-late-window",
+      "type": "annotated_answer",
+      "prompt": "Review this incremental model. Predicate is: WHERE event_date > (SELECT MAX(event_date) FROM {{ this }}), source is the Meta insights extract.",
+      "expect_pass": [
+        "identifies the missing late-arriving window as a correctness defect, not a tuning issue",
+        "states the specific consequence for this source: Meta conversions settle over 28 days, so every day is frozen at its first-observed value and the whole series is permanently understated",
+        "gives the fix concretely: overwrite whole date partitions from current_date minus 28 days forward, rather than appending after the max date",
+        "notes the same rule with different windows for other sources: Google Ads back-fills to the click date for up to 90 days, GA4 needs at least 3 days, CRM needs about 7 for backdated records",
+        "states that figures inside the reprocessing window are provisional and must be carried as such in the provenance block"
+      ],
+      "expect_fail": [
+        "approves the predicate as a standard incremental pattern",
+        "suggests a full refresh as the only alternative without mentioning the partition-overwrite window"
+      ]
+    },
+    {
+      "id": "wsd-04-retention-cannot-be-backfilled",
+      "type": "honest_limit",
+      "prompt": "Give me reach and frequency by campaign for the same quarter two years ago so we can compare year over year.",
+      "setup": "The warehouse started landing Meta data eight months ago. Nothing earlier was stored.",
+      "expect_pass": [
+        "returns unavailable for the two-year-old period and says why: Meta retains unique metrics such as reach for 13 months and frequency for 6, so the source cannot serve it either",
+        "states the harder point: reach is a unique count and is not additive, so it cannot be reconstructed from impressions or from any rollup that was kept",
+        "gives what is computable now: the eight months of history held, with its exact start date",
+        "names the action with a deadline attached: anything inside Meta's 13-month window is still rescuable by backfilling now, and that window closes daily",
+        "recommends landing every grain that will ever be reported for non-additive metrics, since coarser rollups do not let you answer finer questions"
+      ],
+      "expect_fail": [
+        "sums daily impressions or daily reach to produce a quarterly reach figure",
+        "reports the missing period as zero"
+      ]
+    },
+    {
+      "id": "wsd-05-clustering-by-reflex",
+      "type": "annotated_answer",
+      "prompt": "Add a clustering key on account_id to our Snowflake opportunity snapshot table.",
+      "setup": "The table holds roughly two million rows and is rebuilt nightly.",
+      "expect_pass": [
+        "declines the clustering key with a reason rather than agreeing: the table is small and write-heavy, and automatic clustering bills credits continuously in the background",
+        "states the three conditions that would justify one: large table, read far more than written, consistent filter on the key",
+        "notes that Snowflake has no partitioning statement and that load order is the de-facto partitioning, so landing in snapshot-date order already prunes date filters well",
+        "offers the check rather than an opinion: SYSTEM$CLUSTERING_INFORMATION before and after",
+        "redirects to the higher-value fix on this table: the mandatory snapshot-date filter, stated in the table comment so a querying agent reads it"
+      ],
+      "expect_fail": [
+        "adds the clustering key without discussing maintenance credits or table size"
+      ]
+    }
+  ]
+}

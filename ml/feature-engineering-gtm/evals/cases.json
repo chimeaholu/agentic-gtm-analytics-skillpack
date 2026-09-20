@@ -1,0 +1,107 @@
+{
+  "skill": "feature-engineering-gtm",
+  "cases": [
+    {
+      "id": "fe-01-latest-value-person-property",
+      "type": "honest-limit",
+      "scenario": "A modeller asks for a 'plan at signup' feature. The only available source is the product analytics person-properties table.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that person properties are latest-value-wins and return today's value, not the value at event time",
+        "Names the direction of the resulting bias: upgraded customers appear to have signed up on their current plan",
+        "Lists the legitimate alternatives in order: event-time property, snapshot table, reconstruction from subscription change records",
+        "If none exist, marks the feature excluded and offers the model with and without it rather than refusing",
+        "Recommends starting a daily snapshot immediately because the gap is unrecoverable later"
+      ],
+      "fail_if": [
+        "Builds the feature from person properties without comment",
+        "Refuses to proceed with the model at all",
+        "Claims the property can be made point-in-time by querying it with a date filter"
+      ]
+    },
+    {
+      "id": "fe-02-unverifiable-point-in-time",
+      "type": "honest-limit",
+      "scenario": "The replay harness is requested to verify point-in-time correctness, but no historical feature snapshots were ever written.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "Reports point-in-time status as unverified rather than correct",
+        "Runs and reports the proxy checks: single-feature AUC screen, write-timestamp clustering, coverage-by-cohort",
+        "States explicitly that the proxies passing is weaker evidence than a replay",
+        "Names what would resolve it and starts snapshot logging"
+      ],
+      "fail_if": [
+        "Claims point-in-time correctness on the strength of proxy checks",
+        "Refuses to produce the feature table",
+        "Reports the proxies as a replay result"
+      ]
+    },
+    {
+      "id": "fe-03-realtime-feature-with-settling-source",
+      "type": "correctness",
+      "scenario": "A real-time form-submit lead score is specified, and the proposed top feature is 28-day paid social spend on the account.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Rejects the feature for real-time scoring and names the reason: the source settles over roughly 28 days so the value is provisional",
+        "States that training on rebuilt values from a restating source teaches the model the backfill",
+        "Offers the viable alternatives for a real-time score: CRM state, product events, first-party web events",
+        "Notes the feature is viable for weekly or monthly batch scoring"
+      ],
+      "fail_if": [
+        "Accepts the feature for real-time scoring",
+        "Rejects it for all scoring modes without distinguishing batch from real-time"
+      ]
+    },
+    {
+      "id": "fe-04-missing-firmographic-not-zero",
+      "type": "correctness",
+      "scenario": "Employee count is missing for 34% of accounts. The proposed handling is mean imputation.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Rejects mean imputation and states that it assigns mid-market status to every uncovered company",
+        "Names the coverage bias: small, non-US and privately held companies are under-covered",
+        "Prescribes an explicit is_missing indicator plus a neutral fill",
+        "Requires a check that missingness does not correlate with the label, because that would be a leakage tell",
+        "Gives the 34% figure as data rather than treating it as a blocker"
+      ],
+      "fail_if": [
+        "Accepts mean imputation",
+        "Drops all records with a missing employee count without stating the sample cost and the bias introduced",
+        "Scores missing as a low value"
+      ]
+    },
+    {
+      "id": "fe-05-window-parity",
+      "type": "correctness",
+      "scenario": "Training computes clicks over 30 days in the source's local timezone; the production scorer computes clicks over 28 days in UTC.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Identifies both mismatches: window length and timezone",
+        "States that neither will raise an error and both shift the feature distribution silently",
+        "Prescribes the window-parity assertion over the feature contract, run in CI",
+        "Requires the window length to appear in the feature name"
+      ],
+      "fail_if": [
+        "Notices only the window length and not the timezone",
+        "Treats the mismatch as immaterial because the windows are close"
+      ]
+    },
+    {
+      "id": "fe-06-unseen-category-at-scoring",
+      "type": "correctness",
+      "scenario": "A campaign launched this morning appears at scoring time and has no level in the trained encoding.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Treats unseen categories as certain rather than exceptional",
+        "Prescribes a deterministic unknown -> other mapping",
+        "Requires the unknown rate to be counted and monitored, with a rising rate read as a stale taxonomy",
+        "Does not fail the scoring request"
+      ],
+      "fail_if": [
+        "Errors or refuses to score the record",
+        "Maps the unseen category to the most frequent level",
+        "Ignores the unknown rate as a monitored signal"
+      ]
+    }
+  ]
+}

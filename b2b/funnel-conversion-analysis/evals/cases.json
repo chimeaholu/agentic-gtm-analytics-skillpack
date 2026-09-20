@@ -1,0 +1,131 @@
+{
+  "skill": "funnel-conversion-analysis",
+  "cases": [
+    {
+      "id": "fca-01-snapshot-mislabelled",
+      "type": "annotated_answer",
+      "prompt": "Our SQL-to-opportunity rate went from 29% to 41% this month. What did we do right?",
+      "setup": "Both figures are current-stage counts at the two month-ends. No stage history is available.",
+      "expect_pass": [
+        "identifies the figures as snapshot occupancy ratios, not conversion rates, because both sides are observed at the same instant",
+        "names the alternative explanation concretely: the ratio rises when the SQL stage drains, for example when volume fell or sales cleared a backlog, with no conversion change",
+        "gives the diagnostic: snapshot stage counts sum to the population, cohort counts do not",
+        "states what a cohorted rate would need and that it is unavailable here",
+        "says what the snapshot is legitimately good for: where work is sitting, capacity and coverage"
+      ],
+      "expect_fail": [
+        "explains the increase as improved conversion",
+        "refuses to engage with the numbers at all"
+      ]
+    },
+    {
+      "id": "fca-02-immature-cohort-lower-bound",
+      "type": "honest-limit",
+      "prompt": "Conversion is falling: 16.8%, 14.2%, 9.1% over the last three cohorts. How bad is it?",
+      "setup": "Conversion window is 45 days. The three cohorts closed 90, 40 and 12 days ago.",
+      "expected_result_type": "lower_bound",
+      "expect_pass": [
+        "checks cohort maturity against the window before diagnosing anything",
+        "states that only the first cohort is mature, and that the second and third rates can only rise",
+        "labels the two recent figures as lower bounds rather than rates",
+        "offers the valid comparison: all three cohorts truncated to a common horizon, for example day 12",
+        "does not drop the immature cohorts from the output"
+      ],
+      "expect_fail": [
+        "reports a three-period decline",
+        "removes the immature cohorts and reports only the mature one",
+        "reports the figures as final rates with a generic freshness caveat"
+      ]
+    },
+    {
+      "id": "fca-03-mix-shift-decomposed",
+      "type": "annotated_answer",
+      "prompt": "Inquiry to MQL dropped from 16.3% to 13.7%. Is the scoring model broken?",
+      "setup": "Paid-list share of inquiries rose from 18% to 34%. Paid list converts near 4%, inbound near 19%. Both cohorts are mature.",
+      "expect_pass": [
+        "decomposes the change into mix, rate and interaction terms before offering any cause",
+        "reports that mix accounts for the large majority of the decline and within-segment rate change for very little",
+        "states that inbound performance is effectively flat",
+        "answers the question asked: the scoring model is not the indicated cause, and says what would indicate it",
+        "gives the inbound-only series as the number to use for a scoring decision"
+      ],
+      "expect_fail": [
+        "attributes the decline to the scoring model",
+        "reports the blended decline without decomposing",
+        "asserts a mix explanation without computing the decomposition terms"
+      ]
+    },
+    {
+      "id": "fca-04-sal-not-instrumented",
+      "type": "honest-limit",
+      "prompt": "Split our MQL-to-SQL drop-off into leads sales rejected versus leads sales never touched.",
+      "setup": "No SAL acceptance event exists: no status value, no task type, no timestamp.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "returns unavailable for the split and names the missing instrumentation as the finding",
+        "states that rejected and untouched have opposite fixes, so the blended rate averages two different problems",
+        "names the resolving change concretely: a lead status value or a task type logged on acceptance",
+        "offers the computable proxy with its bias named: leads with zero logged sales activity are a floor on untouched, understated by however much activity capture misses",
+        "does not fabricate the split from available fields"
+      ],
+      "expect_fail": [
+        "produces a rejected-versus-untouched split from proxy fields without flagging that the distinction is not instrumented",
+        "returns unavailable and offers nothing computable"
+      ]
+    },
+    {
+      "id": "fca-05-small-n-interval-not-withheld",
+      "type": "annotated_answer",
+      "prompt": "Which rep has the best MQL-to-opportunity conversion?",
+      "setup": "The top rep by rate has 4 MQLs and 3 conversions (75%). The next has 140 MQLs at 22%.",
+      "expect_pass": [
+        "gives the 75% figure rather than suppressing it",
+        "attaches the interval, showing that 3 of 4 supports a range roughly from 30% to 95%",
+        "states the minimum n it uses for a reportable point estimate and that this cell is below it",
+        "names the rep with adequate volume as the defensible answer to the question asked",
+        "explains in one sentence why the thin cell cannot be ranked against the thick one"
+      ],
+      "expect_fail": [
+        "ranks the 4-MQL rep first with no interval",
+        "refuses to report the thin cell at all",
+        "silently drops the thin cell from the ranking"
+      ]
+    },
+    {
+      "id": "fca-06-definition-change-in-window",
+      "type": "honest-limit",
+      "prompt": "Chart MQL volume and MQL-to-SQL for the last 18 months.",
+      "setup": "The MQL scoring threshold was lowered on 14 March, inside the window. MQL volume rose 40% after that date and MQL-to-SQL fell.",
+      "expect_pass": [
+        "marks the definition change date on the series rather than charting through it",
+        "states that the trendline crossing the change is not a trend, because the two sides count different populations",
+        "identifies rising count with falling downstream rate as the signature of a lowered threshold",
+        "gives each side of the change as its own series and compares only within a side",
+        "reports count and downstream rate together rather than either alone"
+      ],
+      "expect_fail": [
+        "charts 18 continuous months and describes the shape as a trend",
+        "reports MQL volume growth as a performance improvement",
+        "drops the pre-change period without saying why"
+      ]
+    },
+    {
+      "id": "fca-07-truncated-extraction",
+      "type": "honest-limit",
+      "prompt": "Build the funnel from this Salesforce report.",
+      "setup": "The report API returned 2,000 detail rows with allData false. The report's grand totals reflect the full result set.",
+      "expect_pass": [
+        "reads allData and identifies the detail rows as truncated while the aggregates are complete",
+        "states that a funnel built on the truncated rows is wrong in a consistent direction and is not a lower bound on every cell, because truncation is by report order not at random",
+        "declines to build stage counts from the truncated rows",
+        "names the correct route: Bulk API 2.0 against the underlying objects, or narrowing the report with filters",
+        "reports the aggregate totals that are trustworthy, labelled as such"
+      ],
+      "expect_fail": [
+        "builds the funnel from 2,000 rows without flagging truncation",
+        "describes the truncated counts as a lower bound with no further caveat",
+        "discards the entire report including the valid aggregates"
+      ]
+    }
+  ]
+}

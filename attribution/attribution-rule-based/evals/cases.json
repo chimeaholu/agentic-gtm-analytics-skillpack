@@ -1,0 +1,140 @@
+{
+  "skill": "attribution-rule-based",
+  "cases": [
+    {
+      "id": "arb-01-cross-platform-unavailable",
+      "type": "refusal",
+      "prompt": "Run last-touch attribution across our ad platforms, web analytics and CRM and tell me which channel drives revenue.",
+      "setup": "Touchpoints span three source systems. No identity resolution exists; the only shared field is email address, present on 41% of web sessions.",
+      "expect_pass": [
+        "returns a typed unavailable scoped to cross_platform_journey rather than producing a number",
+        "names identity-resolution and journey-assembler as the missing prerequisites, in that order",
+        "explicitly refuses to concatenate the three sources by timestamp or to join on email alone",
+        "still delivers what is available: per-source rule-based attribution run independently, each labelled with its own identity basis and coverage",
+        "offers the cross-source annotated total under comparability-rules with the overlap named as unquantified",
+        "names the resolving change: a person or account key present in all three sources with a reported match rate"
+      ],
+      "expect_fail": [
+        "stitches the three sources into one journey and reports channel credit",
+        "joins on email address and presents the result as an assembled journey",
+        "returns nothing because the cross-platform version is unavailable"
+      ]
+    },
+    {
+      "id": "arb-02-single-model-requested",
+      "type": "annotated_answer",
+      "prompt": "Just give me the last-touch numbers, I don't need all the models.",
+      "expect_pass": [
+        "gives the last-touch column, first and plainly, without a fight",
+        "adds the spread in one or two sentences because it is already computed",
+        "names last-touch's specific bias: it overcredits harvest channels, branded search, retargeting, email and Direct",
+        "identifies which channels in this particular result are most sensitive to that bias",
+        "says when last-touch alone is fine: short single-session journeys, or a trend check on the same model over time"
+      ],
+      "expect_fail": [
+        "refuses to give last-touch until the user agrees to look at all eight",
+        "gives last-touch with no indication that other models disagree materially",
+        "buries the requested number under a paragraph of caveats"
+      ]
+    },
+    {
+      "id": "arb-03-below-volume-floor",
+      "type": "annotated_answer",
+      "prompt": "Which channel should we cut? Here are last month's conversions.",
+      "setup": "184 conversions in the period across six channels.",
+      "expect_pass": [
+        "reports last-non-direct only and states the ~200-conversion floor as the reason",
+        "still answers the question rather than withholding: names the top channel as robust and the tail as effectively tied",
+        "applies the per-channel floor, giving counts rather than shares for channels under about 30 credited conversions",
+        "offers the better route: pool three months, at the stated cost of mixing seasons",
+        "does not present a spread table built on this volume"
+      ],
+      "expect_fail": [
+        "runs all eight models and reports their disagreement as a finding",
+        "declines to name any channel because volume is low",
+        "ranks the tail channels against each other"
+      ]
+    },
+    {
+      "id": "arb-04-first-touch-without-backfill",
+      "type": "annotated_answer",
+      "prompt": "First-touch says organic search is our biggest channel. Should we double down on SEO?",
+      "setup": "The touchpoint source retains 90 days of history. The median journey length is 64 days and 38% of first touches fall within one day of the retention boundary.",
+      "expect_pass": [
+        "flags that 38% of first touches sit at the retention boundary, so those are earliest retained touches, not first touches",
+        "states the direction of the error: whichever channel sits at the boundary is systematically over-credited, and organic is the likely beneficiary because it is the highest-frequency early channel",
+        "still reports organic's credit under the other models and notes whether the conclusion survives them",
+        "names the resolving change: extend history retention or reconstruct earlier touches from a warehouse export",
+        "does not endorse the doubling-down decision on first-touch alone"
+      ],
+      "expect_fail": [
+        "accepts the first-touch ranking at face value",
+        "refuses to give any number because backfill is incomplete"
+      ]
+    },
+    {
+      "id": "arb-05-half-life-sensitivity",
+      "type": "annotated_answer",
+      "prompt": "Use time-decay attribution. That's the one our agency recommends.",
+      "expect_pass": [
+        "runs it, and runs the half-life sweep at 1, 3, 7, 14 and 30 days by default",
+        "reports each channel's credit range across the sweep",
+        "states that the 7-day half-life is convention rather than anything derived from this business",
+        "explains that time-decay is a dial between last-touch and linear and that the half-life sets the dial",
+        "separates channels whose share is stable across the sweep from those that move materially, and treats only the stable ones as findings"
+      ],
+      "expect_fail": [
+        "reports a single time-decay column at H=7 with no sensitivity",
+        "picks a half-life that makes the result look cleanest and does not say so"
+      ]
+    },
+    {
+      "id": "arb-06-milestone-missing",
+      "type": "annotated_answer",
+      "prompt": "Run W-shaped attribution on last quarter's pipeline.",
+      "setup": "Lead-creation timestamps exist on all opportunities. Opportunity-creation timestamps are missing on 39% of them.",
+      "expect_pass": [
+        "runs W-shaped on the 61% with complete stamps and reports that coverage explicitly",
+        "returns not_applicable for the 39%, with the missing milestone named, rather than substituting the nearest touch",
+        "either restricts the other models to the same 61% subset for the side-by-side comparison, or reports W-shaped in a separate block with its coverage stated",
+        "notes that the 61% is not a random sample if stamp completeness correlates with deal type or rep",
+        "states that a change to the lead-creation definition restates the whole history"
+      ],
+      "expect_fail": [
+        "imputes the opportunity-creation milestone from the nearest touch",
+        "places a 61%-coverage W-shaped column beside a 100%-coverage linear column with no coverage statement",
+        "abandons the analysis"
+      ]
+    },
+    {
+      "id": "arb-07-credit-read-as-people",
+      "type": "annotated_answer",
+      "prompt": "Email got 0.4 credit on 300 journeys, so that's 120 customers from email. What's our email conversion rate?",
+      "expect_pass": [
+        "says the 120 is allocated credit, not 120 people, and that no 120 identifiable customers exist",
+        "declines to divide credit by a population to produce a conversion rate, and explains in one sentence why the resulting figure has no referent",
+        "offers the two numbers that do exist: the count of conversions with any email touch, and the count with email as last touch",
+        "notes these two bracket the honest range and gives both"
+      ],
+      "expect_fail": [
+        "computes an email conversion rate from fractional credit",
+        "describes 120 as customers acquired by email"
+      ]
+    },
+    {
+      "id": "arb-08-revenue-fanout",
+      "type": "refusal",
+      "prompt": "Our channel revenue table sums to more than our actual revenue. Scale it down proportionally so it ties out.",
+      "expect_pass": [
+        "refuses the proportional scaling and names it as hiding a join defect rather than fixing one",
+        "identifies the likely causes: a fan-out join of touches to deals, duplicated milestone stamps, or one journey appearing under two conversions",
+        "gives the reconciliation check that localises it: allocated revenue must equal conversion revenue to floating-point tolerance, per model, per window",
+        "states the correct rule: a monetary amount is split across touches by model weight and never multiplied across them"
+      ],
+      "expect_fail": [
+        "applies the scaling factor",
+        "reports the scaled table as reconciled"
+      ]
+    }
+  ]
+}

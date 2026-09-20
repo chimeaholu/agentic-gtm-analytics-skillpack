@@ -1,0 +1,135 @@
+{
+  "skill": "win-loss-analysis",
+  "cases": [
+    {
+      "id": "wla-01-four-denominators",
+      "type": "annotated_answer",
+      "prompt": "What's our win rate?",
+      "setup": "CRM has a Closed - No Decision stage value. Four quarters of closed history. Deal sizes range widely.",
+      "expect_pass": [
+        "gives a headline number rather than asking which denominator first",
+        "names the denominator used for the headline figure",
+        "computes and shows the created-cohort figure alongside, with its maturity or open share stated",
+        "computes the including-no-decision figure, since the value exists",
+        "computes the dollar-weighted figure and reads the gap against the count-weighted one",
+        "says which figure to use for which purpose"
+      ],
+      "expect_fail": [
+        "returns a single number with no denominator named",
+        "asks the user to choose a denominator instead of answering",
+        "reports the close-date figure as the win rate with no mention of its bias"
+      ]
+    },
+    {
+      "id": "wla-02-no-decision-value-absent",
+      "type": "honest-limit",
+      "prompt": "How many deals did we lose to a competitor versus just not getting a decision?",
+      "setup": "The CRM has only Closed Won and Closed Lost. Loss reason free text sometimes mentions 'no decision' or 'stalled'.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "returns unavailable for the no-decision split as a measured figure, because no no-decision value exists",
+        "states that bucketing no-decision as lost inflates the loss rate and distorts the competitive read",
+        "names the resolving change: a closed-reason or stage value for no decision",
+        "offers the free-text inference as a computable estimate only with the rule stated and an error rate sampled, and says the estimate is not the measurement",
+        "reports the competitive loss figures that are computable, with their coverage rate"
+      ],
+      "expect_fail": [
+        "classifies free text into no-decision and reports it as a measured split",
+        "reports a competitive loss rate without flagging that no-decision deals are inside the denominator",
+        "returns unavailable and offers no estimate at all"
+      ]
+    },
+    {
+      "id": "wla-03-loss-reason-coverage",
+      "type": "annotated_answer",
+      "prompt": "Price is our top loss reason at 46%. Should we cut prices?",
+      "setup": "Loss reason is populated on 41% of closed-lost deals. Discount data shows similar discounting on won and lost deals. Losses cluster at proposal stage in enterprise.",
+      "expect_pass": [
+        "reports the 41% coverage before discussing the distribution, and states that the 46% describes the populated subset",
+        "states the known bias toward price and that the unpopulated remainder is not random",
+        "runs or names the corroboration: discount distribution on won versus lost, and win rate by deal-size band",
+        "reports that the discount evidence does not support a price story and says so plainly",
+        "points at the stage-at-loss concentration as the stronger signal and what it indicates",
+        "answers the question asked with a direction rather than deferring"
+      ],
+      "expect_fail": [
+        "recommends a price cut from the reason distribution",
+        "reports 46% with no coverage figure",
+        "dismisses the loss reason field entirely without extracting what it does tell you"
+      ]
+    },
+    {
+      "id": "wla-04-competitor-field-thin",
+      "type": "honest-limit",
+      "prompt": "We win 61% against Competitor X. Can I put that in the sales deck?",
+      "setup": "Competitor field is populated on 28% of closed deals. The 61% is computed over 23 deals.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "reports the 28% coverage and the n of 23 before addressing the claim",
+        "gives the Wilson interval around 61% at n=23 rather than only the point estimate",
+        "names the selection bias direction: reps record the competitor more reliably on wins, so the observed rate is likely optimistic",
+        "names the second selection effect: deals lost before the competitor becomes visible are absent entirely",
+        "gives a defensible way to state it publicly, or says plainly that it should not be stated as a fact, and names what would make it defensible"
+      ],
+      "expect_fail": [
+        "endorses 61% for external use with no caveat",
+        "refuses to give any figure",
+        "gives the figure with a vague 'small sample' note and no interval or bias direction"
+      ]
+    },
+    {
+      "id": "wla-05-close-date-bias",
+      "type": "annotated_answer",
+      "prompt": "Win rate jumped from 22% to 31% this quarter. What changed?",
+      "setup": "Close-date basis. The quarter closed an unusually high share of SMB deals, which have short cycles and higher win rates. Created-cohort rates are flat.",
+      "expect_pass": [
+        "decomposes the movement into mix and within-segment rate before offering a cause",
+        "identifies segment or cycle-length mix as the driver and reports the within-segment rates as flat",
+        "explains the mechanism: long deals land in later periods, so a close-date win rate partly measures what happened to close",
+        "gives the created-cohort series as the one that answers the question asked",
+        "does not report a performance improvement"
+      ],
+      "expect_fail": [
+        "attributes the increase to improved selling",
+        "reports the increase without decomposition",
+        "asserts a mix explanation without computing the decomposition"
+      ]
+    },
+    {
+      "id": "wla-06-multicurrency-dollar-weighted",
+      "type": "honest-limit",
+      "prompt": "Give me the dollar-weighted win rate.",
+      "setup": "Salesforce multi-currency org. Deals carry three currencies. The extraction used Bulk API, returning Amount plus CurrencyIsoCode with no conversion.",
+      "expect_pass": [
+        "flags that summing raw Amount across currencies produces a number that matches no report",
+        "states that report-API figures are converted at org rates while Bulk figures are not, and that the two must not be mixed in one calculation",
+        "gives the converted dollar-weighted rate with the conversion rate and its date stated, or gives the count-weighted rate and says why conversion was not possible",
+        "reports the currency mix in the population",
+        "delivers a usable answer rather than stopping at the caveat"
+      ],
+      "expect_fail": [
+        "sums raw Amount across currencies and reports the result",
+        "refuses to produce any dollar-weighted figure",
+        "converts silently without stating the rate or its date"
+      ]
+    },
+    {
+      "id": "wla-07-recreated-deals-double-count",
+      "type": "annotated_answer",
+      "prompt": "Our created-cohort win rate looks worse every quarter. Is the funnel degrading?",
+      "setup": "Sales ops began re-creating stalled deals as new opportunities two quarters ago rather than reopening them. Original deals are closed-lost.",
+      "expect_pass": [
+        "checks cohort composition for duplicates before accepting a degradation story",
+        "names the pattern to look for: same account, similar amount, a closed-lost followed shortly by a new create",
+        "explains the arithmetic: a re-created deal adds a loss to the old cohort and a new record to the new one, pushing the cohort rate down on both",
+        "reports the suspected duplicate count rather than silently deduplicating",
+        "gives the recomputed rate with duplicates collapsed, labelled as an adjusted view, alongside the raw one"
+      ],
+      "expect_fail": [
+        "reports a degrading funnel",
+        "deduplicates silently and reports only the adjusted figure",
+        "dismisses the pattern without quantifying it"
+      ]
+    }
+  ]
+}

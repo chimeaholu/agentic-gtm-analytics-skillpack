@@ -1,0 +1,131 @@
+{
+  "skill": "pipeline-forecast",
+  "cases": [
+    {
+      "id": "pf-01-crm-default-probabilities",
+      "type": "annotated_answer",
+      "prompt": "Weighted pipeline says we'll do 6.1M this quarter. Is that right?",
+      "setup": "The 6.1M uses Opportunity.Probability, which carries the stage defaults set at implementation four years ago. Six quarters of closed deals are available.",
+      "expect_pass": [
+        "gives the 6.1M figure and states what it is built on before critiquing it",
+        "identifies the stage probabilities as CRM configuration defaults rather than measurements",
+        "recalibrates from closed history and shows both numbers side by side",
+        "names the direction of error from the recalibration rather than saying it may be inaccurate",
+        "notes the two further assumptions weighted pipeline makes: everything closes in period, and a stale deal weighs the same as a fresh one",
+        "gives the run-rate baseline alongside"
+      ],
+      "expect_fail": [
+        "reports 6.1M without identifying the probability source",
+        "refuses to give a number until probabilities are recalibrated"
+      ]
+    },
+    {
+      "id": "pf-02-no-snapshot-table",
+      "type": "honest-limit",
+      "prompt": "Forecast using stage-conversion cohorts.",
+      "setup": "No fact_opportunity_snapshot exists. OpportunityHistory was enabled eight months ago and covers stage changes only since then.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "states that cohorted stage conversion needs stage history or snapshots and that history begins eight months ago",
+        "computes the cohorted model on the available eight months and labels the window explicitly",
+        "states the direction of the limitation: eight months may not cover a full sales cycle, so late-stage cohorts are incomplete and their terminal rates are lower bounds",
+        "delivers recalibrated weighted pipeline as the method with adequate history, plus run-rate",
+        "names daily snapshotting as the change that unlocks the better method"
+      ],
+      "expect_fail": [
+        "computes stage conversion from the current-stage field and does not flag that skipped and reversed stages are invisible",
+        "returns unavailable with no forecast at all"
+      ]
+    },
+    {
+      "id": "pf-03-timeseries-refusal-small-n",
+      "type": "honest-limit",
+      "prompt": "Fit a seasonal time-series model to our quarterly bookings and forecast next quarter.",
+      "setup": "12 quarters of bookings history. B2B enterprise motion.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "refuses the seasonal time-series fit and gives the reason: a yearly seasonal term needs several full cycles and three is not several",
+        "notes that time series ignores pipeline, which is the leading indicator in B2B",
+        "warns that library defaults such as Prophet's changepoint prior will fit this series and produce a confident but unreliable result",
+        "delivers run-rate with a seasonal index alongside, labelled as indicative, plus a pipeline-based method",
+        "states what would make time series appropriate: roughly 36 or more observations, which means a monthly or weekly series"
+      ],
+      "expect_fail": [
+        "fits the model and reports a point forecast",
+        "fits the model with a generic accuracy caveat and no refusal",
+        "refuses and offers no alternative forecast"
+      ]
+    },
+    {
+      "id": "pf-04-backtest-leakage-detected",
+      "type": "honest-limit",
+      "prompt": "Our backtest says the win-probability model is 94% accurate. Should we forecast on it?",
+      "setup": "Training features include days_since_last_activity and stage, both taken from current-state records rather than from snapshots as of the forecast date.",
+      "expect_pass": [
+        "identifies feature leakage as the likely explanation before accepting the accuracy figure",
+        "names the specific leaking features: activity recency and stage read from the closed record rather than as of the forecast date",
+        "gives the diagnostic: plot error by period age, where a genuine backtest shows no systematic relationship and a leaking one gets better on older periods",
+        "states that the fix is building the training set from snapshots restricted to what was knowable at the as-of date",
+        "states that the 94% figure cannot be relied on until the rebuild, and gives the run-rate and calibrated weighted pipeline as what the forecast should use meanwhile"
+      ],
+      "expect_fail": [
+        "accepts 94% and recommends forecasting on the model",
+        "dismisses the model entirely without naming the specific defect or the fix"
+      ]
+    },
+    {
+      "id": "pf-05-range-not-point",
+      "type": "annotated_answer",
+      "prompt": "Just give me one number for the quarter.",
+      "setup": "Eight quarters of backtest available; the method's historical MAPE at this day-of-period is 11% with a +4% bias.",
+      "expect_pass": [
+        "gives the single central figure that was asked for, bias-corrected, without arguing first",
+        "attaches the range derived from the backtest error distribution in the same breath",
+        "states the historical MAPE and bias as the source of the range, not an assumption",
+        "names the one or two deals or assumptions that move the number most",
+        "gives the run-rate benchmark"
+      ],
+      "expect_fail": [
+        "refuses to give a single number",
+        "gives the single number with no range and no accuracy history",
+        "gives a range whose width is asserted rather than derived"
+      ]
+    },
+    {
+      "id": "pf-06-no-history-new-segment",
+      "type": "honest-limit",
+      "prompt": "Forecast bookings for the new mid-market segment we launched last month.",
+      "setup": "One month of activity, 11 opportunities created, zero closed.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "states that no closed deals exist in the segment, so no win rate, cycle length or stage probability can be measured for it",
+        "declines to present a forecast and says why a forecast requires comparable history",
+        "offers a scenario range built on the adjacent segment's rates, explicitly labelled a plan rather than a forecast, with the borrowed rates named",
+        "names the direction of likely error: a new segment usually converts worse and slower than an established one while the motion is learned",
+        "states the concrete trigger for a real forecast: enough closed deals to calibrate, and names roughly how many"
+      ],
+      "expect_fail": [
+        "produces a forecast with a confidence level from 11 open opportunities",
+        "applies the enterprise segment's stage probabilities without flagging them as borrowed",
+        "returns unavailable and offers nothing to plan with"
+      ]
+    },
+    {
+      "id": "pf-07-rep-rollup-day-mismatch",
+      "type": "annotated_answer",
+      "prompt": "Roll up the rep commits — it comes to 5.8M.",
+      "setup": "Commits were submitted on day 15. The available per-rep calibration factors were computed from day-75 commits in prior quarters.",
+      "expect_pass": [
+        "flags that the calibration factors and the commits are from different points in the period and are not comparable",
+        "explains that commit and coverage both move mechanically through a period, so a day-75 factor applied to a day-15 commit misstates the correction",
+        "gives the raw roll-up as asked, notes that raw rep forecasts typically run wide at the individual level, and gives the team-level calibration as the usable correction",
+        "names what is needed: commit history snapshotted at comparable day-of-period",
+        "notes that forecast-category definitions can differ between managers and that calibration only partly absorbs this"
+      ],
+      "expect_fail": [
+        "applies the day-75 factors to day-15 commits and reports the result as calibrated",
+        "reports 5.8M with no calibration discussion"
+      ]
+    }
+  ]
+}

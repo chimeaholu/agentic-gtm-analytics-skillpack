@@ -1,0 +1,143 @@
+{
+  "skill": "anomaly-detection",
+  "cases": [
+    {
+      "id": "ad-01-pipeline-failure-not-business-decline",
+      "type": "honest-limit",
+      "scenario": "Revenue shows a 90% drop for yesterday. The ingest job for the orders source has not completed since the previous morning.",
+      "expected_result_type": "unavailable",
+      "pass_if": [
+        "Checks pipeline health before interpreting the metric movement",
+        "Fires a pipeline alert to the data owner, not a metric alert to the revenue owner",
+        "Reports the metric as unavailable for the affected window rather than as a 90% decline",
+        "Gives the last good value and its date",
+        "Suppresses the metric alert while the pipeline alert is active"
+      ],
+      "fail_if": [
+        "Reports a 90% revenue decline as a business result",
+        "Fires both alerts at equal severity to the same channel",
+        "Records the affected period as zero revenue",
+        "Investigates segments for a business cause before checking whether data arrived"
+      ]
+    },
+    {
+      "id": "ad-02-prior-spike-does-not-mask",
+      "type": "correctness",
+      "scenario": "A 14-day history of a metric that sits near 100 daily, containing one prior spike of 400. Today's value is 40.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Uses median and MAD rather than mean and standard deviation",
+        "Flags today's value as anomalous",
+        "States that a mean-and-sigma detector would not have flagged it, because the prior spike inflated the standard deviation"
+      ],
+      "fail_if": [
+        "Computes a mean-based z-score and concludes the value is within range",
+        "Excludes the prior spike by hand without a stated rule",
+        "Reports no anomaly"
+      ]
+    },
+    {
+      "id": "ad-03-mad-zero-not-infinite",
+      "type": "honest-limit",
+      "scenario": "A metric has been exactly 40 every day for 30 days. Today it is 41. MAD is 0.",
+      "expected_result_type": "unavailable",
+      "pass_if": [
+        "Returns the robust z-score as undefined rather than infinite",
+        "Falls back to an absolute-change rule and labels the alert as using the fallback method",
+        "Does not emit a critical alert for a one-unit change",
+        "Notes that a perfectly constant metric is itself worth a look, since it often indicates a stuck source"
+      ],
+      "fail_if": [
+        "Divides by zero and emits an infinite or maximum-severity z-score",
+        "Returns 0 as the z-score",
+        "Crashes the evaluation run"
+      ]
+    },
+    {
+      "id": "ad-04-restatement-window-excluded",
+      "type": "honest-limit",
+      "scenario": "Daily monitoring is requested on conversions from an ad platform that back-fills conversions for up to 90 days and settles over roughly 28.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Excludes the restatement window from metric detection and names the evaluation lag",
+        "States plainly that detection latency equals the settlement window for this source",
+        "Offers pipeline-health monitoring at one-day latency as the thing that can be fast",
+        "Offers the restatement-adjusted series — comparing today's D-1 value against historical D-1-as-observed values — as the route to faster detection",
+        "Does not promise next-day detection of genuine metric movement on this source"
+      ],
+      "fail_if": [
+        "Sets up daily detection on the unsettled window and accepts daily false alerts",
+        "Claims next-day anomaly detection on a source that settles over 28 days",
+        "Recommends waiting 28 days with no faster alternative offered"
+      ]
+    },
+    {
+      "id": "ad-05-low-count-metric",
+      "type": "honest-limit",
+      "scenario": "A conversion-count metric averages 3 per day. Today it is 0. A z-score threshold is requested.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that a normal-approximation z-score is the wrong tool at this volume",
+        "Computes the Poisson tail probability and reports that 0 is not significant against a mean of 3",
+        "Offers aggregation to a weekly grain as the practical alternative",
+        "Notes that a min_volume floor should suppress rate alerts on segments this small"
+      ],
+      "fail_if": [
+        "Reports a 100% drop as a significant anomaly",
+        "Applies a z-score threshold that can never fire on the downside without saying so",
+        "Refuses to give any assessment of whether today's zero is unusual"
+      ]
+    },
+    {
+      "id": "ad-06-segment-definition-change",
+      "type": "honest-limit",
+      "scenario": "A confirmed anomaly decomposes to a single channel segment that fell 100%. A UTM taxonomy change shipped the same week, renaming that channel value.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Checks whether the segment definition changed before concluding the segment moved",
+        "Identifies the renamed value and reports the volume as having moved between labels, not disappeared",
+        "Uses a full outer join so the vanished and newly appeared segments are both visible",
+        "Reports the whole-business figure, which is unaffected"
+      ],
+      "fail_if": [
+        "Reports that the channel stopped performing",
+        "Uses an inner join, so the new segment label is invisible",
+        "Escalates to the channel owner for a business investigation"
+      ]
+    },
+    {
+      "id": "ad-07-alert-with-no-owner-refused",
+      "type": "refusal",
+      "scenario": "A request to set up alerting on twenty metrics, with no owner or action defined for any of them.",
+      "expected_result_type": "refusal",
+      "pass_if": [
+        "Declines to create alerts with no owner and no action, and explains that an alert with neither is a notification that gets muted",
+        "Proposes starting with the two or three metrics somebody will actually act on",
+        "Requires a role rather than a person's name as the owner",
+        "Sets up the pipeline-health suite regardless, since it has an inherent owner and an inherent action"
+      ],
+      "fail_if": [
+        "Creates twenty unowned alerts",
+        "Defers the whole request until the owner list arrives, delivering nothing",
+        "Assigns an arbitrary owner to satisfy the schema"
+      ]
+    },
+    {
+      "id": "ad-08-threshold-calibrated-to-budget",
+      "type": "annotated_answer",
+      "scenario": "Monitoring is being expanded from 10 metrics to 200 at the same per-metric threshold.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that false alerts scale with the number of evaluations, so the threshold must tighten",
+        "Gives the corrected threshold for the alert budget",
+        "Backtests the detector over recent history and reports how many times it would have fired",
+        "Recommends against enabling if the backtest count exceeds what a human will read"
+      ],
+      "fail_if": [
+        "Applies the same threshold at 20x the metric count with no adjustment",
+        "Enables all 200 without a backtest",
+        "Treats the statistical threshold as fixed regardless of the alert budget"
+      ]
+    }
+  ]
+}

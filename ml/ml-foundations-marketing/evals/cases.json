@@ -1,0 +1,107 @@
+{
+  "skill": "ml-foundations-marketing",
+  "cases": [
+    {
+      "id": "mlf-01-underpowered-answer-not-refusal",
+      "type": "honest-limit",
+      "scenario": "A team asks for a lead conversion model. The usable history contains 214 conversions across 14 months, below the 500-positive working floor.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States the positive count and the floor it sits below, with the floor named as a working rule of thumb rather than a law",
+        "Gives the detectable effect size at this sample rather than only saying 'not enough data'",
+        "Produces a usable rule-based alternative computed from the same history, with its n",
+        "Names the specific condition that changes the verdict (positives reaching the floor) and roughly when",
+        "Recommends starting point-in-time feature snapshot logging now"
+      ],
+      "fail_if": [
+        "Refuses with no number and no alternative",
+        "Builds and reports a model AUC as if it were decisive at this sample size",
+        "Presents the 500-positive floor as an absolute prohibition"
+      ]
+    },
+    {
+      "id": "mlf-02-leakage-detected-in-high-auc",
+      "type": "honest-limit",
+      "scenario": "A submitted opportunity-win model reports 0.96 test AUC. Its top feature is 'days in current stage', computed against the current date.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Identifies the result as implausible against the 0.68-0.80 prior band for this problem and says it is a prior, not a law",
+        "Names the specific leakage mechanism: recency computed against now() on a closed record measures time since close",
+        "Prescribes the ablation test and the point-in-time replay as the confirmations",
+        "States the expected honest performance range after the fix",
+        "Does not claim the model is worthless without running the check"
+      ],
+      "fail_if": [
+        "Accepts 0.96 AUC as a good result",
+        "Rejects the model outright with no diagnosis and no test",
+        "Attributes the result to overfitting generically without naming the leaking feature"
+      ]
+    },
+    {
+      "id": "mlf-03-random-split-rejected",
+      "type": "correctness",
+      "scenario": "An analyst proposes an 80/20 random split on an opportunity dataset where accounts appear multiple times.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Rejects the random split and names both failure modes: future leakage and entity leakage across the split",
+        "Prescribes a grouped temporal split with an embargo of at least one label horizon",
+        "States that the embargo exists because recent records' outcomes have not resolved and would enter as false negatives",
+        "Gives the positive-rate-by-recent-week query as the check that the embargo is sized correctly"
+      ],
+      "fail_if": [
+        "Accepts the random split",
+        "Prescribes only a temporal split without entity grouping",
+        "Omits the embargo"
+      ]
+    },
+    {
+      "id": "mlf-04-rule-beats-model",
+      "type": "correctness",
+      "scenario": "A team wants a model to prioritise a list of 40 enterprise accounts per quarter for a human-reviewed outbound programme.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Recommends against a model and names the reasons from the gate: low volume, per-case human review, explanation outweighing marginal lift",
+        "Proposes the concrete alternative: a ranked list on the known-good fields with the ranking logic stated",
+        "States the condition under which the answer would change",
+        "Does not frame the recommendation as a limitation of the tooling"
+      ],
+      "fail_if": [
+        "Proceeds to scope a model",
+        "Declines to give any prioritisation method"
+      ]
+    },
+    {
+      "id": "mlf-05-label-version-seam",
+      "type": "honest-limit",
+      "scenario": "MQL definition changed nine months into an eighteen-month training window. The user asks for a model over the full window.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Identifies that the window spans two label definitions and that training across the seam trains on two different problems",
+        "Offers both routes: restrict to the post-change window, or recompute the earlier period under the new definition from raw fields",
+        "States the cost of each route in positives available",
+        "Requires the label version to be recorded and any crossing trendline to be marked"
+      ],
+      "fail_if": [
+        "Trains across the seam without comment",
+        "Refuses to proceed at all",
+        "Treats the definition change as a data-quality problem to be cleaned rather than a modelling decision"
+      ]
+    },
+    {
+      "id": "mlf-06-accuracy-rejected",
+      "type": "correctness",
+      "scenario": "A stakeholder reports that their churn model is '97% accurate' on a 3% churn base rate.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that predicting no-churn for every record also scores 97% on this base rate, giving the number",
+        "Rejects accuracy for this problem explicitly",
+        "Names the metrics that answer the question: precision-recall, top-decile lift, calibration",
+        "Asks for the baseline comparison rather than dismissing the model"
+      ],
+      "fail_if": [
+        "Accepts the accuracy figure",
+        "Dismisses the model without showing why the metric is uninformative"
+      ]
+    }
+  ]
+}
