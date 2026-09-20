@@ -1,0 +1,113 @@
+{
+  "skill": "ml-lead-scoring",
+  "cases": [
+    {
+      "id": "mls-01-below-requirements",
+      "type": "honest-limit",
+      "scenario": "A team asks for predictive lead scoring. They have 14 months of history, 214 conversions, and the MQL definition changed at month nine.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States the requirements not met, with the actual numbers against the floors",
+        "Gives the detectable lift at this sample rather than only refusing",
+        "Recommends improving the rule-based score and names the specific improvements available",
+        "Names the condition and rough timing that changes the verdict",
+        "Recommends starting point-in-time snapshot logging now",
+        "Notes the label change means the usable window is shorter than the calendar window"
+      ],
+      "fail_if": [
+        "Builds the model anyway and reports its AUC as decisive",
+        "Refuses with no alternative and no numbers",
+        "Ignores the mid-history label change"
+      ]
+    },
+    {
+      "id": "mls-02-uncalibrated-expected-pipeline",
+      "type": "honest-limit",
+      "scenario": "Expected pipeline is computed by multiplying raw gradient-boosted scores by average deal value.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that boosted scores are pushed towards the extremes and are not probabilities",
+        "Names the direction of the error in the expected-pipeline figure",
+        "Produces a corrected estimate using observed conversion rates per score decile from the holdout",
+        "Prescribes Platt or isotonic based on the calibration-set positive count",
+        "Reports ECE and the per-bin table, noting that the top bin is the one that matters"
+      ],
+      "fail_if": [
+        "Accepts the raw multiplication",
+        "Refuses to give any expected-pipeline figure",
+        "Recommends isotonic on a small calibration set without noting the overfitting and plateau risks"
+      ]
+    },
+    {
+      "id": "mls-03-logistic-beats-adoption",
+      "type": "correctness",
+      "scenario": "Gradient boosting reaches lift 3.4x at the capacity list length; logistic regression reaches 2.9x. The difference is four conversions on the holdout. The sales leader wants to interrogate the score.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports both models with lift, positives in the top-k, and the interval",
+        "States that the difference is within the interval and therefore unproven",
+        "Recommends the logistic model and gives the adoption reasoning explicitly",
+        "Notes that an overridden model cannot be evaluated, because performance becomes a measurement of the overrides",
+        "Records the selection rationale rather than just the selection"
+      ],
+      "fail_if": [
+        "Selects boosting purely on the higher lift",
+        "Presents 2.9x versus 3.4x as decisive",
+        "Omits the raw positive counts behind the lift figures"
+      ]
+    },
+    {
+      "id": "mls-04-implausible-auc",
+      "type": "honest-limit",
+      "scenario": "A lead-to-SQL model reports 0.94 test AUC. The top feature is the CRM lifecycle stage field.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Flags 0.94 as implausible against the 0.65-0.78 band for lead-to-SQL and says the band is a prior",
+        "Identifies lifecycle stage as written by the conversion process",
+        "Prescribes the ablation test and the point-in-time replay as confirmations",
+        "States the expected honest performance after removing the leaking feature",
+        "Does not accept the 0.94 as a result"
+      ],
+      "fail_if": [
+        "Reports 0.94 as strong performance",
+        "Removes the feature with no diagnosis or test",
+        "Attributes the result to overfitting without naming the mechanism"
+      ]
+    },
+    {
+      "id": "mls-05-vendor-proprietary",
+      "type": "honest-limit",
+      "scenario": "A vendor's predictive score is under consideration. Asked for lift against the existing rule and a reliability curve, the vendor answers that the model is proprietary.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that proprietary answers the algorithm question, not the lift-on-our-data question",
+        "Specifies the evaluation to run in-house: score a resolved historical window, compare against the rule at equal list length, compute lift and reliability",
+        "States that without a reliability curve the output must be treated as a rank, not a probability, in every downstream use",
+        "Notes that a vendor beating a broken rule may not beat a fixed rule, and recommends fixing the rule before deciding",
+        "Does not dismiss the vendor on principle"
+      ],
+      "fail_if": [
+        "Accepts the vendor score without evaluation",
+        "Rejects the vendor because the model is proprietary",
+        "Skips fixing the rule before running the comparison"
+      ]
+    },
+    {
+      "id": "mls-06-threshold-from-percentile",
+      "type": "correctness",
+      "scenario": "The MQL threshold is set at the top 20% of scores. Weekly capacity is about 200 leads and weekly volume varies.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Rejects the percentile and derives the threshold from records actually worked",
+        "States that the threshold must be recomputed each cycle because the distribution moves",
+        "Computes the cost-optimal threshold where cost inputs exist and reports the gap as the finding",
+        "Proposes three bands rather than one cut"
+      ],
+      "fail_if": [
+        "Retains the top-20% rule",
+        "Sets a fixed numeric threshold with no recomputation cadence",
+        "Reports only one threshold with no gap analysis"
+      ]
+    }
+  ]
+}

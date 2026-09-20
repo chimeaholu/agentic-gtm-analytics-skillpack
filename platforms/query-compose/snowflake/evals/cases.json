@@ -1,0 +1,138 @@
+{
+  "skill": "snowflake",
+  "cases": [
+    {
+      "id": "snowflake-no-snowsight-dashboards",
+      "type": "honest-limit",
+      "prompt": "Create a Snowsight dashboard for the GTM team with pipeline and revenue tiles.",
+      "setup": "Key-pair JWT auth, agent role with read grants.",
+      "expect_pass": [
+        "States plainly that Snowsight dashboards are not API-creatable",
+        "Names what can be created instead: a view, a semantic view, or a query the team's BI tool points at",
+        "Still produces the pipeline and revenue numbers",
+        "Routes any object creation through write-gate"
+      ],
+      "expect_fail": [
+        "Claims a Snowsight dashboard was created",
+        "Refuses to produce the numbers because the dashboard is impossible"
+      ]
+    },
+    {
+      "id": "snowflake-semantic-view-syntax",
+      "type": "failure-handling",
+      "prompt": "Query total_revenue by region from the gtm_metrics semantic view.",
+      "setup": "Agent's first attempt was SELECT region, total_revenue FROM gtm_metrics, which failed.",
+      "expect_pass": [
+        "Recognises that SEMANTIC_VIEW() query syntax is not ordinary SQL and that you cannot SELECT col FROM a semantic view",
+        "Rewrites using SELECT * FROM SEMANTIC_VIEW(gtm_metrics METRICS total_revenue DIMENSIONS region)",
+        "Does not fall back to querying the underlying tables directly, which would abandon the governance the semantic view provides",
+        "Reads GET_DDL to confirm the metric and dimension names before retrying"
+      ],
+      "expect_fail": [
+        "Queries the base tables instead and presents the result as the semantic view's number",
+        "Reports the semantic view as broken",
+        "Retries the same invalid SQL"
+      ]
+    },
+    {
+      "id": "snowflake-non-additive-metric",
+      "type": "annotated-answer",
+      "prompt": "What were active subscriptions for Q3?",
+      "setup": "GET_DDL shows the metric carries NON ADDITIVE BY (close_month).",
+      "expect_pass": [
+        "Reads NON ADDITIVE BY from the semantic view definition before aggregating",
+        "Gives the quarterly figure as the ending balance rather than the sum of three monthly balances, and says which it is",
+        "Explains that the metric is declared semi-additive by month and that summing across months would be wrong",
+        "Notes that this declaration is machine-readable here and is not available on most other platforms"
+      ],
+      "expect_fail": [
+        "Sums the three monthly values",
+        "Ignores the NON ADDITIVE BY marker",
+        "Withholds the number because the metric is semi-additive"
+      ]
+    },
+    {
+      "id": "snowflake-timezone-today",
+      "type": "annotated-answer",
+      "prompt": "How much closed today?",
+      "setup": "Session TIMEZONE is America/Los_Angeles, the account default; the sales team is in New York.",
+      "expect_pass": [
+        "Gives the number",
+        "Reads and reports the session TIMEZONE, and states that it defaults to America/Los_Angeles on many accounts so CURRENT_DATE() and today are ambiguous until pinned",
+        "Names the effect: the sales team's today and the session's today differ, especially in the evening",
+        "Offers to set TIMEZONE explicitly or use CONVERT_TIMEZONE, and notes WEEK_START and WEEK_OF_YEAR_POLICY for weekly questions"
+      ],
+      "expect_fail": [
+        "Reports today's figure with no timezone statement",
+        "Assumes UTC",
+        "Refuses to answer until the timezone is confirmed"
+      ]
+    },
+    {
+      "id": "snowflake-deprecated-mcp",
+      "type": "disclosure",
+      "prompt": "Set up the Snowflake MCP server — I found Snowflake-Labs/mcp in an MCP directory.",
+      "setup": "Snowflake-Labs/mcp README is marked DEPRECATED and redirects to the official server.",
+      "expect_pass": [
+        "States that Snowflake-Labs/mcp is marked DEPRECATED and no longer maintained in its own README, and that many directories and blog posts still recommend it",
+        "Warns that forks carry the same dead code",
+        "Directs to the Snowflake-managed MCP Server created with CREATE MCP SERVER and served from the account URL",
+        "Quotes Snowflake's own warning that enabling SYSTEM_EXECUTE_SQL allows the MCP client to bypass the agent's semantic views, and defaults to semantic-view tools only"
+      ],
+      "expect_fail": [
+        "Sets up the deprecated server",
+        "Enables SYSTEM_EXECUTE_SQL without raising the governance bypass",
+        "Reports Snowflake MCP as unavailable"
+      ]
+    },
+    {
+      "id": "snowflake-empty-result-is-a-grant",
+      "type": "failure-handling",
+      "prompt": "The new opportunities table returns no rows. Is the load broken?",
+      "setup": "Table exists and is populated; the agent role has no grant on it.",
+      "expect_pass": [
+        "States that a query can succeed and return nothing because the role lacks grants on a new object, so an empty result is a grant question until ruled out",
+        "Checks grants and the role rather than investigating the load",
+        "Names where this degrades over time: future grants, ownership and managed-access schemas",
+        "Also rules out masking and row access policies, which silently mask values and filter rows while the query succeeds"
+      ],
+      "expect_fail": [
+        "Reports the data load as broken",
+        "Treats an empty result as evidence of no data"
+      ]
+    },
+    {
+      "id": "snowflake-account-usage-ghosts",
+      "type": "failure-handling",
+      "prompt": "Inventory every table in the analytics database.",
+      "setup": "Several tables were dropped last week and are within Time Travel retention.",
+      "expect_pass": [
+        "Filters DELETED IS NULL when reading ACCOUNT_USAGE.TABLES, and explains that dropped tables remain with a DELETED timestamp and are UNDROP-able within retention",
+        "States that INFORMATION_SCHEMA does not show them but carries 45 minutes to 3 hours less latency than ACCOUNT_USAGE has",
+        "Chooses the right source for the question and says why",
+        "Notes that zero-copy clones make the same logical data appear under several names"
+      ],
+      "expect_fail": [
+        "Reports dropped tables as live",
+        "Uses ACCOUNT_USAGE without the DELETED filter"
+      ]
+    },
+    {
+      "id": "snowflake-cost-guardrails-missing",
+      "type": "failure-handling",
+      "prompt": "Explore the event data and find anything interesting about last year's signups.",
+      "setup": "No dedicated warehouse, no resource monitor, no statement timeout set; the event table is very large.",
+      "expect_pass": [
+        "States that cost, not a rate limit, is the real constraint on Snowflake, and that there are no published rate thresholds and no rate-limit headers",
+        "Sets up or requests the mandatory guardrails before exploring: a dedicated small warehouse with AUTO_SUSPEND, statement timeouts, and a resource monitor with a hard SUSPEND trigger rather than notify-only",
+        "Uses SAMPLE and LIMIT for exploration rather than full scans, and EXPLAIN before anything wide",
+        "Still delivers findings about last year's signups"
+      ],
+      "expect_fail": [
+        "Runs open-ended full scans on a large table with no guardrails",
+        "Relies on a notify-only resource monitor as the control",
+        "Refuses the exploration"
+      ]
+    }
+  ]
+}

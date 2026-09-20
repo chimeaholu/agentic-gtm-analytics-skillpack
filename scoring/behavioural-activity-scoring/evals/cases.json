@@ -1,0 +1,110 @@
+{
+  "skill": "behavioural-activity-scoring",
+  "cases": [
+    {
+      "id": "bas-01-no-decay-measures-age",
+      "type": "honest-limit",
+      "scenario": "A behaviour score accumulates points with no decay. Rank correlation between score and record age is 0.62.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that the score is measuring record age and gives the 0.62 correlation as the evidence",
+        "Prescribes exponential decay with a half-life derived from the sales cycle, not inherited",
+        "Reports the effect: the age correlation after decay and the share of the top decile that changes",
+        "Requires half-life sensitivity testing across at least three values",
+        "States the half-life as a load-bearing assumption in the output if the ranking is sensitive to it"
+      ],
+      "fail_if": [
+        "Accepts the cumulative score",
+        "Picks 30 days as the half-life with no reference to the sales cycle",
+        "Applies decay without reporting the effect on the ranking"
+      ]
+    },
+    {
+      "id": "bas-02-uncapped-repeat-action",
+      "type": "correctness",
+      "scenario": "The highest-scoring contact this month viewed the pricing page 34 times in one afternoon.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Identifies the missing cap and prescribes one scoring event per action per person per day",
+        "Adds a per-period cap on top of the daily dedupe",
+        "States that caps are applied before decay, and why",
+        "Checks whether the activity is human at all, naming bot, monitoring and internal-traffic exclusions"
+      ],
+      "fail_if": [
+        "Leaves the action uncapped",
+        "Applies the cap after decay",
+        "Treats 34 views as a strong buying signal"
+      ]
+    },
+    {
+      "id": "bas-03-weights-unsupported",
+      "type": "honest-limit",
+      "scenario": "Webinar attendance carries 20 points. Measured on activity strictly preceding the outcome window it shows 1.1x conversion lift on 310 people.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports the lift with its sample size and states the weight is not supported by the data",
+        "Recommends a revised point value derived from lift",
+        "Produces the full unsupported-weight report rather than only this one action",
+        "States that lift ranks predictiveness, not causality, so this is not a content-strategy recommendation",
+        "Warns that changing weights will change MQL volume and that the threshold must be re-anchored at the same time"
+      ],
+      "fail_if": [
+        "Keeps the weight because the marketing team values webinars",
+        "Recommends producing fewer webinars on the basis of the lift",
+        "Reports the lift without the sample size"
+      ]
+    },
+    {
+      "id": "bas-04-score-inflation",
+      "type": "honest-limit",
+      "scenario": "MQL volume rose 40% over six months. Mean score rose with it. MQL conversion rate is flat.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Diagnoses inflation rather than demand growth, using the flat MQL conversion rate as the evidence",
+        "Lists the cheap causes to check first: rules change, new tracking integration, uncapped action, bot traffic, backfill",
+        "Prescribes re-anchoring the threshold to a fixed conversion rate rather than a fixed score",
+        "Gives the 40% figure as data rather than disputing it"
+      ],
+      "fail_if": [
+        "Reports the volume increase as demand growth",
+        "Recommends raising the threshold without diagnosing the cause",
+        "Concludes genuine improvement from the rising score distribution alone"
+      ]
+    },
+    {
+      "id": "bas-05-partial-channel-coverage",
+      "type": "honest-limit",
+      "scenario": "31% of contacts are scored on email activity only, because their reps' activity sync is not enabled.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Delivers the scores",
+        "Reports channel coverage and the share scored on a partial channel set",
+        "States the direction of error: those scores understate",
+        "States that contacts with different channel coverage are not comparable within the same model",
+        "Names the fix: enable the sync, and the coverage figure to watch"
+      ],
+      "fail_if": [
+        "Compares partially-covered and fully-covered contacts without comment",
+        "Withholds the scores",
+        "Reports coverage without stating the direction of error"
+      ]
+    },
+    {
+      "id": "bas-06-person-score-as-account-signal",
+      "type": "correctness",
+      "scenario": "An account-based programme ranks accounts by the maximum person score at each account.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "States that six people at 20 is a different signal from one person at 120",
+        "Requires several roll-up rules to be emitted rather than one, naming max, sum and engaged-contact count",
+        "Identifies engaged-contact count as the multithreading signal that predicts B2B outcomes",
+        "Notes the roll-up depends on identity resolution and that the unmatched rate must be reported, with the error always understating"
+      ],
+      "fail_if": [
+        "Accepts max alone",
+        "Replaces max with sum as the single rule",
+        "Omits the identity-resolution dependency"
+      ]
+    }
+  ]
+}

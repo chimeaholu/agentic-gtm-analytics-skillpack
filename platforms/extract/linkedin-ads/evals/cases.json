@@ -1,0 +1,153 @@
+{
+  "skill": "linkedin-ads",
+  "cases": [
+    {
+      "id": "linkedin-no-report-object",
+      "type": "honest-limit",
+      "prompt": "Recreate our Campaign Manager scheduled report through the API so it runs automatically.",
+      "setup": "Approved Marketing Developer Platform access with r_ads_reporting.",
+      "expect_pass": [
+        "States plainly that Campaign Manager's saved and scheduled reports are UI features with no API representation — they cannot be created, read or triggered",
+        "Offers the honest path: query adAnalytics on a schedule and deliver the output somewhere the team opens",
+        "Still reproduces the report's numbers",
+        "Notes that the scheduled job's credentials are member-bound and will need rotation"
+      ],
+      "expect_fail": [
+        "Claims a LinkedIn report object was created",
+        "Refuses the request"
+      ]
+    },
+    {
+      "id": "linkedin-attribution-double-count",
+      "type": "annotated-answer",
+      "prompt": "Give me conversions by campaign and the total for the quarter.",
+      "setup": "attributionType not set, so the default LAST_TOUCH_BY_CAMPAIGN applies.",
+      "expect_pass": [
+        "States that attributionType defaults to LAST_TOUCH_BY_CAMPAIGN, meaning a single conversion is counted once for every campaign it can be attributed to, so summing across campaigns double-counts by design",
+        "Names LAST_TOUCH_BY_CONVERSION as the single-campaign alternative and says which basis it used",
+        "Provides the per-campaign figures and a total queried at the account level rather than summed",
+        "Notes this is the biggest single reason LinkedIn conversion totals look inflated next to Google and Meta"
+      ],
+      "expect_fail": [
+        "Sums per-campaign conversions and presents that as the quarter total",
+        "Reports the inflation as a LinkedIn data error",
+        "Withholds the per-campaign breakdown"
+      ]
+    },
+    {
+      "id": "linkedin-missing-fields-param",
+      "type": "failure-handling",
+      "prompt": "The response only has impressions and clicks. Where is the spend?",
+      "setup": "The request omitted the fields parameter.",
+      "expect_pass": [
+        "Names the trap: omitting fields silently returns only impressions and clicks — a plausible-looking near-empty response rather than an error",
+        "Re-issues with the metrics named explicitly, respecting the 20-metric cap",
+        "Does not conclude that spend data is unavailable",
+        "Notes that requesting fewer fields is also the mitigation for the data-volume rate limit"
+      ],
+      "expect_fail": [
+        "Reports spend as missing from the API",
+        "Adds retries instead of naming the fields"
+      ]
+    },
+    {
+      "id": "linkedin-no-pagination-15k",
+      "type": "failure-handling",
+      "prompt": "Pull creative-level daily analytics for the whole account for the last quarter.",
+      "setup": "Result would exceed 15,000 elements; the response contains a paging object.",
+      "expect_pass": [
+        "States that adAnalytics does not support pagination despite the paging object appearing in responses, and that the response is capped at 15,000 elements",
+        "Re-slices by date range and then by facet rather than writing a paging loop",
+        "Notes there is no async or bulk export path at all, so bulk means loops of sliced ranges, and says so at planning time",
+        "Checks the 6-month daily-granularity retention window against the requested range"
+      ],
+      "expect_fail": [
+        "Writes a pagination loop against the paging object",
+        "Reports the truncated result as complete",
+        "Claims a bulk export endpoint exists"
+      ]
+    },
+    {
+      "id": "linkedin-time-granularity-rounding",
+      "type": "failure-handling",
+      "prompt": "Give me spend from 15 January to 15 July last year.",
+      "setup": "Range is outside the 6-month daily window; timeGranularity=ALL was used.",
+      "expect_pass": [
+        "Names the trap: timeGranularity=ALL outside the 6-month daily window silently rounds dates to month boundaries and includes the whole month, so the query returns 1 January to 31 July without saying so",
+        "States that this produces wrong numbers that look right",
+        "Either reports the figure with the actual rounded boundaries named, or explains that a precise mid-month range is not available at that age",
+        "Does not present the rounded figure as the requested range"
+      ],
+      "expect_fail": [
+        "Reports the rounded total as the 15 January to 15 July figure",
+        "Fails to check the range against the daily retention window"
+      ]
+    },
+    {
+      "id": "linkedin-demographic-approximation",
+      "type": "honest-limit",
+      "prompt": "Break conversions down by job function for each campaign, by day.",
+      "setup": "Professional demographic pivot requested at daily campaign granularity.",
+      "expect_pass": [
+        "States the restrictions: only the top 100 demographic values per creative per day, values with fewer than 3 events dropped, low-engagement ad values withheld entirely, carousel unsupported",
+        "Quotes LinkedIn's own warning that daily sums will not equal the period total and campaign sums will not equal account totals",
+        "Follows LinkedIn's guidance and queries at the highest level over the full period instead of daily per campaign, and explains why",
+        "Notes demographic metrics are delayed 12 to 24 hours and retained only 2 years"
+      ],
+      "expect_fail": [
+        "Delivers a daily per-campaign demographic breakdown and presents the sums as totals",
+        "Reports the approximation as exact",
+        "Refuses the breakdown entirely"
+      ]
+    },
+    {
+      "id": "linkedin-mixed-currency-roas",
+      "type": "failure-handling",
+      "prompt": "What's our ROAS on the EU account from the attributed revenue metrics?",
+      "setup": "costInLocalCurrency is EUR; revenueWonInUsd and opportunityAmountInUsd are USD.",
+      "expect_pass": [
+        "States that a single response can mix two currencies — costInLocalCurrency in the account's currency and revenue attribution metrics in USD — and that dividing one by the other without conversion is silently wrong",
+        "Either uses returnOnAdSpend as LinkedIn computes it and says so, or converts explicitly with a stated rate and rate date in the provenance block",
+        "Notes that LinkedIn provides no conversion field",
+        "Delivers the ROAS figure"
+      ],
+      "expect_fail": [
+        "Divides USD revenue by EUR cost and reports the result",
+        "Withholds ROAS entirely"
+      ]
+    },
+    {
+      "id": "linkedin-empty-elements-ambiguous",
+      "type": "honest-limit",
+      "prompt": "This account shows no spend at all last month. Confirm it was paused.",
+      "setup": "adAnalytics returns an empty elements array; account access has not been verified separately.",
+      "expect_pass": [
+        "States that an empty elements array means either genuinely no activity or no read access, and that the two are indistinguishable in the response",
+        "Verifies account access separately by fetching the ad account entity before concluding anything",
+        "Does not report no spend as a finding until access is confirmed",
+        "Names the likely access causes: Development-tier access before Marketing Developer Platform approval, or a missing scope"
+      ],
+      "expect_fail": [
+        "Confirms the account was paused on the strength of an empty response",
+        "Treats empty elements as zero spend"
+      ]
+    },
+    {
+      "id": "linkedin-no-official-mcp",
+      "type": "disclosure",
+      "prompt": "Install a LinkedIn Ads MCP server — I found one with 34 stars.",
+      "setup": "Community repos include byte-identical clones under different owners.",
+      "expect_pass": [
+        "States plainly that no official LinkedIn or Microsoft MCP server for LinkedIn Ads exists — the notable gap among the big four ad platforms",
+        "Warns that the community field is a clone farm, naming that two repos publish byte-identical descriptions with the same commit timestamp to the second under different owners, and that star counts in that cluster should be discounted",
+        "Specifies the fallback concretely: a thin direct HTTP client against adAnalytics, which is one endpoint, and lists what it must handle — explicit fields with the 20-metric cap, explicit attributionType, date-range slicing against the 15,000-element ceiling, POST tunnelling for long URN lists, and a URN-resolution cache",
+        "Notes that building that client costs less than evaluating the clone farm"
+      ],
+      "expect_fail": [
+        "Recommends installing a community LinkedIn Ads MCP",
+        "Treats the 34-star repo as validated by its star count",
+        "Reports LinkedIn Ads automation as unavailable"
+      ]
+    }
+  ]
+}

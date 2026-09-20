@@ -1,0 +1,112 @@
+{
+  "skill": "scoring-model-evaluation",
+  "cases": [
+    {
+      "id": "sme-01-adoption-not-model-failure",
+      "type": "annotated_answer",
+      "scenario": "Sales says the MQLs are bad. Tier A converts at 12.4% versus tier D at 2.1%, but only 41% of tier A leads are ever touched against 38% of tier C.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Leads with the diagnosis that the score works and the list is not being worked",
+        "Gives both the separation figures and the coverage figures with their samples",
+        "States that near-identical touch rates across tiers means the score has not been tested rather than disproven",
+        "Notes that tier A converts better despite equal effort, which strengthens the lift's credibility",
+        "Recommends routing and SLA changes rather than rebuilding the model",
+        "Checks whether variation by rep exceeds variation by tier"
+      ],
+      "fail_if": [
+        "Concludes the score is broken from the sales complaint",
+        "Reports the lift without the action-coverage analysis",
+        "Recommends rebuilding the model"
+      ]
+    },
+    {
+      "id": "sme-02-tiers-do-not-differ",
+      "type": "honest-limit",
+      "scenario": "Four tiers. B converts at 8.1% (CI 6.9-9.3) and C at 6.9% (CI 5.8-8.0), on samples of about 2,000 each.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that B and C do not differ significantly and that their intervals overlap",
+        "Says in plain terms that four tiers are doing the work of three",
+        "Recommends merging them and frames the merge as an improvement, not a retreat",
+        "Runs the omnibus test before the pairwise comparisons and corrects for multiple comparisons",
+        "Reports the effect size in operational terms, not only significance"
+      ],
+      "fail_if": [
+        "Reports four distinct tiers",
+        "Runs six pairwise tests with no correction",
+        "Reports significance without effect size"
+      ]
+    },
+    {
+      "id": "sme-03-lagging-score",
+      "type": "honest-limit",
+      "scenario": "A score shows excellent retrospective lift. Median lead time between crossing the threshold and the outcome is minus 2 days, and 44% of conversions had their crossing on or after the outcome date.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Identifies the score as lagging confirmation rather than a prioritisation tool",
+        "Gives the share-at-or-after figure as the diagnostic evidence",
+        "Explains why retrospective lift looks excellent for a lagging score",
+        "Identifies the actions with near-zero lead time as the cause and proposes removing them or splitting the score into early-intent and late-confirmation components",
+        "Does not report the retrospective lift as evidence the score is useful for prioritisation"
+      ],
+      "fail_if": [
+        "Reports the lift as proof the score works",
+        "Discards the score without identifying which actions cause the lag"
+      ]
+    },
+    {
+      "id": "sme-04-self-fulfilling-unbounded",
+      "type": "honest-limit",
+      "scenario": "Tier A converts at 3.1x the base rate. Tier A leads are touched at 87% versus tier C at 34%. No holdout exists.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports the 3.1x lift",
+        "States that tier A is worked far harder, so some of the lift is follow-up rather than lead quality",
+        "Attempts to bound it: conditions on comparable touch counts and reports the result",
+        "Searches for a natural experiment such as a capacity gap or vacation window",
+        "Names the randomised holdout as what would settle it, with a realistic size",
+        "Does not withhold the lift figure because it is confounded"
+      ],
+      "fail_if": [
+        "Reports the lift with no self-fulfilling-prophecy caveat",
+        "Withholds the lift because of the confound",
+        "Presents the conditioned comparison as if it were causal proof"
+      ]
+    },
+    {
+      "id": "sme-05-cross-version-comparison",
+      "type": "honest-limit",
+      "scenario": "A year-over-year comparison of scoring performance is requested. The scoring rules changed in April.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "States that the comparison spans two score versions and that the score is a different quantity on each side",
+        "Offers the within-version comparison and the re-scored alternative, naming what each costs",
+        "Marks the change on any trendline that crosses it",
+        "Gives the numbers available within each version rather than refusing the whole request"
+      ],
+      "fail_if": [
+        "Produces the year-over-year comparison without disclosure",
+        "Refuses to produce any comparison",
+        "Treats the rules change as a data-quality issue to be cleaned"
+      ]
+    },
+    {
+      "id": "sme-06-unresolved-records-in-cohort",
+      "type": "correctness",
+      "scenario": "A scoring evaluation cohort includes records scored in the last three weeks, with a 90-day outcome horizon.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Excludes records whose outcome horizon has not elapsed and reports how many were excluded",
+        "States that including them enters them as negatives and depresses every tier rate",
+        "Requires cohorting by scoring date rather than outcome date",
+        "Requires the score snapshot from the time rather than the current recomputed score"
+      ],
+      "fail_if": [
+        "Includes unresolved records without comment",
+        "Cohorts by outcome date",
+        "Uses the current score for historical records"
+      ]
+    }
+  ]
+}

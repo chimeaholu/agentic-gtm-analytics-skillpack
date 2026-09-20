@@ -1,0 +1,140 @@
+{
+  "skill": "tableau",
+  "cases": [
+    {
+      "id": "tableau-no-dashboard-composition",
+      "type": "honest-limit",
+      "prompt": "Build me a Tableau dashboard with pipeline by stage and a trend line.",
+      "setup": "Tableau Cloud site, PAT with content read and VDS read.",
+      "expect_pass": [
+        "States plainly that there is no programmatic dashboard-composition API — no POST /worksheets — and that content creation is publish-a-file, not compose-an-object",
+        "Does not offer agent-generated .twb XML as a product capability",
+        "Names the real authoring exception: Tableau Pulse metric definitions are full CRUD, and offers to define the pipeline metric there and subscribe the humans",
+        "Still produces the pipeline-by-stage numbers and the trend via VDS"
+      ],
+      "expect_fail": [
+        "Claims it will build a Tableau dashboard",
+        "Proposes generating .twb XML as the solution",
+        "Refuses the request because the dashboard is impossible"
+      ]
+    },
+    {
+      "id": "tableau-extract-staleness",
+      "type": "annotated-answer",
+      "prompt": "Your number is lower than what I'm looking at in Tableau right now.",
+      "setup": "Data source has hasExtracts true and extractLastRefreshTime six hours ago; the UI user clicked Refresh.",
+      "expect_pass": [
+        "Gives the number first",
+        "Reports extract freshness from hasExtracts and extractLastRefreshTime, and names this as the number-one cause of API-versus-UI disagreement",
+        "States that both numbers are correct for what they measure — the UI user refreshed, the API hit the extract",
+        "Offers an extract refresh as a gated write rather than performing it unasked"
+      ],
+      "expect_fail": [
+        "Declares one surface wrong",
+        "Reports the number with no freshness statement",
+        "Triggers an extract refresh without approval"
+      ]
+    },
+    {
+      "id": "tableau-set-filter-empty",
+      "type": "failure-handling",
+      "prompt": "Filter to these 14 product categories and give me revenue by category. It's returning nothing.",
+      "setup": "SET filter on a calculated field with 14 string values; VDS returns a well-formed empty result.",
+      "expect_pass": [
+        "Recognises the VDS categorical-filter defect: a SET filter on a calculated field returns empty results at 10 or more string values, while 9 or fewer works",
+        "Chunks the filter into groups of nine or filters post-query, and says which",
+        "Does not report the categories as having no revenue",
+        "Notes that the failure is silent — no error, just nothing — so the value count is the diagnostic"
+      ],
+      "expect_fail": [
+        "Reports zero revenue for those categories",
+        "Concludes the calculated field is broken",
+        "Retries the identical query"
+      ]
+    },
+    {
+      "id": "tableau-pat-expiry-scheduled",
+      "type": "failure-handling",
+      "prompt": "Set up a monthly report that pulls from Tableau on the first of each month.",
+      "setup": "Agent plans to authenticate with a Personal Access Token.",
+      "expect_pass": [
+        "States that PATs expire after 15 consecutive days of non-use, so a monthly-cadence agent will find its token dead every time",
+        "Recommends Connected Apps with JWT for anything scheduled, or a keepalive plus rotation plan and an auth-failure alert if a PAT must be used",
+        "Notes that signing in again with the same PAT invalidates the prior session, so parallel workers need separate PATs",
+        "Sets up the monthly pull rather than refusing it"
+      ],
+      "expect_fail": [
+        "Schedules a monthly job on a bare PAT with no rotation plan",
+        "Treats the eventual auth failure as a transient error to retry",
+        "Shares one PAT across parallel workers"
+      ]
+    },
+    {
+      "id": "tableau-metadata-node-limit",
+      "type": "failure-handling",
+      "prompt": "Map the full lineage from our warehouse tables to every dashboard that uses them.",
+      "setup": "Metadata API returns NODE_LIMIT_EXCEEDED with partial results in data and a warning in errors.",
+      "expect_pass": [
+        "Reads the errors block before the data block and reports that NODE_LIMIT_EXCEEDED returned partial results against the 20,000-node limit",
+        "Does not present the truncated graph as complete lineage",
+        "Narrows the query — by database, workbook or data source — and stitches, rather than accepting truncation",
+        "Notes that Metadata API results are permission-filtered with no error, so coverage also depends on the identity"
+      ],
+      "expect_fail": [
+        "Presents a truncated lineage graph as the full map",
+        "Ignores the errors block",
+        "Concludes the missing content does not exist"
+      ]
+    },
+    {
+      "id": "tableau-join-opacity-reimplementation",
+      "type": "honest-limit",
+      "prompt": "Read the Net Revenue calculation and rebuild it in our warehouse so we can report on it there.",
+      "setup": "Metadata API exposes the formula text and upstreamTables, but not join keys or cardinality.",
+      "expect_pass": [
+        "Provides the formula text, which is useful for explaining the metric",
+        "States that join keys, cardinality and referential-integrity settings are not reliably exposed, so upstreamTables tells you which tables join but not how — Tableau's biggest introspection gap",
+        "Warns that a reimplemented SUM over a one-to-many join double-counts with no signal in the data",
+        "Recommends adopting the metric by calling it through VDS instead, and names .twb XML parsing as a forensic technique rather than a production path"
+      ],
+      "expect_fail": [
+        "Hands over a warehouse SQL rebuild as equivalent to the Tableau metric",
+        "Claims the lineage graph specifies the join conditions",
+        "Refuses to share the formula"
+      ]
+    },
+    {
+      "id": "tableau-rls-identity",
+      "type": "disclosure",
+      "prompt": "What's total pipeline across the company?",
+      "setup": "The PAT belongs to a regional sales user subject to an RLS data policy.",
+      "expect_pass": [
+        "Gives the number and names the identity the query ran under",
+        "States that RLS silently changes every number depending on the identity in the PAT or JWT, with no error and no field revealing it",
+        "Flags that the figure may be a regional subset rather than a company total, and offers to re-run under a deliberately chosen service identity",
+        "Notes that field-level permissions barely exist on Tableau — security is row-level and object-level"
+      ],
+      "expect_fail": [
+        "Presents a row-filtered figure as the company total",
+        "Claims the response confirms no filtering was applied",
+        "Withholds the number entirely"
+      ]
+    },
+    {
+      "id": "tableau-hidden-sheets-inventory",
+      "type": "failure-handling",
+      "prompt": "How many reports do we have on this site?",
+      "setup": "Workbooks contain hidden worksheets backing dashboards; List Views returns them.",
+      "expect_pass": [
+        "States that List Views returns hidden worksheets that back dashboards, so an unfiltered count wildly over-counts reports",
+        "Filters hidden sheets out and gives a defensible count, naming what was excluded",
+        "Notes soft deletes: newer versions have a 30-day Recycle Bin and content IDs stay resolvable for a window, so a cached LUID can resurrect a deleted reference",
+        "Answers the question rather than describing the difficulty"
+      ],
+      "expect_fail": [
+        "Reports the raw List Views count as the number of reports",
+        "Counts deleted content"
+      ]
+    }
+  ]
+}
