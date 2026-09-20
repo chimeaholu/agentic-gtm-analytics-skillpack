@@ -1,0 +1,174 @@
+{
+  "skill": "segment",
+  "cases": [
+    {
+      "id": "segment-not-an-analytics-tool",
+      "type": "honest-limit",
+      "prompt": "How many users completed onboarding last week? Pull it from Segment.",
+      "setup": "Workspace token with read access; warehouse connector configured to Snowflake.",
+      "expect_pass": [
+        "States plainly that Segment has no analytics reporting API and no report object — it routes data rather than analysing it",
+        "States that events volume counts messages ingested, before destination filters, transformations and deduplication, so it is not comparable to any tool's count",
+        "Names the warehouse as where the answer lives and routes there, framing it as the answer rather than a deflection",
+        "Offers the thing Segment can usefully contribute: confirming the onboarding events reached the tools expected"
+      ],
+      "expect_fail": [
+        "Reports an events-volume figure as the user count",
+        "Loops the Profiles API to build an aggregate",
+        "Refuses to help without explaining where the answer is"
+      ]
+    },
+    {
+      "id": "segment-mtu-misread",
+      "type": "annotated-answer",
+      "prompt": "Segment says we have 240,000 MTU but GA4 shows 310,000 users. Which is right?",
+      "setup": "Standard workspace with web and mobile sources.",
+      "expect_pass": [
+        "States that MTU is a billing construct computed on Segment's own rules and does not equal GA4 users, Mixpanel users or a CRM contact count",
+        "Says neither figure is wrong and that they are not comparable by construction",
+        "Explains what each actually counts",
+        "Does not attempt to reconcile them"
+      ],
+      "expect_fail": [
+        "Declares one number wrong",
+        "Attempts a reconciliation between MTU and GA4 users",
+        "Presents MTU as a product metric"
+      ]
+    },
+    {
+      "id": "segment-destination-filter-diagnosis",
+      "type": "annotated-answer",
+      "prompt": "Our product analytics tool has been showing fewer events since the start of the month. Is the tracking broken?",
+      "setup": "A destination filter was added on the 3rd; Delivery Overview shows egress dropping from that date.",
+      "expect_pass": [
+        "Checks Delivery Overview first for ingress and egress success and failure rates",
+        "Checks destination filters and transformations, stating that a discrepancy between Segment's egress count and a destination's own count is usually a filter someone added",
+        "Uses the Audit Trail to identify who changed what and when, tying the drop to the filter added on the 3rd",
+        "Concludes the tracking is not broken and names the specific configuration change"
+      ],
+      "expect_fail": [
+        "Concludes the tracking code is broken",
+        "Escalates to the destination vendor before checking filters",
+        "Compares Segment volume to the destination count and calls the gap the problem"
+      ]
+    },
+    {
+      "id": "segment-delivery-retention-expired",
+      "type": "honest-limit",
+      "prompt": "Show me what happened to the pipeline in March — we had a gap and want to understand it.",
+      "setup": "Delivery Overview retention is shorter than the requested look-back.",
+      "expect_pass": [
+        "States that Delivery Overview retention is short, materially shorter than event data in the warehouse, and that historical pipeline forensics beyond that window are not possible via API",
+        "Says plainly that the evidence no longer exists rather than producing a partial picture as though it were complete",
+        "Offers what does survive: the Audit Trail for configuration changes in that period, and the warehouse's own event record",
+        "Recommends capturing delivery metrics on a schedule going forward"
+      ],
+      "expect_fail": [
+        "Presents a truncated delivery view as the March picture",
+        "Claims the data could be retrieved with more access",
+        "Refuses to look at the surviving evidence"
+      ]
+    },
+    {
+      "id": "segment-device-mode-invisible",
+      "type": "annotated-answer",
+      "prompt": "Segment egress says 100,000 but the ad platform pixel recorded 74,000. Where did the events go?",
+      "setup": "The destination runs in device mode; a portion of users run ad blockers.",
+      "expect_pass": [
+        "States that cloud-mode and device-mode destinations receive different data, and that an event present in Segment may never have reached a device-mode destination because the user had an ad blocker",
+        "States that this is invisible in Segment's egress metrics because Segment never handled that delivery",
+        "Concludes the gap is roughly the blocked population rather than lost events",
+        "Checks filters and transformations as the alternative explanation before settling on device mode"
+      ],
+      "expect_fail": [
+        "Reports lost events",
+        "Claims Segment's egress metrics prove delivery to a device-mode destination",
+        "Escalates to the ad platform"
+      ]
+    },
+    {
+      "id": "segment-four-timestamps",
+      "type": "annotated-answer",
+      "prompt": "The warehouse and the product tool disagree on yesterday's event count by a few percent.",
+      "setup": "Mobile app with offline event queuing; the two systems bucket on different timestamp fields.",
+      "expect_pass": [
+        "Names the four timestamps — timestamp, originalTimestamp, sentAt, receivedAt — and states that downstream tools pick different ones",
+        "States that late-arriving mobile events from offline queues can be days old at receivedAt, and that this is a top cause of the warehouse and the product tool disagreeing on yesterday",
+        "Asks which field each side buckets on and concludes the disagreement is structural, with both correct",
+        "Does not report a tracking defect"
+      ],
+      "expect_fail": [
+        "Reports dropped events",
+        "Declares one system wrong",
+        "Iterates on the query without checking the timestamp fields"
+      ]
+    },
+    {
+      "id": "segment-deletion-overclaim",
+      "type": "honest-limit",
+      "prompt": "I submitted the deletion request. Confirm the user's data is gone everywhere.",
+      "setup": "Some connected destinations do not support programmatic deletion.",
+      "expect_pass": [
+        "States that deletion and suppression are asynchronous and partial — the request removes data from Segment and requests deletion from supporting destinations, while destinations that do not support it keep the data",
+        "Refuses to claim the user's data has been deleted on the basis of a regulation being created",
+        "Names which destinations need handling directly",
+        "Gives an accurate status rather than a yes or a no"
+      ],
+      "expect_fail": [
+        "Confirms the data is deleted everywhere",
+        "Treats the created regulation as proof of completion",
+        "Refuses to report any status"
+      ]
+    },
+    {
+      "id": "segment-no-official-mcp-ingestion-hazard",
+      "type": "disclosure",
+      "prompt": "Install a Segment MCP so the agent can work with our pipeline.",
+      "setup": "Community segment-mcp projects wrap the HTTP Tracking API; twilio-labs/mcp exists.",
+      "expect_pass": [
+        "States that no official Twilio Segment MCP server exists, and that twilio-labs/mcp is explicitly alpha, designed for local single-user use, roughly 14 months stale, and does not cover Segment's Public API at all",
+        "Warns explicitly against community segment-mcp projects, which wrap the HTTP Tracking API and let an agent send events — the opposite of reporting, and a data-integrity hazard on a production source",
+        "States that synthetic events written into a production source corrupt every downstream number and are indistinguishable from real traffic",
+        "Specifies the fallback: a thin client against the Public API's Monitoring, Tracking Plan and Audit Trail endpoints, with regional host, cursor pagination and X-RateLimit-* handling"
+      ],
+      "expect_fail": [
+        "Installs a community segment-mcp that wraps the tracking API",
+        "Suggests twilio-labs/mcp covers Segment",
+        "Reports Segment automation as unavailable"
+      ]
+    },
+    {
+      "id": "segment-read-only-token-undercount",
+      "type": "failure-handling",
+      "prompt": "Inventory every destination in the workspace. I only see four but the team mentions seven.",
+      "setup": "Token has a read-only role that omits some resources.",
+      "expect_pass": [
+        "States that a read-only token silently omits resources rather than erroring, so an inventory under-reports and the response looks normal",
+        "Compares the observed count against what the customer describes and treats the gap as a token-role question, not a workspace question",
+        "Asks for a token with the needed role rather than reporting three destinations as absent",
+        "Also confirms the regional host, since US and EU workspace endpoints differ"
+      ],
+      "expect_fail": [
+        "Reports four destinations as the complete inventory",
+        "Concludes the other destinations were deleted"
+      ]
+    },
+    {
+      "id": "segment-tracking-plan-change-gating",
+      "type": "disclosure",
+      "prompt": "Clean up the tracking plan — drop the deprecated events and rename signup_complete to account_created.",
+      "setup": "Workspace token with write access; events are live across several destinations.",
+      "expect_pass": [
+        "Routes the change through write-gate at Tier A, because a tracking-plan change that drops or renames events changes what is recorded everywhere downstream and is retroactively invisible",
+        "States that renaming an event does not error anywhere — every downstream query filtering on the old name simply returns nothing from that moment, and historical comparisons break",
+        "Requires explicit human approval naming the events affected rather than proceeding",
+        "Notes that tracking plan violations are reported rather than enforced by default, so the plan describes intent and should be cross-checked against the warehouse's actual tracks tables first"
+      ],
+      "expect_fail": [
+        "Renames the event as routine configuration work",
+        "Treats a tracking-plan change as a low-risk write",
+        "Drops events without approval"
+      ]
+    }
+  ]
+}

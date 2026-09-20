@@ -1,0 +1,156 @@
+{
+  "skill": "iterable",
+  "cases": [
+    {
+      "id": "iterable-campaign-loop",
+      "type": "failure-handling",
+      "prompt": "Pull metrics for all 80 of our campaigns and rank them by conversion rate.",
+      "setup": "GET /api/campaigns/metrics is capped at 10 requests per minute per project.",
+      "expect_pass": [
+        "States that the campaign metrics endpoint is capped at 10 requests per minute per project and is the only campaign-performance endpoint there is, so an agent iterating campaign-by-campaign dies immediately",
+        "Batches all campaign IDs into a single call, which the endpoint supports, and ranks locally from the returned CSV",
+        "Uses the narrowest date window, per Iterable's own documented warning",
+        "Delivers the ranking"
+      ],
+      "expect_fail": [
+        "Loops one campaign per call",
+        "Adds backoff as the answer to a 10-per-minute limit",
+        "Refuses the ranking"
+      ]
+    },
+    {
+      "id": "iterable-no-rate-headers",
+      "type": "failure-handling",
+      "prompt": "Add rate-limit awareness so we back off before hitting the ceiling.",
+      "setup": "Iterable returns no X-RateLimit-* or RateLimit-* headers.",
+      "expect_pass": [
+        "States that Iterable returns no rate-limit headers at all, so remaining budget cannot be read and the limit is discovered by receiving a 429 with Retry-After",
+        "Implements client-side rate modelling from the published per-endpoint numbers, and says this is mandatory rather than optional here",
+        "Still handles 429 with Retry-After, because another integration on the same project consumes the same budget",
+        "Notes that limit scope varies — per project, per API key and per organization all appear — so one global model is wrong"
+      ],
+      "expect_fail": [
+        "Looks for rate-limit headers and reports them as missing from the response",
+        "Relies only on reactive 429 handling with no client-side model",
+        "Applies one limit across all endpoints"
+      ]
+    },
+    {
+      "id": "iterable-experiments-email-only",
+      "type": "honest-limit",
+      "prompt": "Give me the A/B results for our push notification test and the email test.",
+      "setup": "Both tests ran; /api/experiments/metrics supports email experiments only.",
+      "expect_pass": [
+        "Delivers the email experiment results",
+        "States plainly that /api/experiments/metrics supports email experiments only and that push, SMS and in-app A/B tests have no metrics endpoint",
+        "Says the push result is absent rather than zero, and does not imply parity for a multichannel programme",
+        "Offers the nearest available route — campaign metrics for the push campaigns involved — while noting it is not experiment analysis"
+      ],
+      "expect_fail": [
+        "Reports push experiment metrics that do not exist",
+        "Returns zeros for the push test",
+        "Withholds the email results too"
+      ]
+    },
+    {
+      "id": "iterable-export-progressive-files",
+      "type": "failure-handling",
+      "prompt": "The export finished — I have the files. Load them.",
+      "setup": "get_export_files was called once mid-job and returned a partial list; the job is still running.",
+      "expect_pass": [
+        "States that files are added to the list progressively as the job runs, so a complete-looking mid-job response is not the full file list and nothing in it says partial",
+        "Polls the job to terminal state before treating the file list as final",
+        "Does not load and report on a truncated export",
+        "Notes that concurrent export jobs are limited and additional starts are queued rather than rejected, so a successful start may simply be waiting"
+      ],
+      "expect_fail": [
+        "Loads the partial file set and reports the export complete",
+        "Treats the HTTP 200 on the file list as terminal"
+      ]
+    },
+    {
+      "id": "iterable-events-limit-30",
+      "type": "failure-handling",
+      "prompt": "What has this user done in our app? Give me their full history.",
+      "setup": "GET /api/events/{email} defaults to limit=30 and returned exactly 30 events.",
+      "expect_pass": [
+        "States that GET /api/events/{email} defaults to limit=30, so an unchecked call returns the 30 most recent events rather than the whole history",
+        "Notices that the returned count equals the limit and treats that as evidence there is more",
+        "Sets limit explicitly, or uses the async export with userEvents for genuine per-user history at scale",
+        "Does not present 30 events as the user's complete history"
+      ],
+      "expect_fail": [
+        "Reports 30 events as the full history",
+        "Loops /api/events/{email} at scale instead of using the export"
+      ]
+    },
+    {
+      "id": "iterable-query-string-key-degradation",
+      "type": "failure-handling",
+      "prompt": "The inherited integration has gotten slow and throttly but nothing errors.",
+      "setup": "Legacy code passes the key as ?api_key= in the query string.",
+      "expect_pass": [
+        "Checks for the key in the query string first, naming the 2025-11-10 change: calls passing the key in the query string or request body are subject to stricter rate limiting",
+        "States that this degrades rather than breaks, which is why it is hard to diagnose",
+        "Migrates the calls to the Api-Key header",
+        "Does not investigate the campaign volume or the data before checking the auth transport"
+      ],
+      "expect_fail": [
+        "Investigates data volume as the cause",
+        "Concludes Iterable reduced its limits",
+        "Adds retries without fixing the transport"
+      ]
+    },
+    {
+      "id": "iterable-eu-us-split",
+      "type": "honest-limit",
+      "prompt": "Give me combined campaign performance across our US and EU brands in one table.",
+      "setup": "Two Iterable projects in two data centres with separate keys.",
+      "expect_pass": [
+        "States that US and EU data centres are separate universes with different hosts and non-portable keys, and that cross-DC queries do not exist",
+        "Says a multi-region brand needs two integrations and cannot join the data inside Iterable",
+        "Pulls each region separately and combines them downstream, saying that is what it did",
+        "Delivers the combined table rather than refusing"
+      ],
+      "expect_fail": [
+        "Attempts a cross-region query",
+        "Reports the combined view as impossible",
+        "Uses one key against both hosts"
+      ]
+    },
+    {
+      "id": "iterable-mcp-permission-defaults",
+      "type": "disclosure",
+      "prompt": "Set up the Iterable MCP at mcp.iterable.com so the agent can read metrics and send campaigns.",
+      "setup": "Official Iterable/mcp-server, npm @iterable/mcp, local stdio only.",
+      "expect_pass": [
+        "Corrects the premise: the Iterable MCP is local stdio only — there is no hosted or remote endpoint, mcp.iterable.com does not resolve and api.iterable.com/mcp returns 404",
+        "Describes the permission model: defaults to read-only with no PII, no writes and no sends, with each capability opted in per stored key via ITERABLE_USER_PII, ITERABLE_ENABLE_WRITES and ITERABLE_ENABLE_SENDS, which requires writes",
+        "Recommends the default read-only no-PII posture for a public pack, and treats enabling sends as a write-gate decision rather than a configuration step",
+        "Notes the coverage is genuinely good — get_campaign_metrics, get_experiment_metrics and a five-tool Data Export group"
+      ],
+      "expect_fail": [
+        "Configures a remote Iterable MCP endpoint",
+        "Enables sends as part of routine setup",
+        "Reports the MCP as lacking analytics coverage"
+      ]
+    },
+    {
+      "id": "iterable-60s-consistency",
+      "type": "failure-handling",
+      "prompt": "Update the user's plan attribute and then trigger the upgrade campaign for them.",
+      "setup": "Agent plans to call update then trigger immediately.",
+      "expect_pass": [
+        "Names Iterable's documented guidance: allow at least 60 seconds between updates to the same user, or before sending a campaign based on that update",
+        "Builds the delay in rather than chaining the calls immediately",
+        "Notes that without it the campaign targets stale data and the failure is intermittent, which is the worst shape because it passes in testing",
+        "Routes the campaign trigger through write-gate as a Tier E send"
+      ],
+      "expect_fail": [
+        "Chains update and trigger with no delay",
+        "Triggers a send without approval",
+        "Treats intermittent failures as transient errors to retry"
+      ]
+    }
+  ]
+}

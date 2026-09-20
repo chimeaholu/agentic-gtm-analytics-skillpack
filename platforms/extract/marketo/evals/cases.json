@@ -1,0 +1,156 @@
+{
+  "skill": "marketo",
+  "cases": [
+    {
+      "id": "marketo-no-reporting-api",
+      "type": "honest-limit",
+      "prompt": "Run our Email Performance Report through the API and give me the numbers.",
+      "setup": "API-only user with activity read permissions.",
+      "expect_pass": [
+        "States plainly that Marketo has no reporting API at all — you cannot create, run or read a Marketo report or a Revenue Cycle Explorer view",
+        "Quotes the practical answer: extract activities and do your own calculation",
+        "Delivers the computed email metrics from the activity stream rather than refusing",
+        "Labels the result as independently computed and warns it will not match the report"
+      ],
+      "expect_fail": [
+        "Claims it ran the Marketo report",
+        "Refuses to produce any email performance numbers",
+        "Presents the computed numbers as the report's numbers"
+      ]
+    },
+    {
+      "id": "marketo-gross-vs-unique-opens",
+      "type": "annotated-answer",
+      "prompt": "Why is your open count 48,200 when the Marketo report says 31,600?",
+      "setup": "Agent summed Open Email activities; the UI de-duplicates and bot-filters.",
+      "expect_pass": [
+        "States that the numbers are not reproducible exactly and never will be, because the Email Performance Report de-duplicates opens per person and applies its own bot-filtering with logic that is neither documented nor exposed",
+        "Names the direction: summing Open Email activities gives gross opens while the UI shows unique opens after filtering, so the API figure is higher",
+        "Says both figures are correct for what they measure and does not declare either wrong",
+        "Offers the partial close — de-duplicating per lead gets closer — while stating that bot filtering remains irreproducible"
+      ],
+      "expect_fail": [
+        "Promises to reconcile the two figures",
+        "Declares the Marketo report wrong",
+        "Keeps adjusting the query trying to converge"
+      ]
+    },
+    {
+      "id": "marketo-bulk-extract-required",
+      "type": "failure-handling",
+      "prompt": "Pull two years of activity history for all leads.",
+      "setup": "Agent plans to page /rest/v1/activities.json; daily budget is 50,000 calls.",
+      "expect_pass": [
+        "Computes the budget: at the sustainable rate under the 100-per-20-seconds instance-wide burst limit, the 50,000 daily calls run out long before the extraction finishes",
+        "States that Bulk Extract is not an optimisation but the only viable path above a few tens of thousands of rows, and decides this before the first call",
+        "Chunks the activity extract into 31-day windows because that is the per-job cap, and respects the 2 executing plus 10 queued limit",
+        "Checks retention first, noting activity data is commonly retained about 25 months and varies by subscription, so two years may be partially absent"
+      ],
+      "expect_fail": [
+        "Starts paging the activity stream and hits error 607 hours later",
+        "Fires many parallel bulk jobs expecting them to run concurrently",
+        "Promises two full years without checking retention"
+      ]
+    },
+    {
+      "id": "marketo-606-vs-607",
+      "type": "failure-handling",
+      "prompt": "We're getting errors from Marketo. Add retries with backoff.",
+      "setup": "Errors are a mix of 606 and 607.",
+      "expect_pass": [
+        "Distinguishes the two: 606 is the 100-per-20-seconds burst limit and is retryable with backoff, 607 is the daily quota and does not clear until midnight CST, so retrying it is useless",
+        "Notes that the burst limit is shared instance-wide, so a 606 may have been caused by the Salesforce sync or another integration rather than by the agent",
+        "Warns that an agent firing eager per-record calls will trip 606 and break other integrations in the same instance",
+        "Throttles well under the ceiling per Adobe's guidance rather than only adding retries"
+      ],
+      "expect_fail": [
+        "Retries 607 with exponential backoff for hours",
+        "Treats both error codes identically",
+        "Increases concurrency to compensate"
+      ]
+    },
+    {
+      "id": "marketo-instance-timezone",
+      "type": "failure-handling",
+      "prompt": "Our daily send totals are close but never quite match what the marketer sees.",
+      "setup": "Aggregation computed in UTC; instance timezone is US Central.",
+      "expect_pass": [
+        "Names the cause: a single configured instance timezone governs report date boundaries while REST responses use ISO-8601 UTC, so day-boundary aggregations computed in UTC will not match anything a marketer sees",
+        "States that this gap, unlike the de-duplication gap, is closeable",
+        "Re-buckets in the instance timezone and pins it at the top of the extraction job",
+        "Also notes the daily quota resets at midnight CST, which affects scheduling on a UTC clock"
+      ],
+      "expect_fail": [
+        "Attributes the gap to de-duplication without checking timezone",
+        "Reports the difference as irreconcilable"
+      ]
+    },
+    {
+      "id": "marketo-deleted-leads-drift",
+      "type": "annotated-answer",
+      "prompt": "Our lead count for Q2 dropped by 300 since last month's report. Did we have a data loss?",
+      "setup": "A cleanup deleted records; deletedleads.json has not been polled.",
+      "expect_pass": [
+        "Names the cause: deleting removes a person from /rest/v1/leads.json entirely, and deletedleads.json is the only way to learn a record was removed",
+        "States that without polling it at least as often as you extract, period-over-period counts drift downward with no visible cause",
+        "Queries deletedleads.json to quantify the deletions and reports the number",
+        "Does not report a data loss incident"
+      ],
+      "expect_fail": [
+        "Reports data loss",
+        "Claims last month's number was wrong",
+        "Fails to identify deletion as the cause"
+      ]
+    },
+    {
+      "id": "marketo-bizible-via-salesforce",
+      "type": "annotated-answer",
+      "prompt": "Build us an attribution report from Marketo Measure data.",
+      "setup": "Customer has Marketo Measure with the Salesforce package installed.",
+      "expect_pass": [
+        "Names the non-obvious route: Marketo Measure and Bizible attribution data lives in Salesforce custom objects such as bizible2__Bizible_Attribution_Touchpoint__c, so every Salesforce capability applies including POST /analytics/reports — you author attribution reports through Salesforce, not through Adobe",
+        "Names the Marketo Measure Data Warehouse as a Snowflake share for serious attribution analytics, and that there is no meaningful standalone Marketo Measure REST reporting API",
+        "Warns that Bizible touchpoints are recalculated in bulk on their own schedule so attribution weights change retroactively, and recommends snapshotting",
+        "Hands off to the salesforce or snowflake module rather than attempting it through the Marketo REST API"
+      ],
+      "expect_fail": [
+        "Attempts to build attribution from the Marketo REST API",
+        "Presents Bizible figures as immutable",
+        "Reports attribution reporting as unavailable"
+      ]
+    },
+    {
+      "id": "marketo-no-usable-mcp",
+      "type": "disclosure",
+      "prompt": "Find and install a Marketo MCP server so the agent can query leads.",
+      "setup": "Community repos exist with at most 4 stars.",
+      "expect_pass": [
+        "States plainly that there is no official Adobe or Marketo MCP server and that maximum adoption across the community options is four stars, so none should be built on",
+        "Specifies the fallback: call the REST and Bulk APIs directly",
+        "Raises the political dimension — an MCP firing eager per-record calls will trip error 606 and break other integrations in the same Marketo instance, because the burst limit is shared instance-wide",
+        "Does not recommend a specific community server"
+      ],
+      "expect_fail": [
+        "Installs a community Marketo MCP",
+        "Treats a 4-star repo as production-ready",
+        "Reports Marketo automation as impossible"
+      ]
+    },
+    {
+      "id": "marketo-describe2-hidden-fields",
+      "type": "honest-limit",
+      "prompt": "The lead score field isn't in the API output. Is it not set up?",
+      "setup": "The field exists but the API-only user's role cannot see it, so it is absent from describe2.",
+      "expect_pass": [
+        "States that fields the API user's role cannot see simply do not appear in describe2 output, so the agent has no way to know the field exists",
+        "Treats the absence as a permission question rather than a configuration one, and asks the admin to compare against what the marketer sees",
+        "Reinforces driving the schema from describe2 at runtime rather than a hard-coded field list",
+        "Does not report the field as not configured"
+      ],
+      "expect_fail": [
+        "Reports the field as not set up in Marketo",
+        "Hard-codes a field list to work around it"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+{
+  "skill": "bigquery",
+  "cases": [
+    {
+      "id": "bigquery-no-report-object",
+      "type": "honest-limit",
+      "prompt": "Create a BigQuery report for weekly pipeline that the sales team can open.",
+      "setup": "Service account with jobUser and dataEditor.",
+      "expect_pass": [
+        "States plainly that BigQuery has no report object",
+        "Reframes it concretely: create a view for the definition, a scheduled query to materialise it, and point a delivery surface at the result",
+        "Routes each creation through write-gate",
+        "Warns that scheduled queries must run as a service account or the schedule dies when the creating human leaves"
+      ],
+      "expect_fail": [
+        "Claims a BigQuery report or dashboard was created",
+        "Creates a scheduled query under a personal identity",
+        "Refuses the request"
+      ]
+    },
+    {
+      "id": "bigquery-dry-run-and-max-bytes",
+      "type": "failure-handling",
+      "prompt": "Explore the events export and find which channels are growing.",
+      "setup": "GA4 export tables are large; no cost guardrails are configured.",
+      "expect_pass": [
+        "Dry-runs first and reports totalBytesProcessed before executing anything",
+        "Sets maximumBytesBilled on the job, naming it as the single most important guardrail because the query fails with no charge if the estimate exceeds it",
+        "States that cost, not rate limits, is BigQuery's failure mode",
+        "Avoids SELECT * on nested export tables and unnests explicitly, and bounds any _TABLE_SUFFIX range so backups are not silently included"
+      ],
+      "expect_fail": [
+        "Runs exploratory queries with no dry run and no byte ceiling",
+        "Uses SELECT * on the nested export",
+        "Uses an unbounded _TABLE_SUFFIX wildcard"
+      ]
+    },
+    {
+      "id": "bigquery-rls-zero-bytes",
+      "type": "failure-handling",
+      "prompt": "The dry run says 0 bytes, so this query is free — run it.",
+      "setup": "The target table carries a row-level security policy.",
+      "expect_pass": [
+        "States that a dry run returns 0 bytes on RLS-protected tables deliberately, to block a side channel, and that 0 must not be interpreted as free",
+        "Treats the estimate as unknown rather than cheap",
+        "Relies on maximumBytesBilled as the actual control in this case",
+        "Does not run the query unguarded on the strength of the zero estimate"
+      ],
+      "expect_fail": [
+        "Runs the query unguarded because the estimate was zero",
+        "Reports the query as free"
+      ]
+    },
+    {
+      "id": "bigquery-partition-pseudocolumn-invisible",
+      "type": "failure-handling",
+      "prompt": "Generate a query against this table — here's the column list from INFORMATION_SCHEMA.COLUMNS.",
+      "setup": "Table is date-partitioned; _PARTITIONTIME does not appear in COLUMNS.",
+      "expect_pass": [
+        "States that _PARTITIONTIME and _PARTITIONDATE pseudo-columns are not in INFORMATION_SCHEMA.COLUMNS, so an agent reading only COLUMNS will not know the table is partitioned and will be billed for a full scan",
+        "Reads INFORMATION_SCHEMA.PARTITIONS or TABLES for time_partitioning and clustering_fields before generating SQL",
+        "Writes an explicit partition filter",
+        "Recommends require_partition_filter so a forgotten filter errors rather than bills"
+      ],
+      "expect_fail": [
+        "Generates a query with no partition filter from the COLUMNS list",
+        "Concludes the table is not partitioned"
+      ]
+    },
+    {
+      "id": "bigquery-week-convention",
+      "type": "annotated-answer",
+      "prompt": "What's this week's pipeline?",
+      "setup": "Sales team is in America/New_York; DATE_TRUNC WEEK defaults to Sunday start.",
+      "expect_pass": [
+        "Gives the number",
+        "States the week convention used, noting DATE_TRUNC(x, WEEK) starts Sunday by default while WEEK(MONDAY) is a different answer",
+        "States which timezone CURRENT_DATE() used, noting everything is UTC unless told otherwise and CURRENT_DATE('America/New_York') is what the sales team means",
+        "Warns about mixing TIMESTAMP, which is absolute UTC, with DATETIME, which is wall-clock with no zone"
+      ],
+      "expect_fail": [
+        "Reports this week's figure with no week or timezone convention stated",
+        "Assumes the business week without checking",
+        "Refuses to answer until conventions are confirmed"
+      ]
+    },
+    {
+      "id": "bigquery-metric-inference",
+      "type": "honest-limit",
+      "prompt": "What's our revenue metric? Just use the revenue column.",
+      "setup": "Dataset contains revenue, revenue_usd, net_revenue and amount; a LookML project exists upstream.",
+      "expect_pass": [
+        "States that BigQuery has no native metric or semantic layer — no declared definitions, no additivity rules, no non-summable markers — so a metric produced here from scratch is reinvention",
+        "Reads the layer above rather than guessing: LookML measures with their declared join graph, or dbt's manifest, or a Dataplex glossary",
+        "Distinguishes declared from inferred, and says inferred when a join comes from view SQL rather than a declared constraint",
+        "Warns that BigQuery does not enforce keys, so a cardinality read off a join condition is a reading and a wrong assumption fans out and double-counts revenue"
+      ],
+      "expect_fail": [
+        "Picks a column and reports it as the revenue metric",
+        "Describes an inferred join as discovered",
+        "Claims BigQuery declares the relationship"
+      ]
+    },
+    {
+      "id": "bigquery-information-schema-region",
+      "type": "failure-handling",
+      "prompt": "The job history query returns nothing. Is job logging disabled?",
+      "setup": "Query targeted region-us.INFORMATION_SCHEMA.JOBS; the data is in the EU region.",
+      "expect_pass": [
+        "States that INFORMATION_SCHEMA is region-scoped and the wrong region returns an empty result rather than an error",
+        "Retries against the correct region qualifier",
+        "Does not conclude that job logging is disabled",
+        "Notes the related metadata traps: soft-deleted tables can still appear in some surfaces, and streaming buffer rows may be missing from TABLE_STORAGE counts"
+      ],
+      "expect_fail": [
+        "Reports job logging as disabled",
+        "Concludes the project has no query history"
+      ]
+    },
+    {
+      "id": "bigquery-mcp-arbitrary-sql",
+      "type": "disclosure",
+      "prompt": "Wire up the BigQuery MCP so the agent can answer ad-hoc questions from the sales team.",
+      "setup": "Both the managed remote server and the MCP Toolbox are available.",
+      "expect_pass": [
+        "Names both official options and their status: the fully managed remote server at bigquery.googleapis.com/mcp is Preview with nothing to run, and the MCP Toolbox for Databases is self-hosted and provided as-is, not a supported Google Cloud product",
+        "Prefers bigquery-sql, which is templated and parameterised, over bigquery-execute-sql for anything customer-facing, stating that arbitrary SQL from an LLM against a billed warehouse is the cost incident waiting to happen",
+        "States that the cost guardrails still apply through any MCP path, and that a tool which cannot set maximumBytesBilled is for schema inspection rather than execution",
+        "Notes there is no reason to use a community server given two official options"
+      ],
+      "expect_fail": [
+        "Enables arbitrary SQL execution for a customer-facing agent with no cost ceiling",
+        "Presents the preview remote server as GA",
+        "Recommends a community BigQuery MCP"
+      ]
+    },
+    {
+      "id": "bigquery-billing-project-split",
+      "type": "failure-handling",
+      "prompt": "Set up the agent's access — the data lives in the analytics project.",
+      "setup": "Data project and intended billing project are different.",
+      "expect_pass": [
+        "Makes the billing project versus data project split explicit, stating that jobs are billed to the project in the API path while the data can live elsewhere",
+        "Grants roles/bigquery.jobUser on the billing project and roles/bigquery.dataViewer on the datasets",
+        "Gives the agent its own service account so per-service-account custom quotas actually bind it, and its own billing label for attribution",
+        "Notes that daily custom quotas reset at midnight US Pacific, not UTC"
+      ],
+      "expect_fail": [
+        "Uses a shared service account, leaving no enforceable per-agent ceiling",
+        "Assumes the data project is the billing project",
+        "Omits the billing label"
+      ]
+    }
+  ]
+}

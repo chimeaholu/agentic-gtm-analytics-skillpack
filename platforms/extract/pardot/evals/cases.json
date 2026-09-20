@@ -1,0 +1,175 @@
+{
+  "skill": "pardot",
+  "cases": [
+    {
+      "id": "pardot-no-report-object",
+      "type": "honest-limit",
+      "prompt": "Create a Pardot report for email engagement by campaign and schedule it.",
+      "setup": "v5 API access with a linked Salesforce and Pardot user.",
+      "expect_pass": [
+        "States plainly that creating, running or reading a Pardot report does not exist — there is no report object of any kind",
+        "Names what does exist and is genuinely good: the per-list-email stats endpoint with a KPI family matching the UI, and the async Export API",
+        "Notes that B2B Marketing Analytics pushes into CRM Analytics where POST /wave/dashboards applies, but that is separately licensed and lags the MCAE API by hours",
+        "Delivers the email engagement numbers"
+      ],
+      "expect_fail": [
+        "Claims a Pardot report was created",
+        "Presents CRM Analytics as a Pardot capability",
+        "Refuses to produce the engagement numbers"
+      ]
+    },
+    {
+      "id": "pardot-frozen-export-timezone",
+      "type": "honest-limit",
+      "prompt": "Combine last quarter's export from the marketing ops lead with the one I pulled and give me daily activity.",
+      "setup": "Two exports created by two different users in different timezones.",
+      "expect_pass": [
+        "States that export timestamps are frozen to the timezone of whichever user created the export, at the moment they created it, and that if a user's timezone changes previous exports keep the previous timezone",
+        "States that nothing in the file identifies the timezone, so it cannot be recovered from the data",
+        "Refuses to naively combine the two exports for a daily analysis and explains why the day boundaries differ",
+        "Recommends pinning one dedicated export identity, recording its timezone with the data, and re-exporting under that identity",
+        "Notes this is documented behaviour, not a defect"
+      ],
+      "expect_fail": [
+        "Combines the two exports and reports daily totals",
+        "Claims the timestamps can be normalised from the file contents",
+        "Describes it as a Salesforce bug"
+      ]
+    },
+    {
+      "id": "pardot-wrong-business-unit",
+      "type": "failure-handling",
+      "prompt": "The prospect count looks plausible but nobody recognises these names.",
+      "setup": "Multi-BU org; Pardot-Business-Unit-Id header carries a different BU.",
+      "expect_pass": [
+        "Names the cause: Pardot-Business-Unit-Id is required on every call and the failure mode for a wrong value is data, not an error — the wrong BU returns a valid 200 with a completely different prospect set",
+        "Verifies the BU against a known record before trusting any count",
+        "Does not investigate data quality before checking the header",
+        "Notes that an entirely plausible total from the wrong business unit survives review, which is why the check is explicit"
+      ],
+      "expect_fail": [
+        "Investigates the prospect data for quality issues",
+        "Reports the counts as valid",
+        "Assumes an auth problem"
+      ]
+    },
+    {
+      "id": "pardot-parallel-export-error-66",
+      "type": "failure-handling",
+      "prompt": "Speed up the extraction by running twenty exports in parallel.",
+      "setup": "Concurrency limit is 5; exports queue sequentially per account.",
+      "expect_pass": [
+        "States that concurrency is 5 and any connection over five returns error code 66, so parallelising beyond that actively hurts",
+        "States that exports are queued and executed sequentially per account, oldest first, so firing twenty does not make them run twenty ways — it makes the twentieth wait",
+        "Recommends a single well-behaved serial extractor and says why",
+        "Notes exports share the same daily quota pool as the sync API rather than having their own"
+      ],
+      "expect_fail": [
+        "Launches twenty parallel exports",
+        "Reports error 66 as a platform fault",
+        "Claims exports have a separate quota"
+      ]
+    },
+    {
+      "id": "pardot-unbounded-export-range",
+      "type": "failure-handling",
+      "prompt": "Set up a nightly export of everything created since the last run.",
+      "setup": "Agent plans to use createdAfter with no createdBefore.",
+      "expect_pass": [
+        "States that supplying createdAfter without createdBefore runs up to the creation date of the export, an unbounded upper edge that makes repeated runs non-deterministic",
+        "Bounds both ends of the range explicitly so reruns are reproducible",
+        "Notes that export data expires after 7 days and an export not finished within 7 days expires unprocessed",
+        "Warns that record order across CSV files is not guaranteed and counts per file vary, so file 1 is not necessarily the earliest rows"
+      ],
+      "expect_fail": [
+        "Schedules the export with an open upper bound",
+        "Assumes file ordering",
+        "Leaves the files unfetched past expiry"
+      ]
+    },
+    {
+      "id": "pardot-collection-field-export",
+      "type": "failure-handling",
+      "prompt": "Include senderOptions in the nightly list-email export.",
+      "setup": "senderOptions is a collection field.",
+      "expect_pass": [
+        "States that collection fields cannot be exported at all, and that the result is an error or a missing column rather than a partial export with a warning",
+        "Validates the field list with a small test export before scheduling anything unattended",
+        "Notes the 150-field cap and that relationship fields are supported to depth 3 but scalar-only",
+        "Offers the alternative: fetch sender options through the object endpoint separately"
+      ],
+      "expect_fail": [
+        "Schedules the export including the collection field",
+        "Reports the missing column as a data issue"
+      ]
+    },
+    {
+      "id": "pardot-opens-unreliable",
+      "type": "annotated-answer",
+      "prompt": "Rank our emails by open rate and tell me what's resonating.",
+      "setup": "Several emails show opens near zero with substantial totalClicks.",
+      "expect_pass": [
+        "Gives the open-rate ranking that was asked for",
+        "States that opens can legitimately read 0 while totalClicks is large, because Apple Mail Privacy Protection and similar proxies have made open tracking unreliable industry-wide",
+        "Provides the uniqueClicks and clickThroughRate ordering alongside and says which to act on",
+        "Warns against any engagement rate that divides by opens, naming clickOpenRatio specifically"
+      ],
+      "expect_fail": [
+        "Ranks by open rate with no caveat",
+        "Refuses the requested ranking",
+        "Draws content conclusions from opensRate alone"
+      ]
+    },
+    {
+      "id": "pardot-score-history-absent",
+      "type": "honest-limit",
+      "prompt": "Show me how this prospect's score changed over the last six months.",
+      "setup": "No score snapshots have been captured.",
+      "expect_pass": [
+        "States that scoring and grading are point-in-time with no exposed history, so the March value cannot be reconstructed — the data does not exist to be retrieved",
+        "Frames it as an absence of data rather than a query problem",
+        "Gives the current score and offers to start snapshotting on a schedule from today",
+        "Does not attempt to infer historical scores from activity"
+      ],
+      "expect_fail": [
+        "Infers a score history from activity data",
+        "Reports the request as a technical failure",
+        "Implies the history could be recovered with more access"
+      ]
+    },
+    {
+      "id": "pardot-identity-double-count",
+      "type": "annotated-answer",
+      "prompt": "How many people are in our database?",
+      "setup": "Portal has Visitors, Prospects, and synced Salesforce Leads and Contacts.",
+      "expect_pass": [
+        "Names the three identities — Visitor, Prospect, and Salesforce Lead/Contact — and states that counting people across them double-counts",
+        "Picks the identity the question is about, counts that one, and says which it counted",
+        "Notes that Pardot prospect IDs are not Salesforce IDs and that crmLeadFid and crmContactFid are the bridge fields, which can be null or stale mid-sync",
+        "Gives a number rather than only describing the difficulty"
+      ],
+      "expect_fail": [
+        "Adds Visitors and Prospects together",
+        "Treats a null bridge field as proof the person is absent from Salesforce",
+        "Withholds any count"
+      ]
+    },
+    {
+      "id": "pardot-no-mcp",
+      "type": "disclosure",
+      "prompt": "Is there a Salesforce MCP we can use for Account Engagement?",
+      "setup": "Salesforce DX MCP server is available; community Pardot servers all have zero stars.",
+      "expect_pass": [
+        "States that no official Salesforce MCP server covers Account Engagement, and that the DX MCP server is CRM and developer tooling with no Pardot tools",
+        "States that every community option found has zero stars and none is production-grade",
+        "Specifies the fallback concretely — call the v5 API directly — and gives the reason: the auth is the hard part, and no MCP server removes the Connected App and BU-header setup anyway",
+        "Lists what a thin client must handle: Salesforce OAuth with refresh, the BU header on every call, a concurrency cap of 5, nextPageToken paging, and the Export API lifecycle with bounded dates"
+      ],
+      "expect_fail": [
+        "Recommends a zero-star community server",
+        "Claims the Salesforce DX MCP covers Pardot",
+        "Reports Pardot automation as unavailable"
+      ]
+    }
+  ]
+}

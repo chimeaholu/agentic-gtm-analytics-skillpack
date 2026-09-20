@@ -1,0 +1,174 @@
+{
+  "skill": "braze",
+  "cases": [
+    {
+      "id": "braze-no-report-object",
+      "type": "honest-limit",
+      "prompt": "Build a Braze dashboard for the lifecycle team showing Canvas performance.",
+      "setup": "REST API key with analytics endpoint permissions.",
+      "expect_pass": [
+        "States plainly that Braze has no report or dashboard object to create",
+        "Distinguishes the content-authoring endpoints — email templates, content blocks, media library, catalogs — as content assets, not reports",
+        "Names the honest path: pull the Canvas data_series and deliver the result somewhere the team opens",
+        "Still produces the Canvas performance numbers"
+      ],
+      "expect_fail": [
+        "Claims a Braze dashboard was created",
+        "Presents template creation as report creation",
+        "Refuses the analysis"
+      ]
+    },
+    {
+      "id": "braze-conversion-basis",
+      "type": "annotated-answer",
+      "prompt": "How many conversions did last week's campaign drive?",
+      "setup": "/sends/data_series returns both conversions and conversions_by_send_time.",
+      "expect_pass": [
+        "Picks one basis and states it explicitly — conversions attributes to the day the conversion happened, conversions_by_send_time to the day the message was sent",
+        "Uses conversions_by_send_time for a campaign-performance question and says why",
+        "Warns that recent sends continue to accrue conversions under send-time attribution, so the most recent rows are provisional",
+        "Does not mix the two fields in one table"
+      ],
+      "expect_fail": [
+        "Reports a conversion number without naming the basis",
+        "Mixes the two fields across rows",
+        "Sums the wrong field across the date range"
+      ]
+    },
+    {
+      "id": "braze-100-day-stitching",
+      "type": "failure-handling",
+      "prompt": "Give me campaign performance for the last two years by day.",
+      "setup": "length on /campaigns/data_series is capped at 1 to 100 inclusive, with no cursor.",
+      "expect_pass": [
+        "States that the 100-day length cap is a hard window rather than a page size, with no cursor, so two years means eight or more stitched calls",
+        "Handles ending_at being inclusive so the seams do not double-count a day",
+        "Verifies the stitch by checking that the summed lengths equal the number of days in the range",
+        "Passes ending_at with an explicit offset rather than a naive UTC timestamp"
+      ],
+      "expect_fail": [
+        "Requests a length greater than 100",
+        "Double-counts seam days",
+        "Uses a naive UTC ending_at"
+      ]
+    },
+    {
+      "id": "braze-naive-utc-shift",
+      "type": "failure-handling",
+      "prompt": "Every day in the series looks slightly off compared to the dashboard.",
+      "setup": "ending_at was passed as a Z-suffixed UTC timestamp; the workspace is configured to a non-UTC timezone.",
+      "expect_pass": [
+        "Names the cause: data_series days bucket in the workspace's configured timezone, and passing a naive UTC timestamp silently shifts every bucket",
+        "States that the effect is on every bucket, not one, which is why the series looks plausible and is uniformly wrong",
+        "Re-requests with an ISO-8601 ending_at carrying the workspace's offset",
+        "Records the workspace timezone in provenance, noting it is not derivable from the response"
+      ],
+      "expect_fail": [
+        "Attributes the gap to attribution or eventual consistency",
+        "Adjusts the numbers post hoc instead of re-requesting with the correct offset"
+      ]
+    },
+    {
+      "id": "braze-cluster-mismatch",
+      "type": "failure-handling",
+      "prompt": "The key was just created and it's returning a permission error on everything.",
+      "setup": "Key belongs to a fra-01 workspace; calls are going to rest.iad-01.",
+      "expect_pass": [
+        "Names the trap: instance and cluster mismatch fails as an auth error, not a routing error, so an unhelpful permission failure is the expected symptom",
+        "States that the cluster mapping is documented and is not discoverable from the key, so the host must be derived from config rather than guessed",
+        "Checks the cluster before advising anyone to regenerate the key",
+        "Also raises the granular per-endpoint key permissions as the other candidate — a missing tick fails one endpoint while everything else works"
+      ],
+      "expect_fail": [
+        "Advises regenerating the key",
+        "Concludes the workspace has no data",
+        "Guesses at the cluster host"
+      ]
+    },
+    {
+      "id": "braze-segment-export-destination",
+      "type": "failure-handling",
+      "prompt": "The segment export returned nothing.",
+      "setup": "POST /users/export/segment returned a job acknowledgement; no S3 bucket was checked.",
+      "expect_pass": [
+        "States that /users/export/segment does not return data to the caller — it writes files into your own S3, Azure or GCS bucket, and bucket credentials must be configured in Braze in advance",
+        "Directs the check to the bucket rather than the response body",
+        "Does not report the export as empty",
+        "Notes the export shares the 250,000-per-hour pool rather than having its own"
+      ],
+      "expect_fail": [
+        "Reports the export as returning no users",
+        "Retries the export expecting a response body"
+      ]
+    },
+    {
+      "id": "braze-users-delete-irreversible",
+      "type": "honest-limit",
+      "prompt": "Reconstruct the size of this cohort as it was in June — some users were deleted since.",
+      "setup": "/users/delete was used; no snapshots were taken.",
+      "expect_pass": [
+        "States that /users/delete is a real delete, not a recycle bin — no undelete, no deleted-users endpoint — so cohort counts drop permanently and silently",
+        "Says plainly that the June size cannot be reconstructed, rather than returning a smaller number as if it were the answer",
+        "Recommends snapshotting cohort sizes at report time going forward",
+        "Gives the current size and labels it as current"
+      ],
+      "expect_fail": [
+        "Returns today's cohort size as the June figure",
+        "Claims the deleted users can be recovered",
+        "Implies more access would solve it"
+      ]
+    },
+    {
+      "id": "braze-mcp-no-pii",
+      "type": "disclosure",
+      "prompt": "Connect the Braze MCP and pull up the profile of the user who filed the complaint.",
+      "setup": "Official remote Braze MCP is available and the org does not use dashboard IP allowlisting.",
+      "expect_pass": [
+        "States the defining constraint: tools that expose user-level PII are not available at all in the Braze MCP and this is not configurable — it is an aggregate analytics and content server by design",
+        "Falls back to the REST API with a properly-permissioned key for the profile lookup, and says so",
+        "Notes the positive auth model — OAuth tied to the Braze dashboard user account, so agent permissions mirror dashboard permissions and deactivating a user immediately revokes access",
+        "Warns that the locally-hosted beta MCP from August 2025 is deprecated, so any tutorial describing an npm install plus config file plus API key is describing the dead version",
+        "Repeats Braze's own note that they recommend not using auto-mode and reviewing AI-generated summaries against the dashboard"
+      ],
+      "expect_fail": [
+        "Attempts the PII lookup through the MCP and reports it as unavailable in Braze",
+        "Follows the deprecated local MCP setup",
+        "Presents MCP summaries as verified against the dashboard"
+      ]
+    },
+    {
+      "id": "braze-usd-revenue",
+      "type": "annotated-answer",
+      "prompt": "What did the campaign earn in euros?",
+      "setup": "Business transacts in EUR; /sends/data_series revenue is documented as USD.",
+      "expect_pass": [
+        "States that currency is USD in the API and that revenue in /sends/data_series is documented as dollars",
+        "States that Braze has already converted using its own rates and the original amounts cannot be recovered from this endpoint",
+        "Gives the USD figure and names Currents or raw purchase events as the route to native-currency amounts",
+        "Does not convert back to EUR and present it as the original"
+      ],
+      "expect_fail": [
+        "Applies a current EUR rate to the USD figure and presents it as the campaign's euro revenue",
+        "Reports the USD figure as euros",
+        "Withholds the revenue number"
+      ]
+    },
+    {
+      "id": "braze-events-list-rate-limit",
+      "type": "failure-handling",
+      "prompt": "Enumerate every custom event and product in the catalogue, then pull a series for each.",
+      "setup": "/events/list and /purchases/product_list share 1,000 requests per hour.",
+      "expect_pass": [
+        "Names the low shared bucket: /events/list and /purchases/product_list share 1,000 requests per hour, which is easy to blow through while enumerating a catalogue",
+        "Caches the enumerations aggressively, noting they change rarely",
+        "Exploits the asymmetry where it can — /campaigns/data_series has its own 50,000-per-minute bucket while Canvas and event series share the 250,000-per-hour pool",
+        "Reads x-ratelimit-remaining and x-ratelimit-reset rather than modelling the budget client-side, and notes limits reset on the clock hour"
+      ],
+      "expect_fail": [
+        "Enumerates the catalogue repeatedly without caching",
+        "Treats all Braze endpoints as sharing one limit",
+        "Stops after a 429 without checking how close the clock-hour reset was"
+      ]
+    }
+  ]
+}

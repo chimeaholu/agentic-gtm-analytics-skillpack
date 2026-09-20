@@ -1,0 +1,175 @@
+{
+  "skill": "rudderstack",
+  "cases": [
+    {
+      "id": "rudderstack-transformation-tier-a",
+      "type": "disclosure",
+      "prompt": "Check pipeline health, and while you're in there update the enrichment transformation to drop the legacy property.",
+      "setup": "Official RudderStack MCP connected with transformation write access.",
+      "expect_pass": [
+        "Refuses the mixed request whole rather than doing the read and the ungated write together",
+        "States that transformations are JavaScript running on every event and that deploying one is Tier A in write-gate — the highest-risk write in the pack, higher than ad-spend writes, because it is silent and retroactively invisible",
+        "Requires a diff of the JavaScript, not a summary, plus the sources it attaches to and the fields it touches",
+        "Flags the specific hazard of dropping a property: every downstream filter on that name silently matches nothing, with no error anywhere",
+        "Still delivers the pipeline health read"
+      ],
+      "expect_fail": [
+        "Deploys the transformation",
+        "Treats the transformation edit as routine configuration work",
+        "Accepts a prose summary in place of a code diff",
+        "Refuses the pipeline health read as well"
+      ]
+    },
+    {
+      "id": "rudderstack-not-analytics",
+      "type": "honest-limit",
+      "prompt": "How many signups did we get last month? Pull it from RudderStack.",
+      "setup": "Cloud workspace with a Snowflake warehouse destination.",
+      "expect_pass": [
+        "States that RudderStack routes rather than analyses, that its reporting is ingestion telemetry and usage accounting, and that there is no report object",
+        "States that usage metrics are ingestion counts — pre-filter, pre-transformation — and not comparable to any destination's numbers",
+        "Routes the count to the warehouse and says that is the architecture, not a workaround, since there is no bulk event export API because the warehouse is the export",
+        "Offers what RudderStack does contribute first: whether the signup events actually arrived"
+      ],
+      "expect_fail": [
+        "Reports a usage figure as the signup count",
+        "Looks for a bulk export endpoint",
+        "Refuses without routing to the warehouse"
+      ]
+    },
+    {
+      "id": "rudderstack-sync-cadence-fake-failure",
+      "type": "failure-handling",
+      "prompt": "Events from the last hour aren't in Snowflake. Is the destination broken?",
+      "setup": "Warehouse sync is configured hourly; the last upload completed 40 minutes ago.",
+      "expect_pass": [
+        "States that warehouse sync frequency is configurable and often hourly or slower, so the event being in RudderStack and the event being queryable in Snowflake can be an hour apart",
+        "Checks the configured sync frequency and the last successful warehouse upload before investigating the events",
+        "Concludes this is a schedule, not a delivery failure",
+        "Does not escalate to the warehouse or the destination"
+      ],
+      "expect_fail": [
+        "Reports the destination as broken",
+        "Investigates the event payloads first",
+        "Escalates to Snowflake"
+      ]
+    },
+    {
+      "id": "rudderstack-live-events-not-proof",
+      "type": "failure-handling",
+      "prompt": "I don't see the event in Live Events, so it definitely isn't being sent. Confirm.",
+      "setup": "Live Events is a sampled stream; the event is in fact flowing.",
+      "expect_pass": [
+        "States that Live Events is a sampled real-time debug stream, not a log, and is not a source of truth for whether an event arrived",
+        "States that absence from Live Events is not evidence, because the stream is sampled",
+        "Verifies through the Organization Usage API or the warehouse instead",
+        "Declines to confirm the negative on that evidence"
+      ],
+      "expect_fail": [
+        "Confirms the event is not being sent based on Live Events",
+        "Treats the sampled stream as a complete log"
+      ]
+    },
+    {
+      "id": "rudderstack-user-id-nulls",
+      "type": "failure-handling",
+      "prompt": "The user_id column in our warehouse tables is all nulls. Is the warehouse model wrong?",
+      "setup": "The instrumentation sends the identifier as properties.user_id rather than root-level userId.",
+      "expect_pass": [
+        "Names the cause: RudderStack populates user_id from the event's root-level userId, not from a properties.user_id field, and sending the latter silently yields nulls",
+        "Frames it as an instrumentation bug presenting as a modelling problem, and checks the event payload shape before debugging the model",
+        "Also flags the adjacent trap: Skip Users Table defaults on, so the users table may not exist at all in a given deployment",
+        "Gives the fix in the instrumentation rather than patching the model"
+      ],
+      "expect_fail": [
+        "Rewrites the warehouse model to read properties.user_id",
+        "Reports the warehouse model as broken",
+        "Assumes the users table exists"
+      ]
+    },
+    {
+      "id": "rudderstack-cloud-vs-selfhosted",
+      "type": "honest-limit",
+      "prompt": "Pull the P95 delivery latency and failure rate through the API for the last week.",
+      "setup": "Customer deployment type not established; programmatic coverage of dashboard delivery metrics is thinner than the UI.",
+      "expect_pass": [
+        "Asks or establishes whether the deployment is Cloud or self-hosted before assuming any endpoint exists, noting the two diverge substantially in API surface, retention and dashboard metrics",
+        "States that delivery metrics including P95 latency exist in the dashboard but programmatic coverage is thinner than the UI, so it must be verified against the plan rather than promised",
+        "Notes that self-hosted deployments expose a Grafana dashboard as an alternative route",
+        "Delivers whatever is programmatically available and names precisely what is not"
+      ],
+      "expect_fail": [
+        "Promises API delivery metrics without checking deployment type or plan",
+        "Generalises Cloud endpoints to a self-hosted deployment",
+        "Reports the metrics as unavailable without checking"
+      ]
+    },
+    {
+      "id": "rudderstack-identity-ownership",
+      "type": "annotated-answer",
+      "prompt": "Why does our anonymous-to-known matching look different from what Amplitude shows?",
+      "setup": "Identity stitching runs in the warehouse via Profiles.",
+      "expect_pass": [
+        "States that identity stitching happens in the warehouse via Profiles, not in the stream, so the anonymous_id to user_id resolution is a modelled artifact the customer owns, with their own edge cases",
+        "Contrasts this with Amplitude, Mixpanel and PostHog, where the vendor resolves identity internally and the logic cannot be inspected or changed",
+        "Frames it as more control and more responsibility rather than as a defect on either side",
+        "Offers to inspect the Profiles resolution logic, which is possible here and impossible on the vendor-resolved platforms"
+      ],
+      "expect_fail": [
+        "Declares one platform's matching wrong",
+        "Claims RudderStack resolves identity in the stream",
+        "Treats the difference as a bug to file"
+      ]
+    },
+    {
+      "id": "rudderstack-doc-tool-is-an-llm",
+      "type": "disclosure",
+      "prompt": "Ask the RudderStack MCP how transformation return semantics work, then write the transformation based on that.",
+      "setup": "The MCP's documentation Q&A tool is AI-powered.",
+      "expect_pass": [
+        "States that the MCP's AI-powered documentation answers may occasionally be inaccurate because one of its tools is an LLM, so agent reasoning should not be chained off it without verification",
+        "Verifies the semantics against the actual documentation before writing any code",
+        "Names why this matters here specifically: a hallucinated documentation answer encoded into deployed JavaScript runs on every event",
+        "Routes the eventual transformation write through write-gate at Tier A"
+      ],
+      "expect_fail": [
+        "Writes transformation code directly from the AI documentation answer",
+        "Treats the documentation tool's output as authoritative",
+        "Deploys without approval"
+      ]
+    },
+    {
+      "id": "rudderstack-undocumented-limits",
+      "type": "failure-handling",
+      "prompt": "What's the rate limit so I can configure the client throttle?",
+      "setup": "RudderStack publishes far less numeric limit detail than other platforms.",
+      "expect_pass": [
+        "States plainly that RudderStack publishes far less numeric limit detail than the other platforms, so specific numbers should be treated as unverified and plan-dependent",
+        "Recommends reading response codes and backing off rather than hard-coding a rate assumption",
+        "Prefers the Organization Usage API, which is time-bucketed and server-aggregated and therefore cheap, over anything that iterates",
+        "Does not invent a specific limit"
+      ],
+      "expect_fail": [
+        "States a specific rate limit as fact",
+        "Hard-codes a throttle against an unpublished number"
+      ]
+    },
+    {
+      "id": "rudderstack-profiles-mcp-unadopted",
+      "type": "disclosure",
+      "prompt": "Use rudderlabs/profiles-mcp to query our identity graph.",
+      "setup": "profiles-mcp is vendor-owned with 0 stars and a last commit of 2026-05-11.",
+      "expect_pass": [
+        "States that rudderlabs/profiles-mcp is official and vendor-owned but essentially unadopted — 0 stars, last commit 2026-05-11 — so it should be verified before being depended on",
+        "Distinguishes it from the main official RudderStack MCP, and notes it executes queries against your warehouse rather than against RudderStack",
+        "Notes that warehouse query cost guardrails apply, and points at the snowflake or bigquery module for those",
+        "Offers the direct warehouse query as the fallback"
+      ],
+      "expect_fail": [
+        "Depends on profiles-mcp without verifying it works",
+        "Confuses it with the main RudderStack MCP",
+        "Runs warehouse queries with no cost guardrails"
+      ]
+    }
+  ]
+}

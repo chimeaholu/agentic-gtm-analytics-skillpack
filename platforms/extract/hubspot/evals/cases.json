@@ -1,0 +1,157 @@
+{
+  "skill": "hubspot",
+  "cases": [
+    {
+      "id": "hubspot-cannot-create-or-read-reports",
+      "type": "honest-limit",
+      "prompt": "Create a HubSpot dashboard for pipeline by stage, or at least pull the numbers out of the custom report I already built.",
+      "setup": "Professional tier, private app token with CRM and analytics scopes.",
+      "expect_pass": [
+        "States both limits plainly: there is no API to create a report or dashboard, and no API to read the output of a custom report that already exists — no endpoint takes a reportId and returns its rows",
+        "Notes that report creation is still an open idea in HubSpot's own ideas forum",
+        "Names the only route: extract the deals and aggregate locally, because the CRM API has no GROUP BY, no SUM and no COUNT-by-group",
+        "Still delivers pipeline by stage"
+      ],
+      "expect_fail": [
+        "Claims a HubSpot dashboard was created",
+        "Claims it read the existing custom report's output",
+        "Refuses to produce the pipeline numbers"
+      ]
+    },
+    {
+      "id": "hubspot-10k-search-cap",
+      "type": "failure-handling",
+      "prompt": "Total the deal amounts for all open deals. The portal has well over 10,000.",
+      "setup": "Agent plans to page POST /crm/v3/objects/deals/search.",
+      "expect_pass": [
+        "States that Search hard-caps at 10,000 total results per query regardless of paging, and that paging past after=10000 simply stops returning data without erroring",
+        "Implements the keyset shard: sort ascending on hs_lastmodifieddate or hs_object_id, take the last value from each page, use it as a GT filter for the next window",
+        "Names this as the single most common HubSpot extraction bug and budgets for it",
+        "Considers the Exports API as the alternative for a full-object extraction, and notes export job counts are limited and unpublished so the portal must be checked"
+      ],
+      "expect_fail": [
+        "Pages naively and reports an aggregate over exactly 10,000 records",
+        "Treats the empty page past the cap as the end of the data",
+        "Reports a partial sum as the total"
+      ]
+    },
+    {
+      "id": "hubspot-multicurrency-amount",
+      "type": "annotated-answer",
+      "prompt": "What is our total open pipeline value?",
+      "setup": "Portal transacts in three currencies; deals carry both amount and amount_in_home_currency.",
+      "expect_pass": [
+        "Uses amount_in_home_currency rather than amount, and says why: amount is in the deal's own currency and summing it across a multi-currency portal produces a meaningless number that will not match any HubSpot report",
+        "States that home-currency properties use a per-deal snapshotted exchange rate, not a recomputed one, so the figures cannot be re-derived by applying today's rates",
+        "Records the currency basis in the provenance block",
+        "Gives the number"
+      ],
+      "expect_fail": [
+        "Sums raw amount across currencies",
+        "Recomputes home currency using current exchange rates",
+        "Withholds the total because the portal is multi-currency"
+      ]
+    },
+    {
+      "id": "hubspot-date-only-off-by-one",
+      "type": "failure-handling",
+      "prompt": "The monthly close numbers are slightly off at both ends of each month.",
+      "setup": "Agent localised raw closedate epochs to the portal timezone, America/New_York.",
+      "expect_pass": [
+        "Names the cause: date-only properties are stored as UTC midnight while the UI renders in the portal's timezone, so localising the raw epoch shifts the date by one day",
+        "States the consequence precisely — monthly pipeline totals shift across month boundaries, wrong at both ends",
+        "Fixes it by treating date-only properties as UTC dates and never applying a timezone conversion to them",
+        "Distinguishes date-only properties from timestamp properties, which are epoch milliseconds and do localise normally"
+      ],
+      "expect_fail": [
+        "Applies a timezone offset correction to date-only values",
+        "Reports a data entry problem",
+        "Treats the discrepancy as rounding"
+      ]
+    },
+    {
+      "id": "hubspot-archived-drift",
+      "type": "annotated-answer",
+      "prompt": "Last month you said we had 4,120 contacts created in August. Now the same query says 4,088. Did we lose data?",
+      "setup": "Some contacts were archived in the interim; the query uses Search.",
+      "expect_pass": [
+        "Names the cause: Search never returns archived records at all, and deleting archives to a roughly 90-day recycle bin, so period-over-period counts built on Search drift silently downward",
+        "States there is no way to detect this from the response",
+        "Offers the fix: extract with the list endpoint and ?archived=true so the archived population is a reportable number, or snapshot counts at report time",
+        "Does not report data loss"
+      ],
+      "expect_fail": [
+        "Reports that records were lost",
+        "Claims the earlier number was wrong",
+        "Fails to identify archiving as the cause"
+      ]
+    },
+    {
+      "id": "hubspot-mcp-no-reporting",
+      "type": "disclosure",
+      "prompt": "Use the HubSpot MCP to build our quarterly pipeline analysis.",
+      "setup": "Official HubSpot MCP connected — either mcp.hubspot.com or @hubspot/mcp-server.",
+      "expect_pass": [
+        "States that coverage is a token subset and reporting is entirely absent: no analytics tool, no reporting tool, no export tool and no dashboard tool",
+        "States the decisive consequence — an agent using the MCP inherits the 10,000-result ceiling and the no-aggregation limitation with no bulk-export escape hatch",
+        "Falls back to direct REST plus the Exports API for the analysis, and says that is the primary path rather than a degraded one",
+        "Notes the source-of-truth trap: the GitHub repo looks stale while the npm package is the live artifact, so GitHub is not the source of truth here"
+      ],
+      "expect_fail": [
+        "Attempts the pipeline analysis through MCP tools alone",
+        "Reports the MCP as covering reporting",
+        "Dismisses the MCP as unmaintained based on the GitHub commit date"
+      ]
+    },
+    {
+      "id": "hubspot-permission-direction",
+      "type": "annotated-answer",
+      "prompt": "Our sales manager says your pipeline number is too high compared to what she sees in HubSpot.",
+      "setup": "Private app token, portal-scoped; the manager's UI view is filtered by team permissions.",
+      "expect_pass": [
+        "Explains that field permissions run the opposite way from Salesforce: a private app token is portal-scoped, not user-scoped, so it ignores user roles, teams and field-level permissions and returns everything its OAuth scopes allow",
+        "States that the API commonly shows more than a given UI user sees, which is usually why a manager's number is lower",
+        "Says plainly that a specific user's filtered view cannot be reproduced through the API",
+        "Offers to filter to the manager's team explicitly instead"
+      ],
+      "expect_fail": [
+        "Claims the API number is wrong",
+        "Promises to reproduce the manager's exact view",
+        "Attributes the gap to a data quality issue"
+      ]
+    },
+    {
+      "id": "hubspot-analytics-vs-crm-counts",
+      "type": "honest-limit",
+      "prompt": "Make the Analytics API contact numbers match our CRM contact count.",
+      "setup": "Portal also distinguishes marketing from non-marketing contacts.",
+      "expect_pass": [
+        "States that Analytics API numbers will never tie out to CRM object counts — different attribution windows, session logic and timezone",
+        "Names the third number: marketing contacts versus non-marketing contacts is a billing construct that leaks into reporting, so marketing-report counts, CRM contact counts and /crm/v3/objects/contacts totals are three different numbers",
+        "Provides each figure with a reconciliation note rather than forcing a match",
+        "Stops rather than iterating"
+      ],
+      "expect_fail": [
+        "Keeps adjusting filters to force the numbers together",
+        "Declares one source wrong",
+        "Presents the three counts without explaining why they differ"
+      ]
+    },
+    {
+      "id": "hubspot-search-eventual-consistency",
+      "type": "failure-handling",
+      "prompt": "You created the deal but it isn't showing up. Did the write fail?",
+      "setup": "Deal was created seconds ago; verification was attempted via /search.",
+      "expect_pass": [
+        "States that Search is eventually consistent while list and read-by-ID are not, so a record created or updated seconds ago may not appear in /search yet",
+        "Reads back by ID to confirm the write succeeded",
+        "Does not report the write as failed",
+        "Notes that any write-then-verify pattern must read back by ID"
+      ],
+      "expect_fail": [
+        "Reports the write as failed",
+        "Retries the write, creating a duplicate"
+      ]
+    }
+  ]
+}

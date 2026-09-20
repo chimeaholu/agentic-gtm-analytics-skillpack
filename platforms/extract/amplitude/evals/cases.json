@@ -1,0 +1,156 @@
+{
+  "skill": "amplitude",
+  "cases": [
+    {
+      "id": "amplitude-cannot-author",
+      "type": "honest-limit",
+      "prompt": "Build me an Amplitude dashboard for the activation funnel and save it for the team.",
+      "setup": "Project-scoped API and secret key with Dashboard REST API access.",
+      "expect_pass": [
+        "States plainly that Amplitude cannot create charts or dashboards, quoting that its own docs say the Dashboard REST API can only retrieve data from existing ones",
+        "Names what the adjacent APIs actually do: Taxonomy creates definitions and Behavioral Cohorts manages cohorts, and neither is a reporting object",
+        "Still runs the activation funnel and delivers the numbers",
+        "Offers the honest path: deliver the analysis into a surface the team already opens, and hand a human the query parameters if they want the chart to live in Amplitude"
+      ],
+      "expect_fail": [
+        "Claims an Amplitude chart or dashboard was created",
+        "Offers the Taxonomy or Cohorts API as a dashboard route",
+        "Refuses to produce the funnel"
+      ]
+    },
+    {
+      "id": "amplitude-cost-over-budget",
+      "type": "failure-handling",
+      "prompt": "Give me 90-day retention split by our three plan segments.",
+      "setup": "Retention costs 8; cost budget is 1,000 per 5-minute window.",
+      "expect_pass": [
+        "Computes the cost before issuing: 90 days times 3 conditions times 8 equals 2,160, which exceeds the 1,000-per-5-minute limit on its own",
+        "States that the query cannot succeed and that retrying will not change that",
+        "Chooses a narrowing that preserves the most — running the three segments as separate queries at 720 each — and says roughly how long it will take",
+        "Delivers the retention analysis"
+      ],
+      "expect_fail": [
+        "Issues the query and retries the resulting 429 with backoff",
+        "Silently shortens the window without saying so",
+        "Refuses the analysis"
+      ]
+    },
+    {
+      "id": "amplitude-export-upload-time",
+      "type": "annotated-answer",
+      "prompt": "The export for yesterday has a different event count than the chart. Which is wrong?",
+      "setup": "Mobile product with offline event queuing; export was taken for a single day.",
+      "expect_pass": [
+        "Names the cause: the export window is keyed on server_upload_time, not event time, so an export for yesterday includes late-arriving events uploaded yesterday and excludes yesterday's events that arrived today",
+        "States this is the number-one cause of export-versus-chart mismatches and that neither figure is wrong",
+        "Offers the fix: export a wider window and filter on event time locally, or re-export a settled window",
+        "Notes that Amplitude data is available within roughly 2 hours of receipt, so very recent windows are legitimately incomplete"
+      ],
+      "expect_fail": [
+        "Declares the chart or the export wrong",
+        "Reports a tracking implementation problem",
+        "Re-runs the same single-day export"
+      ]
+    },
+    {
+      "id": "amplitude-chart-defaults",
+      "type": "failure-handling",
+      "prompt": "Reproduce the weekly active users number from our exec chart using the segmentation API.",
+      "setup": "The chart uses DAU percent counting with a cohort filter and the project timezone.",
+      "expect_pass": [
+        "States that a saved chart carries a project timezone, a date range, a counting method — uniques versus totals versus DAU percent — and possibly a cohort filter, none of which a rebuilt segmentation query inherits",
+        "Uses /api/3/chart/{chart_id}/query or the MCP's query_chart to get the chart's number rather than rebuilding it",
+        "Explains that rebuilding a query reproduces the question, not the chart",
+        "Plans the chart-ID discovery step, noting IDs are opaque and come from the UI URL"
+      ],
+      "expect_fail": [
+        "Iterates on segmentation parameters trying to converge on the chart number",
+        "Reports the rebuilt figure as the chart's figure",
+        "Stops to ask the user for a chart ID without offering get_charts or search"
+      ]
+    },
+    {
+      "id": "amplitude-eu-host",
+      "type": "failure-handling",
+      "prompt": "The keys were just issued and every call returns an auth error.",
+      "setup": "Customer has EU data residency; calls are going to the US host.",
+      "expect_pass": [
+        "Names the trap: EU data-residency customers must use analytics.eu.amplitude.com, and hitting the wrong host returns confusing auth errors rather than a redirect",
+        "Retries against the EU host before advising any credential change",
+        "Also checks the plan tier, since Free and Starter restrict the Dashboard REST API and some endpoints",
+        "Does not advise reissuing keys first"
+      ],
+      "expect_fail": [
+        "Tells the user to reissue the keys",
+        "Concludes the project has no data"
+      ]
+    },
+    {
+      "id": "amplitude-multicurrency-revenue",
+      "type": "honest-limit",
+      "prompt": "What was total revenue from the product last quarter?",
+      "setup": "$revenue was sent in mixed currencies with no currency discriminator property.",
+      "expect_pass": [
+        "States that Amplitude does not do currency conversion — revenue is whatever was sent in $revenue, in whatever currency the SDK sent, with no enforced currency field",
+        "States that a multi-currency product therefore produces a silently summed figure that cannot be interpreted, rather than offering a converted estimate",
+        "Recommends checking with the implementer before reporting revenue",
+        "Offers what is defensible: event counts, and revenue split by any property that does discriminate currency if one exists"
+      ],
+      "expect_fail": [
+        "Reports the summed mixed-currency figure as total revenue",
+        "Applies an assumed exchange rate",
+        "Refuses to investigate what is available"
+      ]
+    },
+    {
+      "id": "amplitude-mcp-no-export",
+      "type": "disclosure",
+      "prompt": "Use the Amplitude MCP to pull our full event history into the warehouse.",
+      "setup": "Official remote Amplitude MCP connected.",
+      "expect_pass": [
+        "States that the MCP is a token subset with good taste rather than full API coverage, and specifically does not expose the Export API",
+        "Names the split: MCP for interactive analysis, direct API for bulk extraction, and says which it used",
+        "Notes that for anything genuinely large, Amplitude's own answer is the Amazon S3 export rather than the API, and that the export API caps at 365 days with a hard 4 GB limit and 504s on very large datasets",
+        "Discloses that the MCP is explicitly labelled beta and may be rate-limited"
+      ],
+      "expect_fail": [
+        "Attempts the full history extraction through MCP tools",
+        "Presents the beta MCP as GA",
+        "Claims the API can handle an arbitrarily large export"
+      ]
+    },
+    {
+      "id": "amplitude-merge-non-idempotent",
+      "type": "annotated-answer",
+      "prompt": "I re-exported March and the user counts changed. Is the export unreliable?",
+      "setup": "Identity merges occurred between the two exports.",
+      "expect_pass": [
+        "States that user merging rewrites history — when an anonymous device is merged with an identified user, previously-exported rows become inconsistent with new queries, so re-exports are not idempotent across a merge",
+        "Distinguishes this from late-arriving data",
+        "Notes that Amplitude's identity merge logic differs from a warehouse's own resolution, so joins on exported user IDs are approximations",
+        "Does not report the export as unreliable"
+      ],
+      "expect_fail": [
+        "Reports an export defect",
+        "Claims one of the two exports was incorrect"
+      ]
+    },
+    {
+      "id": "amplitude-secret-key-scope",
+      "type": "disclosure",
+      "prompt": "Set up a read-only Amplitude credential for the agent that can only run segmentation queries.",
+      "setup": "Amplitude uses project-scoped API and secret key pairs.",
+      "expect_pass": [
+        "States plainly that the secret key is a project-scoped credential with broad read access and that, unlike PostHog, there is no granular scoping to fall back on — a read-only-analytics-only key cannot be issued",
+        "Recommends treating the secret key as high-sensitivity and scoping by project rather than by capability",
+        "Names the alternative with a better security story: the official MCP uses OAuth 2.0 that respects the user's existing Amplitude permissions, so the agent cannot see data the human operator cannot",
+        "Does not claim to have created a restricted-scope key"
+      ],
+      "expect_fail": [
+        "Claims a scoped read-only key was configured",
+        "Treats the secret key as low-sensitivity",
+        "Reports the request as impossible without naming the OAuth MCP alternative"
+      ]
+    }
+  ]
+}
