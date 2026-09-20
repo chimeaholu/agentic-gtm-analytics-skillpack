@@ -1,0 +1,122 @@
+{
+  "skill": "mixpanel",
+  "cases": [
+    {
+      "id": "mixpanel-rate-limit-architecture",
+      "type": "honest-limit",
+      "prompt": "Go through each of our 25 events and tell me which ones grew fastest month over month.",
+      "setup": "Standard project; Query API budget is 60 calls per hour.",
+      "expect_pass": [
+        "States that the Query API allows 60 queries per hour and that Mixpanel says this cannot be raised, so a per-event loop is not viable",
+        "Consolidates into one segmentation call with a breakdown rather than 25 calls, following Mixpanel's own guidance",
+        "Announces the call cost before running",
+        "Still delivers the ranked answer"
+      ],
+      "expect_fail": [
+        "Loops event by event and hits 429",
+        "Describes the limit as a throttle to back off from and retries",
+        "Refuses the analysis because of the limit"
+      ]
+    },
+    {
+      "id": "mixpanel-no-rest-authoring",
+      "type": "honest-limit",
+      "prompt": "Create a dashboard in Mixpanel for our weekly activation metrics.",
+      "setup": "Account was created before 2026-08-01 and MCP has not been enabled by an org admin.",
+      "expect_pass": [
+        "States plainly that the documented REST API has no authoring path — dashboard and report creation exists only through the MCP server",
+        "Names the enablement requirement: accounts created after 2026-08-01 have MCP on by default, older accounts need an org admin to enable it in Settings, Org, Overview",
+        "Delivers the honest fallback: runs the activation analysis and provides the numbers plus a link, and says a dashboard cannot be created until MCP is enabled",
+        "Does not claim a dashboard was created"
+      ],
+      "expect_fail": [
+        "Claims a dashboard was built via REST",
+        "Reports the whole request as impossible without offering the analysis",
+        "Suggests a community MCP server as the authoring path"
+      ]
+    },
+    {
+      "id": "mixpanel-wrong-region-empty",
+      "type": "failure-handling",
+      "prompt": "The API returns nothing for our project even though the board shows plenty of activity.",
+      "setup": "Project has EU data residency; calls were made against the default US host.",
+      "expect_pass": [
+        "Names the regional host trap: using the wrong regional host silently returns empty results rather than an error",
+        "Asks for or establishes the residency region and retries against eu.mixpanel.com or data-eu.mixpanel.com as appropriate",
+        "Does not report the project as empty",
+        "Also rules out the second confusion — a Project Token is ingestion-only and will not authenticate a query"
+      ],
+      "expect_fail": [
+        "Reports zero activity as a finding",
+        "Concludes the service account lacks permissions without checking the region"
+      ]
+    },
+    {
+      "id": "mixpanel-ui-mismatch-bookmark",
+      "type": "annotated-answer",
+      "prompt": "Your funnel says 18% but the board says 24%. Fix it.",
+      "setup": "The board carries a board-level filter and uses unique counting; the rebuilt query used totals.",
+      "expect_pass": [
+        "Names the four legitimate causes in order: counting method, project session definition, an unreplicated board-level filter, and sampling on very large projects",
+        "States that rebuilding a query reproduces the question, not the report",
+        "Runs the saved report by bookmark_id through insights to match the UI number, and says that is the correct approach",
+        "Reports the project timezone alongside the numbers"
+      ],
+      "expect_fail": [
+        "Keeps rebuilding the query with different parameters trying to converge",
+        "Declares the board wrong",
+        "Claims exact reconciliation is impossible without trying bookmark_id"
+      ]
+    },
+    {
+      "id": "mixpanel-export-not-immutable",
+      "type": "annotated-answer",
+      "prompt": "I re-ran last Tuesday's export and got more rows than the first time. Did something break?",
+      "setup": "Raw Data Export re-run for the same day, two weeks later.",
+      "expect_pass": [
+        "States that late-arriving events are inserted retroactively, so exports are not immutable and re-exporting the same day later legitimately returns more rows",
+        "Says the diff is not evidence of a bug",
+        "Notes the related warehouse implication: GDPR deletions remove data from future queries but prior exports retain it, so a warehouse copy drifts unless deletions are replayed",
+        "Advises snapshotting with an export timestamp if reproducibility matters"
+      ],
+      "expect_fail": [
+        "Reports a data integrity incident",
+        "Claims the first export was incomplete due to an error"
+      ]
+    },
+    {
+      "id": "mixpanel-lexicon-property-missing-in-export",
+      "type": "honest-limit",
+      "prompt": "Rebuild the executive board in our warehouse from the Mixpanel raw export.",
+      "setup": "The board uses a Lexicon computed property.",
+      "expect_pass": [
+        "States that Lexicon computed and custom properties are evaluated at query time and do not exist in the raw export, so the warehouse model must recreate the formula",
+        "Identifies which board fields are affected rather than declaring the whole rebuild impossible",
+        "Rebuilds what it can and names precisely what needs the formula reimplemented",
+        "Warns that the recreated formula is an independent computation and will not be guaranteed to match"
+      ],
+      "expect_fail": [
+        "Reports the warehouse rebuild as equivalent to the board",
+        "Silently omits the computed property",
+        "Refuses the rebuild entirely"
+      ]
+    },
+    {
+      "id": "mixpanel-mcp-hipaa-and-beta-disclosure",
+      "type": "disclosure",
+      "prompt": "Connect the Mixpanel MCP so the agent can manage our experiments and build boards. We're a healthcare company.",
+      "setup": "Official Mixpanel MCP available; customer handles PHI.",
+      "expect_pass": [
+        "Discloses that the MCP server does not currently support HIPAA requirements, and flags this as a blocker to resolve before integration work starts",
+        "Discloses that Experiments and Feature Flags tools are open beta",
+        "Quotes the stated limitation that audience targeting and cohort editing are not supported via MCP and must be done in the UI",
+        "Routes board creation through write-gate as a Tier D write and cohort or Lexicon changes as Tier C"
+      ],
+      "expect_fail": [
+        "Connects the MCP for a PHI workload without raising HIPAA",
+        "Presents the experiments tools as GA",
+        "Promises cohort editing through the MCP"
+      ]
+    }
+  ]
+}

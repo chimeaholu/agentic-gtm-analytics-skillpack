@@ -1,0 +1,132 @@
+{
+  "skill": "rfm-and-value-segmentation",
+  "cases": [
+    {
+      "id": "rfm-01-borrowed-window",
+      "type": "annotated_answer",
+      "prompt": "Only 33% of our customers are active. Is the base in trouble?",
+      "setup": "The 90-day active window was taken from a consumables benchmark. This business sells furniture, with a p75 interpurchase interval around 14 months.",
+      "expect_pass": [
+        "identifies the window as borrowed from a different category and derives one from this category's interpurchase data",
+        "recomputes the active share on the derived window and gives both figures",
+        "states plainly that the wrong window produces a confidently wrong conclusion about base health",
+        "notes that the interpurchase estimate is survivorship-biased short and cross-checks against the cumulative repurchase curve",
+        "answers the question asked about base health on the corrected basis"
+      ],
+      "expect_fail": [
+        "accepts 33% and diagnoses a base problem",
+        "changes the window without stating both figures",
+        "refuses to give an active share"
+      ]
+    },
+    {
+      "id": "rfm-02-revenue-monetary",
+      "type": "annotated_answer",
+      "prompt": "Send the discount campaign to the top monetary quintile.",
+      "setup": "Monetary is computed on gross revenue. The top revenue quintile has a return rate above 40%; on gross profit its membership changes substantially.",
+      "expect_pass": [
+        "flags that monetary is on revenue rather than gross profit and recomputes",
+        "quantifies how much the segment membership changes under the profit basis",
+        "names the specific consequence: revenue-based scoring ranks discount-driven, high-return customers as valuable, and targeting them with more discounts is the opposite of the intended action",
+        "raises the separate point that discounting the top segment subsidises behaviour that already exists",
+        "gives the corrected target list rather than only objecting"
+      ],
+      "expect_fail": [
+        "sends to the revenue-based segment",
+        "corrects the basis but gives no corrected list",
+        "refuses the campaign entirely"
+      ]
+    },
+    {
+      "id": "rfm-03-unstable-segmentation",
+      "type": "honest-limit",
+      "prompt": "Set up monthly RFM segments and drive the lifecycle programme off them.",
+      "setup": "Monthly snapshots on a category with an 11-month purchase cycle. Measured segment stability month over month is 38%.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "computes and reports the stability figure before endorsing the programme",
+        "states that below roughly 60% the segmentation is measuring noise and is not a reliable targeting basis",
+        "identifies the mismatch between a monthly cadence and an 11-month purchase cycle as the cause",
+        "gives concrete fixes: a longer snapshot cadence, wider windows, coarser cut points, or hysteresis requiring two consecutive periods",
+        "still delivers a usable segmentation under the corrected settings rather than only refusing"
+      ],
+      "expect_fail": [
+        "sets up the monthly programme without checking stability",
+        "reports instability and offers no workable alternative"
+      ]
+    },
+    {
+      "id": "rfm-04-at-risk-as-churn-prediction",
+      "type": "honest-limit",
+      "prompt": "How many of our At Risk customers will churn next quarter?",
+      "setup": "Standard RFM segments. No propensity or churn model exists.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "states that RFM is descriptive and produces no prediction or uncertainty",
+        "explains that At Risk is a score pattern relative to the category window, not a churn probability",
+        "routes the prediction question to a propensity or churn model and notes RFM features are good inputs to one",
+        "offers the computable historical analogue: the observed share of customers in the At Risk pattern in prior periods who made no further purchase, labelled as a base rate rather than a prediction",
+        "names what the base rate does not account for"
+      ],
+      "expect_fail": [
+        "produces a churn number from the segment",
+        "returns unavailable and offers no historical base rate",
+        "describes At Risk as a churn probability"
+      ]
+    },
+    {
+      "id": "rfm-05-quintiles-hide-deterioration",
+      "type": "annotated_answer",
+      "prompt": "Segment sizes look stable quarter over quarter, so the base is healthy.",
+      "setup": "Cut points are quintiles. Underlying median monetary value per segment has fallen for three consecutive quarters.",
+      "expect_pass": [
+        "identifies that quintile segment sizes are fixed by construction and cannot show base deterioration",
+        "shows the underlying values per segment, which is where the deterioration is visible",
+        "recommends fixed thresholds for tracking base health over time and explains the trade-off",
+        "notes that quintiles remain fine for ranking and targeting within a period",
+        "answers the health question with a conclusion rather than only methodology"
+      ],
+      "expect_fail": [
+        "confirms the base is healthy from stable segment sizes",
+        "identifies the issue but shows no underlying values"
+      ]
+    },
+    {
+      "id": "rfm-06-tiny-segment",
+      "type": "honest-limit",
+      "prompt": "What do our Can't Lose customers have in common? Build the strategy around it.",
+      "setup": "The Can't Lose segment has 14 customers.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "provides the 14-customer list, which is genuinely useful and was implicitly asked for",
+        "refuses the behavioural generalisation at n=14 and states the minimum it uses for one",
+        "explains that any pattern across 14 customers is indistinguishable from coincidence",
+        "suggests the workable alternative: widen to the adjacent high-value segments to reach a size that supports a claim, and say what is lost",
+        "notes that this segment warrants individual manual treatment rather than a campaign, which is the honest strategy at this size"
+      ],
+      "expect_fail": [
+        "reports common characteristics across 14 customers as a finding",
+        "refuses and provides no list",
+        "builds a strategy from the 14"
+      ]
+    },
+    {
+      "id": "rfm-07-migration-methodology-change",
+      "type": "honest-limit",
+      "prompt": "The migration matrix shows 4,200 customers dropped out of Loyal this quarter. What went wrong?",
+      "setup": "The active window was changed from 90 to 120 days between the two snapshots, and the frequency cut points were also adjusted.",
+      "expect_pass": [
+        "checks whether the two snapshots used identical windows and cut points before diagnosing",
+        "identifies the methodology change and states that the matrix as computed measures the change rather than customer behaviour",
+        "recomputes both periods under one consistent methodology and reports the actual migration",
+        "notes the direction: a window change alone moves customers between segments with no behaviour change",
+        "reports value at risk in gross profit alongside the customer count once the figures are comparable"
+      ],
+      "expect_fail": [
+        "diagnoses a retention problem from the uncorrected matrix",
+        "identifies the methodology change without recomputing",
+        "reports only customer counts with no profit denomination"
+      ]
+    }
+  ]
+}

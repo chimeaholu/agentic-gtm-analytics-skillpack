@@ -1,0 +1,138 @@
+{
+  "skill": "klaviyo",
+  "cases": [
+    {
+      "id": "klaviyo-no-report-object",
+      "type": "honest-limit",
+      "prompt": "Build us a Klaviyo dashboard showing flow revenue by month.",
+      "setup": "Private API key with reporting scopes.",
+      "expect_pass": [
+        "States plainly that Klaviyo has no saved report or dashboard object — you author a report query, not a report artifact",
+        "Names the honest delivery path: compose the flow-series-report query, return the aggregates, and write them somewhere a human opens",
+        "Still produces the monthly flow revenue numbers",
+        "Names the conversion metric used"
+      ],
+      "expect_fail": [
+        "Claims a Klaviyo dashboard was created",
+        "Refuses the request because no dashboard object exists",
+        "Reports revenue without naming the conversion metric"
+      ]
+    },
+    {
+      "id": "klaviyo-conversion-metric-ambiguity",
+      "type": "annotated-answer",
+      "prompt": "What revenue did the September campaigns drive?",
+      "setup": "Account has both a Placed Order metric and a Checkout Started metric; the user did not specify.",
+      "expect_pass": [
+        "Resolves conversion_metric_id explicitly rather than defaulting silently, and names the metric it chose",
+        "States that conversion_metric_id is not a filter but the definition of converted, so a different choice produces a different and equally valid-looking revenue figure",
+        "Prints the metric name and id alongside the number",
+        "Asks which metric the business counts as a conversion, or picks the more conservative one and says so"
+      ],
+      "expect_fail": [
+        "Reports revenue with no mention of which conversion metric produced it",
+        "Silently picks a metric and presents the number as the revenue",
+        "Withholds the number pending clarification"
+      ]
+    },
+    {
+      "id": "klaviyo-campaign-loop-rate-limit",
+      "type": "failure-handling",
+      "prompt": "Check each of our 40 campaigns and rank them by conversion rate.",
+      "setup": "campaign-values-reports allows 1/s burst, 2/min steady, 225/day.",
+      "expect_pass": [
+        "States that the campaign values report is limited to 2 per minute and 225 per day, and that this is an architectural constraint rather than a throttle to back off from",
+        "Issues one wide values report with group_by and ranks locally rather than looping",
+        "Notes that the tier table does not mention the reporting endpoint's daily cap, so the per-endpoint reference is the source of truth",
+        "Delivers the ranking"
+      ],
+      "expect_fail": [
+        "Loops campaign by campaign",
+        "Adds retry-with-backoff as the solution to a 2-per-minute limit",
+        "Refuses the ranking"
+      ]
+    },
+    {
+      "id": "klaviyo-include-additive-buckets",
+      "type": "failure-handling",
+      "prompt": "Pull the campaigns with their tags and templates in one call each, to save requests.",
+      "setup": "Agent plans to use include= and additional-fields[] on every request.",
+      "expect_pass": [
+        "States that include= and additional-fields[...] consume separate additive global buckets, so one request can cost three calls against three buckets and those buckets are global across endpoints",
+        "Explains that batching related data into one call is actively counterproductive on Klaviyo",
+        "Fetches lean and joins locally, and says so",
+        "Still delivers campaigns with their tags and templates"
+      ],
+      "expect_fail": [
+        "Uses include= everywhere as an efficiency measure",
+        "Reports the resulting 429s as a Klaviyo problem"
+      ]
+    },
+    {
+      "id": "klaviyo-blank-is-not-zero",
+      "type": "honest-limit",
+      "prompt": "This campaign shows no conversions at all. Was it a total failure?",
+      "setup": "Well-formed response with empty data; the conversion metric selected does not apply to that campaign's channel.",
+      "expect_pass": [
+        "States that a well-formed empty response occurs when the filter matched nothing, the conversion metric does not apply, or the timeframe predates the campaign, and that there is no 0-rows-because-X signal",
+        "Validates that the campaign ID exists and that the conversion metric applies before concluding anything",
+        "Does not report zero conversions as a finding",
+        "Re-runs with an applicable conversion metric and reports the result"
+      ],
+      "expect_fail": [
+        "Reports the campaign as having driven zero conversions",
+        "Treats the blank response as evidence of poor performance"
+      ]
+    },
+    {
+      "id": "klaviyo-open-rate-ranking",
+      "type": "annotated-answer",
+      "prompt": "Rank our flows by open rate and tell me which subject lines are working.",
+      "setup": "Account sends to a consumer list with substantial Apple Mail usage.",
+      "expect_pass": [
+        "Gives the ranking that was asked for",
+        "States that open rates are unreliable because Apple Mail Privacy Protection inflates opens, and that Klaviyo's own guidance has moved toward click and conversion metrics",
+        "Provides the click_rate and conversion ranking alongside, and says why that ordering is the one to act on",
+        "Does not present the open-rate ordering as a reliable read on subject lines"
+      ],
+      "expect_fail": [
+        "Ranks by open rate with no caveat",
+        "Refuses to give the open-rate ranking the user asked for",
+        "Draws subject-line conclusions from open rate alone"
+      ]
+    },
+    {
+      "id": "klaviyo-403-vs-401",
+      "type": "failure-handling",
+      "prompt": "The reporting calls are failing with 403. Should I regenerate the key?",
+      "setup": "Key is valid but was created without the reporting scopes.",
+      "expect_pass": [
+        "Distinguishes 403 from 401: 403 means the key is valid but lacks a scope, 401 means missing or bad key",
+        "Advises re-scoping rather than regenerating",
+        "Also confirms the revision header is present and pinned, since a missing revision header is the most common first-call failure",
+        "Names the specific scopes the reporting endpoints require"
+      ],
+      "expect_fail": [
+        "Tells the user to regenerate the key",
+        "Treats all auth failures as bad credentials"
+      ]
+    },
+    {
+      "id": "klaviyo-no-bulk-export",
+      "type": "honest-limit",
+      "prompt": "Pull two years of raw event history into our warehouse from Klaviyo.",
+      "setup": "Large account; no reverse-ETL integration configured.",
+      "expect_pass": [
+        "States plainly that there is no async or bulk export API, so bulk means paginating /api/events and /api/profiles under the rate limits",
+        "Says that for a large account this is slow enough to be impractical, and names the honest answer: a warehouse or reverse-ETL integration",
+        "Notes that Klaviyo's bulk profile import is an ingest path and does not help with export",
+        "Raises this at planning time rather than after starting the paging"
+      ],
+      "expect_fail": [
+        "Starts paging two years of events without flagging the feasibility",
+        "Claims a bulk export endpoint exists",
+        "Suggests the profile import API as an export route"
+      ]
+    }
+  ]
+}

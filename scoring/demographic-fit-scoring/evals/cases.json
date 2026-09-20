@@ -1,0 +1,109 @@
+{
+  "skill": "demographic-fit-scoring",
+  "cases": [
+    {
+      "id": "dfs-01-missing-not-low",
+      "type": "honest-limit",
+      "scenario": "34% of accounts have no employee count. The existing fit model scores a missing employee count as zero points.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that missing is not low and that zero-scoring penalises under-covered segments",
+        "Names the coverage bias: small, non-US, privately held and recently founded companies",
+        "Prescribes scoring on known attributes normalised to the achievable maximum, plus a confidence flag",
+        "Distinguishes a genuine zero from a missing value explicitly",
+        "Reports coverage per attribute and by segment, and states the direction of error on affected grades"
+      ],
+      "fail_if": [
+        "Retains zero-scoring for missing values",
+        "Imputes the mean employee count",
+        "Drops accounts with missing attributes without stating the bias introduced"
+      ]
+    },
+    {
+      "id": "dfs-02-icp-disagrees-with-data",
+      "type": "annotated_answer",
+      "scenario": "The stated ICP is enterprise manufacturing. Evidence shows mid-market services wins at 31% versus 13%, with non-overlapping intervals, but enterprise deals are much larger.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports both the stated ICP and the evidence side by side with the verdict per attribute",
+        "Gives win rates with intervals and sample sizes",
+        "Names the deal-size trade explicitly rather than declaring the data the winner",
+        "Raises the legitimate reasons the stated ICP might still be right: deliberate strategy change, selection effect, value over volume",
+        "Leaves the decision with the business while making the evidence unambiguous"
+      ],
+      "fail_if": [
+        "Declares the stated ICP wrong with no consideration of strategy or deal value",
+        "Reconciles the gap away",
+        "Reports win rates without sample sizes or intervals"
+      ]
+    },
+    {
+      "id": "dfs-03-fit-and-behaviour-collapsed",
+      "type": "correctness",
+      "scenario": "A team proposes a single 0-100 lead score blending firmographic fit and engagement activity.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Rejects the collapse and explains that a high-fit unengaged account and a low-fit engaged account are opposite situations",
+        "Names the action for each quadrant",
+        "Prescribes the two-axis grid rendering",
+        "Notes that a combined model downstream is acceptable provided both components stay visible"
+      ],
+      "fail_if": [
+        "Accepts the single blended score",
+        "Rejects any combined model outright"
+      ]
+    },
+    {
+      "id": "dfs-04-thin-level",
+      "type": "honest-limit",
+      "scenario": "A firmographic level has 6 opportunities and 4 wins. A stakeholder wants to add it to the ICP as a 67% win-rate segment.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "Reports the counts and marks the level insufficient evidence against the volume floor",
+        "Gives the confidence interval, which will be very wide, rather than only refusing",
+        "States that the level is not dropped, just unproven, and names the volume that would settle it",
+        "Does not add the level to the criteria on this evidence"
+      ],
+      "fail_if": [
+        "Reports 67% as a win rate for the segment",
+        "Drops the level silently from the analysis",
+        "Adds it to the ICP"
+      ]
+    },
+    {
+      "id": "dfs-05-provider-conflict",
+      "type": "honest-limit",
+      "scenario": "Two enrichment providers disagree on employee band for 30% of accounts. Grades built on the blend are being disputed by sales.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports the conflict rate as a measured number",
+        "Explains the cause: providers use different entity definitions, legal entity versus group versus network headcount",
+        "Prescribes one provider per attribute or an explicit priority order with the winning provider recorded",
+        "Recommends banding rather than raw values to absorb provider disagreement",
+        "Acknowledges that sales is right to distrust a grade built on an unnormalised blend"
+      ],
+      "fail_if": [
+        "Averages the two providers' values",
+        "Dismisses the sales complaint",
+        "Continues using the blend with no normalisation"
+      ]
+    },
+    {
+      "id": "dfs-06-grade-inflation",
+      "type": "correctness",
+      "scenario": "47% of the database is graded A. Weekly capacity is about 200 accounts.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "States plainly that a grade covering 47% of the database is not a filter",
+        "Derives a capacity-based cut and reports the resulting A/B win-rate separation",
+        "Checks whether the grades separate outcomes with non-overlapping intervals",
+        "Distinguishes grade inflation from genuine improvement by checking whether win rate moved with the distribution"
+      ],
+      "fail_if": [
+        "Accepts the distribution",
+        "Tightens the cut without reporting the effect on separation",
+        "Reads a rightward distribution shift as improving lead quality without checking outcomes"
+      ]
+    }
+  ]
+}
