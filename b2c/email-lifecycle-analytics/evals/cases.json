@@ -1,0 +1,151 @@
+{
+  "skill": "email-lifecycle-analytics",
+  "cases": [
+    {
+      "id": "ela-01-rank-by-open-rate",
+      "type": "annotated_answer",
+      "prompt": "Rank our campaigns by open rate so we know which subject lines work.",
+      "setup": "Post-MPP data. Click and conversion metrics are available for all campaigns.",
+      "expect_pass": [
+        "produces a ranking rather than refusing, but ranks on click rate and conversion",
+        "reports open rates in the table, labelled, rather than withholding them",
+        "explains in one plain sentence why opens are unreliable post-MPP and notes the vendors say so themselves",
+        "omits or explicitly caveats click-to-open, because it divides by the noisy term",
+        "notes that subject-line effectiveness specifically is the hardest thing to measure post-MPP and names what can still be inferred from clicks"
+      ],
+      "expect_fail": [
+        "ranks by open rate",
+        "refuses to report open rates at all",
+        "reports click-to-open as a measure of subject-line effectiveness"
+      ]
+    },
+    {
+      "id": "ela-02-conversion-metric-unstated",
+      "type": "honest-limit",
+      "prompt": "This campaign shows 84k revenue in my report but 41k in the agency's. Who's wrong?",
+      "setup": "Klaviyo. The two reports used different conversion_metric_id values. Nothing in either response explains the difference.",
+      "expected_result_type": "ambiguous",
+      "expect_pass": [
+        "identifies conversion_metric_id as the likely cause and explains that it defines what converted means for the report rather than filtering it",
+        "states that both figures can be correct and neither is a data error",
+        "names the diagnostic: compare the conversion metric IDs used in the two report specs",
+        "states the rule going forward: resolve the metric explicitly, log it, and print it in the output",
+        "flags the second reproducibility risk: the account's attribution settings are retroactive, so historical figures change when the window changes"
+      ],
+      "expect_fail": [
+        "declares one figure wrong",
+        "attributes the difference to a sync or pipeline problem",
+        "picks one number without explaining the mechanism"
+      ]
+    },
+    {
+      "id": "ela-03-braze-mixed-attribution-bases",
+      "type": "honest-limit",
+      "prompt": "Build a table of conversions by campaign for last month from the Braze send data.",
+      "setup": "The response contains both conversions and conversions_by_send_time. Several campaigns sent near the month boundary.",
+      "expect_pass": [
+        "states that the two fields are different attribution bases and must not be mixed in one table",
+        "picks one basis and names it in the output",
+        "explains which basis suits which question: send-time for campaign performance, conversion-date for period revenue",
+        "flags the month-boundary sends as the case where the two diverge most",
+        "produces the table"
+      ],
+      "expect_fail": [
+        "sums or mixes the two fields",
+        "produces the table without naming the basis",
+        "refuses to produce a table"
+      ]
+    },
+    {
+      "id": "ela-04-klaviyo-blank-result",
+      "type": "honest-limit",
+      "prompt": "The welcome flow shows no revenue at all last quarter. Should we turn it off?",
+      "setup": "A Klaviyo flow-values-report returned a well-formed response with empty data. The flow ID has not been validated and the timeframe predates a flow rebuild.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "does not conclude the flow generated zero revenue",
+        "identifies the blank-but-well-formed response as a known Klaviyo failure mode with no zero-rows-because-X signal",
+        "lists the three causes to check: the filter matching nothing, the conversion metric not applying, and the timeframe predating the flow",
+        "validates or says to validate that the flow ID exists before concluding performance was zero",
+        "explicitly warns against the irreversible decision on this evidence"
+      ],
+      "expect_fail": [
+        "reports zero revenue for the flow",
+        "recommends turning the flow off",
+        "retries the identical request repeatedly"
+      ]
+    },
+    {
+      "id": "ela-05-sends-as-people",
+      "type": "annotated_answer",
+      "prompt": "The onboarding journey processed 100,000 messages last month, so we reached 100,000 people.",
+      "setup": "The journey has 4 email steps. Distinct-recipient counts are available from the segment endpoint.",
+      "expect_pass": [
+        "identifies that journey statistics count sends, not people",
+        "gives the corrected reach estimate by dividing by emails per journey, and notes it is an upper-bound division because not every recipient reaches every step",
+        "uses the distinct-recipient figure where it is available rather than relying on the division",
+        "states the magnitude of the original error",
+        "notes the same rule applies to flow rate denominators: rates are per distinct recipient entering, not per send"
+      ],
+      "expect_fail": [
+        "accepts 100,000 people",
+        "divides by four and presents the result as exact without noting drop-off"
+      ]
+    },
+    {
+      "id": "ela-06-delay-step-zero",
+      "type": "honest-limit",
+      "prompt": "The win-back flow shows zero processed for the last three days. Is it broken?",
+      "setup": "The flow begins with a 48-hour delay step. Entries over the last three days are normal.",
+      "expect_pass": [
+        "checks for a leading delay step before diagnosing a fault",
+        "identifies the 48-hour delay as documented behaviour that produces zero processed for recent cohorts",
+        "states that entries are normal, so the flow is receiving traffic",
+        "says when the first sends from those cohorts will appear",
+        "names what would genuinely indicate a broken flow: entries falling to zero, or processed staying at zero past the delay window"
+      ],
+      "expect_fail": [
+        "reports the flow as broken",
+        "recommends a rebuild or an escalation",
+        "reports zero sends with no explanation"
+      ]
+    },
+    {
+      "id": "ela-07-marketo-ui-mismatch",
+      "type": "honest-limit",
+      "prompt": "Our API-derived open count is 31% higher than the Marketo report. Fix the extraction.",
+      "setup": "The API figure sums Open Email activities from Bulk Activity Extract. The UI figure is the Email Performance Report.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "states that the two cannot be reconciled and that the extraction is not at fault",
+        "names the mechanism: the UI de-duplicates opens per person and applies undocumented bot filtering, so API sums are gross and systematically higher",
+        "states plainly that promising the same numbers as the Marketo report is promising something that cannot be delivered",
+        "recommends presenting API-derived metrics as independently computed, with that stated",
+        "notes that the correct comparison is API-to-API over time, not API-to-UI"
+      ],
+      "expect_fail": [
+        "attempts to tune the extraction to match the UI",
+        "declares one figure wrong",
+        "reports the discrepancy as a bug to be fixed"
+      ]
+    },
+    {
+      "id": "ela-08-rate-limit-architecture",
+      "type": "annotated_answer",
+      "prompt": "Pull performance for each of our 60 campaigns, one at a time, and rank them.",
+      "setup": "Klaviyo campaign values report, documented at roughly 2 requests per minute and 225 per day.",
+      "expect_pass": [
+        "refuses the per-campaign loop and explains that it would take roughly half an hour and consume a large share of the daily budget",
+        "gives the correct shape: one wide query using group_by across all campaigns",
+        "notes that the limit is an architectural constraint rather than a throttle to back off from",
+        "warns against adding include or additional-fields, which consume separate additive rate-limit buckets",
+        "produces the ranking"
+      ],
+      "expect_fail": [
+        "executes the per-campaign loop",
+        "refuses the task without giving the grouped-query alternative",
+        "recommends adding include parameters to reduce call count"
+      ]
+    }
+  ]
+}

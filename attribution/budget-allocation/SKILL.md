@@ -214,10 +214,13 @@ not_claimed[]: causality_where_untested, cross_platform_dedup, extrapolation
 > else flat this quarter.**
 >
 > Paid search is the only channel where the evidence supports resizing: the geo
-> test measured 9% lift with a lower bound of 3%, and even the lower bound clears
-> your break-even ROAS of 3.33 at a 30% contribution margin. The move is capped at
-> 15% rather than the 40% the point estimate would justify, because the test was
-> run at current spend and a 40% increase is outside the range anything measured.
+> test measured 9% incremental lift with a lower bound of 3%. Converted against
+> the spend that was withheld, even the lower bound implies an incremental ROAS
+> above your break-even of 3.33 at a 30% contribution margin — so the case rests
+> on the bottom of the interval, not the middle of it. The move is capped at 15%
+> rather than the larger shift the point estimate would justify, because the test
+> ran at current spend and a bigger increase is outside the range anything
+> measured.
 >
 > Display is the channel everyone expects to cut, and I am not recommending a cut:
 > its credit ranges from 6% to 21% across the models, its rank flips between them,

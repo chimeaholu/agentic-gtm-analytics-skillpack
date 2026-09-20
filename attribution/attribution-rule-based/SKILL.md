@@ -228,11 +228,14 @@ Rank stability: compute Kendall's tau between each pair of model rankings.
 Report the minimum pairwise tau as the headline agreement figure — a pack that
 reports the average hides exactly the disagreement it was built to surface.
 
-In the table above, Paid search and Referral are **act**. Organic and Email are
-**test**, and they are the same finding twice: Organic is first-touch-flattered
-and last-touch-starved, Email is the mirror image. That is the classic
-create-versus-harvest signature, and no rule resolves it. A holdout on the email
-programme resolves it, and that is the recommendation.
+Reading the table above: **Referral and Direct are `act`** — small, and stable
+to two points across every model. **Paid search is `hold`**, and the distinction
+matters: it is the largest channel under all eight models, so its *rank* is not
+in dispute, but a 10-point range means you cannot size a spend change from any
+single column. **Organic and Email are `test`**, and they are the same finding
+twice — Organic is first-touch-flattered and last-touch-starved, Email is the
+mirror image. That is the classic create-versus-harvest signature, no rule
+resolves it, and a holdout on the email programme does.
 
 ---
 
@@ -307,13 +310,14 @@ limitations[]:     backfill_depth, unobserved_channels, modelled_share, floors_h
 **Answer first.** Lead with what the models agree on, then the disagreement as a
 finding in its own right.
 
-> **Paid search carries 28–38% of conversion credit and is the largest channel
-> under every model we can run — that one is safe to act on.** Email and organic
-> are the open question: email ranges from 11% under first-touch to 27% under
-> last-touch, and organic is the exact mirror. That spread is the signature of a
-> harvest channel and a create channel, and no allocation rule can separate them —
-> a two-week email holdout can, and would cost less than the reallocation being
-> considered.
+> **Paid search is the largest channel under all eight models, carrying between
+> 28% and 38% of conversion credit.** The ranking is safe; the magnitude is not,
+> so use it to confirm paid search matters, not to size a spend change. Email and
+> organic are the open question: email ranges from 11% under first-touch to 27%
+> under last-touch, and organic is the exact mirror. That spread is the signature
+> of a harvest channel and a create channel, and no allocation rule can separate
+> them — a two-week email holdout can, and would cost less than the reallocation
+> being considered.
 >
 > All of these are credit allocations, not people, and all eight models assign
 > 100% of credit to touches we tracked, so anything untracked — word of mouth,

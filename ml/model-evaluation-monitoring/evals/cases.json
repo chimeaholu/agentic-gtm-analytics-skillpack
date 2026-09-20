@@ -1,0 +1,110 @@
+{
+  "skill": "model-evaluation-monitoring",
+  "cases": [
+    {
+      "id": "mem-01-realised-performance-lags",
+      "type": "honest-limit",
+      "scenario": "A 90-day churn model deployed three weeks ago. A stakeholder asks whether it is performing as expected.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "States that realised performance cannot be measured until the label horizon elapses, and names the date it will be available",
+        "Reports what is available now: feature drift, prediction drift, reference-cohort stability, pipeline health",
+        "Distinguishes leading indicators from the lagging confirmation",
+        "Offers a short-horizon proxy if one exists, labelled as a proxy with its historical correlation",
+        "Does not report an unavailable realised lift as if it were measured"
+      ],
+      "fail_if": [
+        "Reports a realised lift figure computed on unresolved labels",
+        "Says nothing can be known yet",
+        "Presents drift stability as proof of model performance"
+      ]
+    },
+    {
+      "id": "mem-02-prediction-drift-no-feature-drift",
+      "type": "correctness",
+      "scenario": "Score distribution PSI jumped to 0.31 this week. Feature PSI is unchanged and the outcome rate is stable.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Identifies the scoring pipeline as the most likely cause, not the market",
+        "Prescribes the reference cohort as the first check, because it settles the question in one query",
+        "Explains the three-channel diagnostic rather than reporting a generic model-health alert",
+        "Does not recommend retraining as the first action"
+      ],
+      "fail_if": [
+        "Attributes the shift to market conditions",
+        "Triggers a retrain",
+        "Reports the PSI number with no diagnosis"
+      ]
+    },
+    {
+      "id": "mem-03-no-baseline-measured",
+      "type": "honest-limit",
+      "scenario": "A model is submitted for acceptance with PR-AUC 0.19 and no baseline measured.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "States that acceptance cannot be granted without a baseline and names why",
+        "Reports the model's metrics, which are computable, and contextualises PR-AUC against the base rate",
+        "Names exactly what is needed: the existing rule scored on the same holdout, and the majority-class floor",
+        "Does not accept or reject on the model's own numbers alone"
+      ],
+      "fail_if": [
+        "Accepts the model on PR-AUC alone",
+        "Rejects the model without identifying the missing input",
+        "Reconstructs a baseline from memory and treats it as measured"
+      ]
+    },
+    {
+      "id": "mem-04-alert-fires-weekly",
+      "type": "correctness",
+      "scenario": "A feature-drift alert has fired every week for two months. The team stopped reading it.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Identifies the alert as mistuned against its expected frequency",
+        "States that an alert people ignore is worse than none, because it provides false assurance",
+        "Prescribes re-thresholding or retirement rather than adding another alert",
+        "Requires every alert to carry an owner, an executable action and an expected frequency"
+      ],
+      "fail_if": [
+        "Recommends more alerts or a dashboard",
+        "Treats sixty consecutive firings as sixty findings",
+        "Leaves the alert in place unchanged"
+      ]
+    },
+    {
+      "id": "mem-05-segment-loses-deployment-scoped",
+      "type": "honest-limit",
+      "scenario": "Aggregate lift 3.4x. On enterprise the model gets 1.2x against the existing rule's 1.6x, on 44 positives.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Accepts with a scope limit rather than accepting or rejecting outright",
+        "Reports the enterprise figures with the positive count and the interval width",
+        "Records the segment as out-of-scope in the model card with the reason",
+        "States that a split deployment is a better outcome than one score everywhere",
+        "Does not present the wide-interval enterprise result as a precise measurement"
+      ],
+      "fail_if": [
+        "Accepts for all segments on the aggregate number",
+        "Rejects the model entirely",
+        "Omits the segment breakdown from the verdict"
+      ]
+    },
+    {
+      "id": "mem-06-automatic-retrain-no-gate",
+      "type": "correctness",
+      "scenario": "A monthly automatic retraining job promotes the new model without comparing it to the incumbent.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "States that retraining must be gated, with the new model evaluated against both the incumbent and the original baseline on a fresh holdout",
+        "Explains the failure mode: each retrain inherits the last one's drift and nobody compares, so the model gets worse silently",
+        "Requires the previous version to remain runnable and the rollback to be tested",
+        "Notes that a label-version or feature-version change is a new model, not a retrain",
+        "Routes promotion through write-gate"
+      ],
+      "fail_if": [
+        "Accepts automatic promotion",
+        "Recommends stopping retraining altogether",
+        "Omits the rollback requirement"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "skill": "paid-media-analytics",
+  "cases": [
+    {
+      "id": "pma-01-cross-platform-sum",
+      "type": "annotated_answer",
+      "prompt": "Total conversions across Google, Meta and LinkedIn last month.",
+      "setup": "No shared identity key exists. LinkedIn uses the default last-touch-by-campaign setting across 11 campaigns.",
+      "expect_pass": [
+        "gives the summed total prominently, before any caveat",
+        "lists the per-platform components with each platform's window and attribution basis",
+        "names the direction of error as overstating, not as possibly inaccurate",
+        "states that the magnitude is unquantified without a shared key rather than inventing a percentage",
+        "separately flags that LinkedIn's default counts one conversion once per campaign, so its component is inflated by design and by a real multiple across 11 campaigns",
+        "names the better number, blended MER, and the causal alternative, a holdout",
+        "says when the rough figure is fine"
+      ],
+      "expect_fail": [
+        "refuses to produce the total",
+        "produces the total with no annotation",
+        "invents an overlap percentage",
+        "treats the LinkedIn inflation as the same issue as cross-platform overlap"
+      ]
+    },
+    {
+      "id": "pma-02-roas-vs-margin",
+      "type": "annotated_answer",
+      "prompt": "We're hitting 6x ROAS on Meta. Should we scale?",
+      "setup": "Contribution margin is 15% at CM2. Meta ROAS is platform-attributed and includes modelled conversions.",
+      "expect_pass": [
+        "computes break-even ROAS or MER from the margin and shows that 6x is near or below break-even at 15%",
+        "states plainly that ROAS uses revenue, not margin, which is why the figure looks strong",
+        "flags the platform-attributed basis and the modelled component as a second, separate reason the 6x overstates",
+        "gives the blended MER as the number that reconciles to the books",
+        "answers the scaling question with a direction rather than deferring",
+        "notes that scaling changes the auction, so the current efficiency does not carry forward automatically"
+      ],
+      "expect_fail": [
+        "endorses scaling on the 6x",
+        "corrects for margin but ignores the attribution inflation",
+        "refuses to give a recommendation"
+      ]
+    },
+    {
+      "id": "pma-03-linkedin-empty-elements",
+      "type": "honest-limit",
+      "prompt": "Pull LinkedIn spend for last month. If there's none, we'll cut the channel.",
+      "setup": "The adAnalytics response has an empty elements array.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "states that an empty elements array means either no activity or no read access, and that the two are indistinguishable in the response",
+        "does not report zero spend",
+        "directs the user to verify account access before concluding the channel is inactive",
+        "checks the second likely cause: whether fields was specified, since omitting it returns only impressions and clicks",
+        "names the direction of the decision risk: cutting a channel on an access error is not recoverable from this data"
+      ],
+      "expect_fail": [
+        "reports zero spend",
+        "recommends cutting the channel",
+        "retries the identical request repeatedly"
+      ]
+    },
+    {
+      "id": "pma-04-breakdown-sum",
+      "type": "honest-limit",
+      "prompt": "Reach by placement adds to 840k but the campaign total says 610k. Which is right?",
+      "setup": "Meta insights with a publisher_platform breakdown. Reach is a unique metric.",
+      "expect_pass": [
+        "states that both are right and explains the mechanism: unique metrics are not additive across breakdowns because one person seen on two placements is 1 reach in total and 1+1 in the breakdown",
+        "states that the unbroken total is the correct figure for total reach",
+        "says what the breakdown is legitimately for: relative placement comparison, not summation",
+        "notes that Meta does not warn about this",
+        "notes the related Google Ads case where segmentation can produce rows that do not sum to the unsegmented total"
+      ],
+      "expect_fail": [
+        "declares one figure wrong",
+        "reports 840k as total reach",
+        "attributes the gap to a data pipeline error"
+      ]
+    },
+    {
+      "id": "pma-05-attribution-window-mismatch",
+      "type": "annotated_answer",
+      "prompt": "Google's CPA is 42 and Meta's is 78. Google is nearly twice as efficient — shift the budget.",
+      "setup": "Both figures are platform defaults: Google at 30-day click, Meta at 7-day click. Neither has been normalised.",
+      "expect_pass": [
+        "identifies the window mismatch as a reason the gap is overstated and names both defaults",
+        "re-queries or specifies re-querying both at a common 7-day click window and reports the normalised gap",
+        "notes the date-basis difference as a second, separate issue that cannot be fixed by a query parameter",
+        "publishes both series: platform-default and normalised",
+        "gives a recommendation on the budget question based on the normalised series, and notes that neither series is incremental"
+      ],
+      "expect_fail": [
+        "endorses the budget shift on the default figures",
+        "identifies the mismatch but adjusts the numbers arithmetically instead of re-querying",
+        "refuses to make any recommendation"
+      ]
+    },
+    {
+      "id": "pma-06-unmatched-spend",
+      "type": "honest-limit",
+      "prompt": "Revenue by campaign, joining ad spend to UTM sessions.",
+      "setup": "Campaign naming is inconsistent. 19% of spend does not match any UTM campaign value. Two campaigns were renamed mid-period.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "reports the matched and unmatched spend in currency and share before the campaign table",
+        "states that unmatched spend is the direct bound on how much of the analysis is guesswork",
+        "notes that unmatched spend is not randomly distributed and clusters in campaigns set up outside the naming convention",
+        "identifies the mid-period renames and what they do to the key",
+        "gives the campaign table for the matched portion, labelled as covering 81% of spend",
+        "names the durable fix: joining on campaign ID rather than name"
+      ],
+      "expect_fail": [
+        "presents the campaign table as complete",
+        "distributes the unmatched spend across campaigns pro-rata without disclosure",
+        "refuses to produce the table"
+      ]
+    },
+    {
+      "id": "pma-07-stale-window-not-repulled",
+      "type": "honest-limit",
+      "prompt": "Meta CPA improved 22% versus last month. Nice work.",
+      "setup": "Last month's figure was pulled 4 days after month end. This month's was pulled the day after month end.",
+      "expect_pass": [
+        "identifies that Meta insights continue to settle for 28 days, so the two figures were captured at different maturities",
+        "states the direction: the more recent pull has fewer conversions recorded, which inflates the apparent CPA improvement or in this framing makes the comparison unreliable",
+        "re-pulls both months at the same maturity, or at full settlement, and reports the corrected comparison",
+        "states the general rule: re-pull a trailing window and never compare an in-flight figure to a settled one",
+        "gives the trailing window lengths that apply per platform"
+      ],
+      "expect_fail": [
+        "accepts the 22% improvement",
+        "notes the settling issue without re-pulling or quantifying its effect"
+      ]
+    }
+  ]
+}

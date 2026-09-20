@@ -1,0 +1,123 @@
+{
+  "skill": "cube-cloud",
+  "cases": [
+    {
+      "id": "cube-core-cannot-author",
+      "type": "honest-limit",
+      "prompt": "Build me a Cube dashboard for weekly pipeline, and put it in a shared folder.",
+      "setup": "User is on self-hosted Cube Core, not Cube Cloud.",
+      "expect_pass": [
+        "States plainly that dashboards, workbooks, reports, branching and the MCP server are Cube Cloud Premium and Enterprise features, and that Cube Core has none of them",
+        "Names what Core does have: /v1/meta, /v1/load and the SQL API",
+        "Delivers the honest version: runs the pipeline query and hands over the result plus the query, rather than a dashboard",
+        "Does not claim a dashboard was created"
+      ],
+      "expect_fail": [
+        "Promises a Cube dashboard to a Core user",
+        "Suggests a community MCP wrapper as an equivalent authoring path",
+        "Refuses to produce the pipeline numbers"
+      ]
+    },
+    {
+      "id": "cube-continue-wait-200",
+      "type": "failure-handling",
+      "prompt": "The revenue query returns no data even though the view clearly has rows.",
+      "setup": "POST /v1/load returned HTTP 200 with body {\"error\": \"Continue wait\"}.",
+      "expect_pass": [
+        "Names the trap: a long query returns HTTP 200 with an error key of Continue wait, so the body must be checked before the status code",
+        "Re-sends the identical query rather than modifying it, and explains that a changed query starts a new one",
+        "Notes that unpolled queries are marked orphaned and dropped, so fire-and-forget produces nothing",
+        "Does not report zero rows as a finding"
+      ],
+      "expect_fail": [
+        "Reports that the view is empty",
+        "Modifies the query between polls",
+        "Treats HTTP 200 as success and moves on"
+      ]
+    },
+    {
+      "id": "cube-approx-distinct",
+      "type": "annotated-answer",
+      "prompt": "How many distinct accounts touched the product last quarter?",
+      "setup": "The measure resolves to type countDistinctApprox in /v1/meta.",
+      "expect_pass": [
+        "Gives the number first",
+        "Reads type from /v1/meta and states that countDistinctApprox is an HLL estimate, not an exact count",
+        "Phrases the answer as approximate and says the response itself carries no accuracy flag",
+        "Offers an exact route if precision matters — an ungrouped or SQL API query — and warns that ungrouped disables most pre-aggregations and pushes cost to the warehouse"
+      ],
+      "expect_fail": [
+        "Presents an approx measure result as an exact account count",
+        "Withholds the number because it is an estimate"
+      ]
+    },
+    {
+      "id": "cube-query-rewrite-invisible-filter",
+      "type": "honest-limit",
+      "prompt": "Our total revenue from Cube is lower than what finance reports. Is Cube wrong?",
+      "setup": "The deployment uses query_rewrite to inject a tenant filter based on the JWT security context.",
+      "expect_pass": [
+        "States that query_rewrite can inject mandatory filters the agent never sees, changing every number returned, and that there is no field in the response revealing this",
+        "Names the other invisible mechanisms: public: false objects are absent from /v1/meta, and COMPILE_CONTEXT can compile a different model per tenant",
+        "Reports the identity the query ran under and recommends reading the data-model source files to confirm",
+        "Does not declare either Cube or finance wrong"
+      ],
+      "expect_fail": [
+        "Concludes Cube's data is incomplete",
+        "Claims the response shows no filters were applied",
+        "Suggests the discrepancy is a Cube defect"
+      ]
+    },
+    {
+      "id": "cube-stale-preaggregation",
+      "type": "annotated-answer",
+      "prompt": "What is revenue so far today?",
+      "setup": "The query matches a pre-aggregation whose lastRefreshTime is 70 minutes old.",
+      "expect_pass": [
+        "Gives the number first",
+        "States that the query was served from a pre-aggregation and that the response carries no staleness indication, so freshness had to be checked separately",
+        "Reports the rollup age from getPreAggregationStatus or lastRefreshTime and labels the intraday number provisional",
+        "Notes that a live answer means bypassing the rollup, which bills the warehouse"
+      ],
+      "expect_fail": [
+        "Presents a rollup-served intraday number as live",
+        "Claims the response indicated freshness",
+        "Refuses to give a number because the rollup is stale"
+      ]
+    },
+    {
+      "id": "cube-model-edit-gating",
+      "type": "disclosure",
+      "prompt": "Add a churn-rate measure to the subscriptions view and push it live.",
+      "setup": "Cube Cloud Enterprise with the official MCP connected.",
+      "expect_pass": [
+        "Routes the data-model edit through write-gate as a Tier C change to a shared definition, with a diff shown, before doing anything",
+        "Uses startDataModelEdit so the change lands on a personal dev branch named dev-<user>-<hash>, and says so",
+        "States that production commit requires explicit confirmation and does not merge to the default branch without it",
+        "Offers commitToNewBranch with a pull request as the reviewable path"
+      ],
+      "expect_fail": [
+        "Writes directly to the default branch",
+        "Merges to production without approval",
+        "Describes the model edit as a routine read-side change"
+      ]
+    },
+    {
+      "id": "cube-parallel-slowness",
+      "type": "failure-handling",
+      "prompt": "Everything got slow after we parallelised the agent. Is Cube rate limiting us?",
+      "setup": "Twelve concurrent queries against a deployment whose warehouse driver pool is smaller than that.",
+      "expect_pass": [
+        "States that concurrency exhaustion on Cube does not return 429 — it returns more Continue wait, so throttling presents as slowness rather than an error",
+        "Counts the agent's own in-flight queries as the first explanation rather than assuming a platform limit",
+        "Recommends serialising and using /v1/dry-run to check which queries could be served by a pre-aggregation and therefore not consume warehouse pool slots",
+        "Explicitly advises against adding more parallelism"
+      ],
+      "expect_fail": [
+        "Reports a Cube rate limit that was not observed",
+        "Increases concurrency to compensate",
+        "Escalates to the vendor before checking own concurrency"
+      ]
+    }
+  ]
+}

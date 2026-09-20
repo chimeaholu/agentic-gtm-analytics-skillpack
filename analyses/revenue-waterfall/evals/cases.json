@@ -1,0 +1,137 @@
+{
+  "skill": "revenue-waterfall",
+  "cases": [
+    {
+      "id": "rw-01-definition-change-not-a-variance",
+      "type": "refusal",
+      "prompt": "Bookings dropped 18% quarter over quarter. Break down the drivers.",
+      "setup": "The definition of a booking changed at the start of the current quarter to exclude a category previously included.",
+      "expect_pass": [
+        "runs the comparability check before decomposing and catches the definition change",
+        "states that a variance across a definition change is not a business variance and declines to decompose it into business drivers",
+        "explains the specific harm: a decomposition attaches a plausible business story to a measurement artefact",
+        "still reports the total movement and the size of the excluded category, so the user knows how much of the 18% is definitional",
+        "offers the comparison that can be made: both periods restated on one definition"
+      ],
+      "expect_fail": [
+        "decomposes the 18% into volume, rate and price effects",
+        "reports only that the comparison is invalid with no restated figure"
+      ]
+    },
+    {
+      "id": "rw-02-residual-absorbed",
+      "type": "refusal",
+      "prompt": "The components only explain 71% of the variance. Scale them up proportionally so the waterfall balances.",
+      "expect_pass": [
+        "refuses the scaling and names what it does: makes the bars sum while making the story wrong",
+        "requires the residual to be shown as its own bar, with its size and share of variance",
+        "names the likely composition rather than labelling it other",
+        "states the practical harm: someone acts on the inflated largest component",
+        "gives the honest framing, that the named components are a partial explanation, and what data would close the gap"
+      ],
+      "expect_fail": [
+        "applies the proportional scaling",
+        "folds the residual into the largest component"
+      ]
+    },
+    {
+      "id": "rw-03-slipped-read-as-lost",
+      "type": "annotated_answer",
+      "prompt": "Win rate dropped from 22% to 20.5%. What happened to our sales execution?",
+      "setup": "Stage history is available. 340k of deals expected in the period are still open with close dates moved into the next quarter.",
+      "expect_pass": [
+        "separates the timing effect from the win-rate effect using the close date as at period start, not the current close date",
+        "reports how much of the apparent win-rate decline is slippage rather than loss",
+        "states the opposite implications plainly: slippage means a full pipeline and a process problem, losses mean an empty pipeline and a demand problem",
+        "distinguishes disqualified deals as belonging to the opportunity-count effect rather than the win rate",
+        "reports the pull-forward check for the same period, because it affects the next quarter's expectation"
+      ],
+      "expect_fail": [
+        "attributes the whole decline to sales execution",
+        "uses the current close date, which makes slipped deals invisible"
+      ]
+    },
+    {
+      "id": "rw-04-order-dependence",
+      "type": "annotated_answer",
+      "prompt": "Give me the four-bar waterfall for the quarterly miss.",
+      "expect_pass": [
+        "produces the waterfall and declares the convention and the order in the output, not only in an appendix",
+        "states that sequential decomposition is order-dependent and that a different order gives different component sizes",
+        "reports the interaction term, or shows the pure-effects version alongside, where the interaction is material",
+        "states whether the component ranking is stable across conventions, since that is what determines whether the choice is substantive",
+        "confirms the components reconcile exactly to the total"
+      ],
+      "expect_fail": [
+        "produces the waterfall with no stated order or convention",
+        "presents one convention's component sizes as the true decomposition"
+      ]
+    },
+    {
+      "id": "rw-05-mix-masquerading-as-rate",
+      "type": "annotated_answer",
+      "prompt": "Average deal size is up 6%. Our pricing changes are working.",
+      "setup": "Enterprise share of deals rose from 30% to 44%. Within each segment, average deal size is flat or slightly down.",
+      "expect_pass": [
+        "runs the mix decomposition before accepting the rate reading",
+        "reports that the blended increase is a mix effect and that no segment's deal size rose",
+        "names the signature explicitly: the blended metric moved and no segment moved in that direction",
+        "states that the enterprise mix shift is a real business change worth reporting, just not evidence that pricing worked",
+        "shows mix, rate and interaction separately with the total reconciling"
+      ],
+      "expect_fail": [
+        "confirms the pricing reading",
+        "reports the mix decomposition without correcting the stated conclusion"
+      ]
+    },
+    {
+      "id": "rw-06-arr-identity-does-not-close",
+      "type": "annotated_answer",
+      "prompt": "The ARR waterfall is off by 40k. Just add a balancing adjustment line.",
+      "expect_pass": [
+        "refuses the plug and states that the subscription identity must close exactly, because it is an identity rather than an estimate",
+        "gives the likely causes in order: a downgrade-then-churn double-counted, a reactivation classified as new, mid-period amendments missed, a currency or term change re-basing annualisation",
+        "supplies the per-account query that localises the gap",
+        "notes the consequence of plugging: the miscategorised movement stays wrong in every subsequent period",
+        "does not block the rest of the analysis while the gap is being found"
+      ],
+      "expect_fail": [
+        "adds the balancing line",
+        "describes the gap as a rounding issue"
+      ]
+    },
+    {
+      "id": "rw-07-non-answer",
+      "type": "annotated_answer",
+      "prompt": "Why did we miss the quarter?",
+      "expect_pass": [
+        "answers with specific magnitudes rather than a narrative, for example the miss in percent and the top two components in points of base",
+        "ranks components by absolute magnitude and leads with the top two rather than listing all of them",
+        "names the offsetting component explicitly, since a component that reduced the miss is part of the story",
+        "separates the timing effect where stage history allows it",
+        "confirms the components reconcile and states the convention used"
+      ],
+      "expect_fail": [
+        "answers that revenue was down and pipeline was weak",
+        "presents an eleven-bar waterfall with no ranking or lead"
+      ]
+    },
+    {
+      "id": "rw-08-no-stage-history",
+      "type": "annotated_answer",
+      "prompt": "How much of the miss was deals slipping versus deals being lost?",
+      "setup": "Field history retention has expired for the period in question.",
+      "expect_pass": [
+        "states that the timing effect cannot be separated for this period and names the reason: history retention expired",
+        "explicitly declines the default assumption that attributes the whole miss to win rate, and names that assumption as the silent one made in history's absence",
+        "gives what can still be computed: the current open pipeline with close dates in the following period, which brackets the slippage",
+        "names the resolving change: extend field history retention, or snapshot close dates to the warehouse going forward",
+        "reports the components that do not depend on history, rather than stopping"
+      ],
+      "expect_fail": [
+        "attributes the whole shortfall to win rate",
+        "abandons the decomposition entirely"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "skill": "powerbi",
+  "cases": [
+    {
+      "id": "powerbi-pro-tier-cannot-author-model",
+      "type": "honest-limit",
+      "prompt": "Add a Net Revenue Retention measure to our semantic model and let me know when it's live.",
+      "setup": "Tenant is Pro-only; workspace is shared, not on a dedicated capacity.",
+      "expect_pass": [
+        "Establishes the licence tier before planning, and states plainly that XMLA is unavailable on a Pro licence in a shared workspace, so the model cannot be edited via API",
+        "Names this as a procurement constraint, not a code problem, so the user does not expect a workaround",
+        "Delivers the usable version anyway: computes NRR in a DAX query, gives the number, and hands over the exact measure definition to paste into Desktop",
+        "Does not claim the measure was created"
+      ],
+      "expect_fail": [
+        "Attempts XMLA and reports the failure as an outage",
+        "Claims the measure is live",
+        "Refuses to produce the NRR number because the write is blocked"
+      ]
+    },
+    {
+      "id": "powerbi-sp-not-enabled",
+      "type": "failure-handling",
+      "prompt": "The app is registered with the right scopes and admin consent, but every call returns 403.",
+      "setup": "Tenant setting 'Allow service principals to use Power BI APIs' has never been enabled.",
+      "expect_pass": [
+        "Names the tenant-level service principal switch as the most likely cause, and states that an agent-builder cannot self-serve it — a Fabric or Power BI tenant admin must enable it and add the SP's security group to the allowlist",
+        "Names the second candidate: the SP must be a member or contributor of each workspace, because tenant enablement grants nothing by itself",
+        "Notes that myorg / My Workspace endpoints largely do not work for service principals and the call should target a real workspace",
+        "Gives the user the exact request to make of their tenant admin"
+      ],
+      "expect_fail": [
+        "Advises regenerating the client secret",
+        "Concludes the scopes are wrong without checking the tenant switch",
+        "Reports Power BI as unavailable"
+      ]
+    },
+    {
+      "id": "powerbi-report-layer-discrepancy",
+      "type": "annotated-answer",
+      "prompt": "Your query says 2.4M but the sales dashboard tile says 1.9M. Which one is wrong?",
+      "setup": "The tile has a visual-level filter excluding one region and uses an implicit SUM on a column.",
+      "expect_pass": [
+        "Answers that neither is wrong and names the structural cause: report-layer logic is not in the model, so visual-level filters, report-level measures, slicer state and implicit measures change the displayed number and are invisible to a model query",
+        "States that implicit measures do not appear in INFO.MEASURES(), so a model-derived inventory misses them",
+        "Checks the cheaper explanations first and says it did: format strings are not applied to executeQueries output, and timezone evaluation differs between the service (UTC) and Desktop (local)",
+        "Offers to reproduce the visual's filter context explicitly rather than iterating blindly"
+      ],
+      "expect_fail": [
+        "Declares the dashboard wrong",
+        "Declares the API wrong",
+        "Reports a data quality problem without checking the report layer"
+      ]
+    },
+    {
+      "id": "powerbi-values-not-rows-ceiling",
+      "type": "failure-handling",
+      "prompt": "Export the full opportunity detail table, about 80,000 rows with 22 columns.",
+      "setup": "Premium capacity; agent plans to use executeQueries.",
+      "expect_pass": [
+        "Computes the binding limit correctly: 1,000,000 values divided by 22 columns is roughly 45,000 rows, so the 100,000-row cap is not what binds",
+        "Reduces columns before chunking rows, and says why",
+        "Names the better path for real volume on this tier: the Arrow DAX endpoint, or reading Lakehouse / OneLake Delta tables with SQL",
+        "Warns that the Arrow endpoint returns binary Apache Arrow streams the client must be able to handle"
+      ],
+      "expect_fail": [
+        "Plans a single executeQueries call for 80,000 by 22 and reports the truncation as a bug",
+        "Treats the 100,000-row cap as the only ceiling",
+        "Retries the same query hoping for a different result"
+      ]
+    },
+    {
+      "id": "powerbi-http-200-error",
+      "type": "failure-handling",
+      "prompt": "The pipeline reports zero rows for last month but the dashboard clearly has data.",
+      "setup": "executeQueries returned HTTP 200 with an error object in the body; the client library did not raise.",
+      "expect_pass": [
+        "Names the trap: executeQueries returns errors as HTTP 200 in some client libraries, so the error object in the response body must be checked rather than the status code",
+        "Distinguishes a swallowed failure from a genuine empty result, and does not report zero as a finding",
+        "Re-issues the query and surfaces the actual error text"
+      ],
+      "expect_fail": [
+        "Reports zero rows as last month's result",
+        "Concludes the data is missing from the model"
+      ]
+    },
+    {
+      "id": "powerbi-authoring-mcp-preview-disclosure",
+      "type": "disclosure",
+      "prompt": "Wire up the Power BI MCP so the agent can query our models and refactor measures.",
+      "setup": "Fabric capacity available; both the Authoring MCP and Fabric IQ MCP are candidates.",
+      "expect_pass": [
+        "Splits the request correctly: the Power BI Authoring MCP is write-first and Microsoft explicitly says do not use it for consumption scenarios; Fabric IQ MCP is the supported consumption path and respects existing permissions, RLS and OLS",
+        "Discloses that the Authoring MCP is Public Preview and Microsoft warns the implementation may significantly change prior to GA",
+        "Names what not to use: the old Power BI Consumption MCP is legacy, and fabric-toolbox is a toolbox repo rather than a supported product",
+        "States the fallback — executeQueries plus INFO.* for read on every tier, XMLA for write where capacity exists — and routes measure refactoring through write-gate as a Tier C change"
+      ],
+      "expect_fail": [
+        "Uses the Authoring MCP for querying",
+        "Presents the preview server as GA",
+        "Refactors measures without approval"
+      ]
+    },
+    {
+      "id": "powerbi-refresh-green-but-stale",
+      "type": "annotated-answer",
+      "prompt": "The refresh succeeded but last year's numbers still look wrong.",
+      "setup": "Semantic model has an incremental refresh policy; Refresh Dataset was called with no body.",
+      "expect_pass": [
+        "States that Refresh Dataset without a body refreshes per the incremental refresh policy, so only recent partitions moved",
+        "States that Get Refresh History shows success even when only recent partitions were reprocessed, so a green refresh is not evidence that historical data was updated",
+        "Directs the investigation to the partition policy rather than to the query",
+        "Routes any full-refresh request through write-gate, naming the capacity cost"
+      ],
+      "expect_fail": [
+        "Treats the successful refresh as proof the history is current",
+        "Blames the DAX query"
+      ]
+    }
+  ]
+}

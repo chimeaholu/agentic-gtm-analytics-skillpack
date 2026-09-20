@@ -1,0 +1,110 @@
+{
+  "skill": "segmentation-model-support",
+  "cases": [
+    {
+      "id": "sms-01-query-time-cohort",
+      "type": "honest-limit",
+      "scenario": "A five-touch nurture sequence is designed to re-query a product-analytics cohort at each touch.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that the cohort is a query-time construct recomputed on each evaluation, so an export is a snapshot rather than a stable set",
+        "Names the consequence: members silently fall out mid-sequence and the measured performance is computed over a changing population",
+        "Prescribes snapshotting membership at sequence entry and owning that snapshot downstream",
+        "Delivers a working design rather than refusing"
+      ],
+      "fail_if": [
+        "Designs the sequence against a live cohort query with no comment",
+        "Claims the cohort export is a stable list",
+        "Refuses to build the sequence"
+      ]
+    },
+    {
+      "id": "sms-02-pii-activation-structurally-unavailable",
+      "type": "honest-limit",
+      "scenario": "Person-level activation is requested through a messaging platform's MCP server that has no user-level PII tools.",
+      "expected_result_type": "unavailable",
+      "pass_if": [
+        "States that the MCP server has no user-level PII tools at all, so this is structurally impossible rather than a permissions issue",
+        "Names the working route: the REST API with a properly-permissioned key",
+        "Recommends verifying capability before designing the flow, via the MCP detection contract",
+        "Warns that the failure would otherwise present as a permissions error and waste time on credentials"
+      ],
+      "fail_if": [
+        "Attempts the activation and reports a permissions failure",
+        "Claims the capability might work with different credentials",
+        "Offers no alternative route"
+      ]
+    },
+    {
+      "id": "sms-03-membership-churn-blocks-sequence",
+      "type": "annotated_answer",
+      "scenario": "A segment at a hard threshold shows 38% weekly membership churn, with 31% of members within 0.02 of the cut point. A five-touch sequence is planned.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports the churn rate and diagnoses boundary crowding rather than score volatility, using the near-boundary share",
+        "States that a five-touch sequence would lose a large share of its audience before completion",
+        "Prescribes hysteresis with specific enter and exit thresholds, plus a minimum dwell at least as long as the programme",
+        "Reports the expected post-hysteresis churn and names the trade: slightly larger, slightly less precise at the margin",
+        "Delivers the segment rather than blocking the campaign"
+      ],
+      "fail_if": [
+        "Activates the segment without addressing churn",
+        "Blocks the campaign with no fix",
+        "Recommends smoothing when the diagnosis is boundary crowding"
+      ]
+    },
+    {
+      "id": "sms-04-arbitrary-threshold",
+      "type": "correctness",
+      "scenario": "A team proposes 'score above 80' as the high-priority tier with no reference to capacity or cost.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Rejects the round number and derives the capacity threshold from records actually worked",
+        "Computes the cost-optimal threshold where cost inputs exist, and reports the gap between the two as the finding",
+        "Proposes three bands rather than one cut, so the positive-EV middle is not discarded",
+        "Requires the capacity threshold to be recomputed each cycle because the distribution moves"
+      ],
+      "fail_if": [
+        "Accepts 80 as the threshold",
+        "Gives only one threshold with no gap analysis",
+        "Measures capacity in headcount rather than records worked"
+      ]
+    },
+    {
+      "id": "sms-05-match-rate-unknown-before-push",
+      "type": "honest-limit",
+      "scenario": "A 1,200-record audience is to be pushed to an ad platform with a minimum size floor. The match rate is requested in advance.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "Gives the pre-match segment size",
+        "States the match rate cannot be known before the push and that platforms do not disclose it in advance",
+        "Warns that a sub-floor matched audience may fail to activate with no clear error",
+        "Recommends sizing for the post-match count and reporting matched rather than pushed as the real audience size",
+        "Does not invent a match-rate estimate"
+      ],
+      "fail_if": [
+        "States a specific expected match rate with no basis",
+        "Pushes without checking the floor against the matched count",
+        "Refuses to push"
+      ]
+    },
+    {
+      "id": "sms-06-cluster-refit-renumbers",
+      "type": "correctness",
+      "scenario": "A clustering is refit monthly and cluster IDs are synced to CRM fields that downstream automations key on.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Identifies that a refit renumbers clusters and downstream systems keyed on the IDs will silently point at a different group",
+        "Prescribes freezing the model and re-scoring between refits",
+        "Requires an explicit remapping step that maps old IDs to new by membership overlap",
+        "Requires the segment version to be recorded in the sync log and any crossing trendline to be marked",
+        "Routes the sync through write-gate"
+      ],
+      "fail_if": [
+        "Allows refits to overwrite cluster IDs without remapping",
+        "Recommends refitting more often as the fix",
+        "Omits the versioning requirement"
+      ]
+    }
+  ]
+}
