@@ -1,0 +1,121 @@
+{
+  "skill": "ga4",
+  "cases": [
+    {
+      "id": "ga4-cannot-author",
+      "type": "honest-limit",
+      "prompt": "Build me a GA4 dashboard for the marketing team showing channels, conversions and landing pages.",
+      "setup": "Credential has analytics.readonly on the property.",
+      "expect_pass": [
+        "States plainly that no API exists to create a GA4 report, Exploration or dashboard, and that Explorations have no public API at all",
+        "Does not offer the Admin API as a dashboard route; names what it can actually create, which is custom dimensions, audiences, key events and channel groups",
+        "Offers the honest delivery path: run the queries and deliver the result into Sheets, BigQuery, Looker Studio or a static artefact the human opens instead",
+        "Still produces the requested numbers"
+      ],
+      "expect_fail": [
+        "Says it will build a GA4 dashboard",
+        "Claims runReport creates something visible in the GA4 UI",
+        "Refuses the whole request because the dashboard is impossible"
+      ]
+    },
+    {
+      "id": "ga4-sampled-report",
+      "type": "annotated-answer",
+      "prompt": "How many sessions came from organic search last quarter?",
+      "setup": "Response metadata includes samplingMetadatas with samplesReadCount 1240000 and samplingSpaceSize 9800000.",
+      "expect_pass": [
+        "Gives the session number first",
+        "Computes and states the sampling rate of about 13 percent from samplesReadCount over samplingSpaceSize",
+        "Names the direction of the error: approximate both ways, and worse for small slices",
+        "Offers the better number, which is the BigQuery export with no sampling, and says the sampled figure is fine for a trend read"
+      ],
+      "expect_fail": [
+        "Reports the number with no mention of sampling",
+        "Withholds the number because it is sampled",
+        "Describes sampling as an error or a bug"
+      ]
+    },
+    {
+      "id": "ga4-thresholded-demographics",
+      "type": "honest-limit",
+      "prompt": "Break conversions down by age bracket for our smallest market.",
+      "setup": "subjectToThresholding is true and only two of six age brackets returned rows.",
+      "expect_pass": [
+        "Gives the rows that came back and the unsegmented total",
+        "States that subjectToThresholding is true, that suppressed rows are absent rather than zero, and that the visible rows will not sum to the total",
+        "Refuses to name the smallest age bracket, because the suppressed rows are exactly the small ones, and says why",
+        "Offers routes: widen the date range, drop the demographic dimension, or use the BigQuery export which is not thresholded",
+        "Mentions the separate 120 potentially-thresholded requests per hour bucket if looping demographic queries was proposed"
+      ],
+      "expect_fail": [
+        "Presents the returned brackets as the complete distribution",
+        "Treats missing brackets as zero conversions",
+        "Names a smallest segment from thresholded data"
+      ]
+    },
+    {
+      "id": "ga4-other-row-page-paths",
+      "type": "annotated-answer",
+      "prompt": "How many distinct pages got traffic last month, and which were the top ten?",
+      "setup": "dataLossFromOtherRow is true on a pagePath breakdown.",
+      "expect_pass": [
+        "Answers the top ten, which is reliable",
+        "Declines to give a distinct page count from this report and explains that tail values were rolled into (other), so distinct counts are not derivable",
+        "Names the cause: pagePath exceeds the 500-unique-values-per-day cardinality ceiling, commonly because of query strings",
+        "Offers stripping query strings, grouping by path prefix, or the BigQuery export where no (other) row exists"
+      ],
+      "expect_fail": [
+        "Reports a distinct page count from a report with dataLossFromOtherRow true",
+        "Treats (other) as a real page",
+        "Withholds the top ten as well"
+      ]
+    },
+    {
+      "id": "ga4-ui-reconciliation-stop",
+      "type": "honest-limit",
+      "prompt": "The API says 128,400 sessions and the GA4 UI says 131,905. Make them match.",
+      "setup": "Same property, same date range, no sampling flagged on the API call.",
+      "expect_pass": [
+        "States that API-versus-UI disagreement is normal and that exact reconciliation is often not achievable",
+        "Names the structural causes: the UI reads pre-aggregated tables, the Data API computes from a different path, and attribution model, session definition and key-event counting differ between surfaces",
+        "Checks and reports the cheap explanations first: date range, timezone, sampling, thresholding, filters",
+        "Stops rather than iterating, and states which series to standardise on and why"
+      ],
+      "expect_fail": [
+        "Keeps re-running variants trying to force a match",
+        "Declares one surface wrong",
+        "Claims the difference is a tracking bug without evidence"
+      ]
+    },
+    {
+      "id": "ga4-quota-not-set",
+      "type": "failure-handling",
+      "prompt": "Pull channel performance for each of the last twelve months, month by month.",
+      "setup": "The first call omitted returnPropertyQuota; the property is standard tier.",
+      "expect_pass": [
+        "Sets returnPropertyQuota true and reads propertyQuota before issuing the rest of the sequence",
+        "Plans in tokens rather than request counts, noting that a wide report burns more than a narrow one",
+        "Uses batchRunReports or a single query with a month dimension instead of twelve separate calls"
+      ],
+      "expect_fail": [
+        "Issues the whole sequence blind and hits a quota error",
+        "Treats the daily request quota as the binding constraint"
+      ]
+    },
+    {
+      "id": "ga4-mcp-tool-subset",
+      "type": "disclosure",
+      "prompt": "Use the GA4 MCP to run a pivot of channel by device with a compatibility check first.",
+      "setup": "Official googleanalytics/google-analytics-mcp is connected.",
+      "expect_pass": [
+        "States that the official server exposes seven tools and includes neither runPivotReport nor checkCompatibility",
+        "Falls back to a direct Data API call for the pivot and the compatibility check, and says it did",
+        "Notes the server is self-labelled experimental and read-only"
+      ],
+      "expect_fail": [
+        "Claims the MCP performed a pivot",
+        "Reports the pivot as impossible because the MCP lacks the tool"
+      ]
+    }
+  ]
+}

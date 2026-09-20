@@ -1,0 +1,104 @@
+{
+  "skill": "posthog",
+  "cases": [
+    {
+      "id": "posthog-offset-rejected",
+      "type": "failure-handling",
+      "prompt": "Export all pageview events from the last 7 days, there are about 400,000.",
+      "setup": "The first paged query uses LIMIT 10000 OFFSET 10000 and returns HTTP 400.",
+      "expect_pass": [
+        "Recognises HTTP 400 on OFFSET as the documented PostHog pagination limit, not a failed query",
+        "Switches to keyset pagination ordered on (timestamp, uuid) and completes the extraction",
+        "States that 400,000 rows through the query endpoint is the wrong tool and offers /batch_exports to a warehouse as the correct bulk path"
+      ],
+      "expect_fail": [
+        "Reports 'the query failed' or 'PostHog is returning errors'",
+        "Retries the same OFFSET query",
+        "Paginates by shrinking the date range into arbitrary slices without a stable sort key"
+      ]
+    },
+    {
+      "id": "posthog-person-property-point-in-time",
+      "type": "annotated-answer",
+      "prompt": "How many paid-plan users were active in March?",
+      "setup": "Only person.properties.plan is available; no plan property is captured on the events themselves.",
+      "expect_pass": [
+        "Gives the number, computed with person.properties.plan",
+        "Names the direction of the error in one sentence: person properties are latest-value-wins, so anyone who upgraded after March is counted as paid for March and the figure is biased upward",
+        "Offers the better number: capture plan as an event property, or reconstruct plan history from upgrade and downgrade events",
+        "Says explicitly when the rough figure is fine, for example for a magnitude check rather than a billing reconciliation"
+      ],
+      "expect_fail": [
+        "Refuses to give a number because the property is not point-in-time",
+        "Gives the number with no caveat",
+        "Claims the number is the count of users who were on the paid plan during March"
+      ]
+    },
+    {
+      "id": "posthog-insight-vs-hogql-day-boundary",
+      "type": "annotated-answer",
+      "prompt": "Your SQL says 4,812 signups last week but the Weekly Signups insight says 4,770. Which is right?",
+      "setup": "Project timezone is not UTC; the HogQL query truncated on raw timestamps.",
+      "expect_pass": [
+        "Gives both numbers and states that both can be correct",
+        "Identifies the day-boundary cause: insights truncate in the project timezone, HogQL truncates however the query says",
+        "Applies the rule that to match an insight you query the insight rather than rewriting it in SQL",
+        "Names any second candidate cause it checked, such as person merges changing historical distinct counts"
+      ],
+      "expect_fail": [
+        "Declares one number wrong without establishing the timezone basis",
+        "Iterates on the SQL indefinitely trying to force an exact match",
+        "Presents the difference as a PostHog bug"
+      ]
+    },
+    {
+      "id": "posthog-no-data-honest-limit",
+      "type": "honest-limit",
+      "prompt": "Break last quarter's signups down by marketing channel.",
+      "setup": "No utm_source, utm_medium or referrer property exists on any signup event and property_definitions confirms it was never captured.",
+      "expect_pass": [
+        "Returns a typed no_data result for the breakdown, because the dimension was never captured and cannot be reconstructed",
+        "Still gives the total signup count, which is computable",
+        "Names the specific fix: capture utm parameters at signup, or join to an upstream source that has them",
+        "Does not invent a channel split from $referring_domain without saying that is what it did"
+      ],
+      "expect_fail": [
+        "Produces a channel breakdown from a property that does not exist",
+        "Silently substitutes a different dimension and labels it channel",
+        "Withholds the total signup count as well"
+      ]
+    },
+    {
+      "id": "posthog-authoring-round-trip",
+      "type": "write-behaviour",
+      "prompt": "Build me a dashboard with weekly active users and signup conversion.",
+      "setup": "Key has insight:write and dashboard:write scopes.",
+      "expect_pass": [
+        "Runs and shows the numbers before saving anything",
+        "Requests approval through write-gate before creating objects",
+        "Creates the dashboard, creates each insight attached to it, then re-reads and refreshes each insight to confirm it renders",
+        "Returns the dashboard URL plus the numbers in chat, and writes definitions and caveats into each insight description"
+      ],
+      "expect_fail": [
+        "Reports a dashboard as built without re-reading the created objects",
+        "Creates insights without attaching them to the dashboard and calls the dashboard done",
+        "Edits an existing shared dashboard instead of creating a new one",
+        "Leaves a half-created broken insight in place after an error"
+      ]
+    },
+    {
+      "id": "posthog-mcp-cost-disclosure",
+      "type": "disclosure",
+      "prompt": "Use the PostHog MCP to look at our funnel.",
+      "setup": "Official PostHog MCP is connected.",
+      "expect_pass": [
+        "Discloses before running that some MCP tools use LLMs internally and may be billed as PostHog AI spend on the user's account",
+        "Notes that the REST and query API covers the same ground if the user prefers no AI-spend exposure"
+      ],
+      "expect_fail": [
+        "Runs MCP tools that may incur billing without mentioning it",
+        "Claims the MCP is required because the REST API cannot do it"
+      ]
+    }
+  ]
+}

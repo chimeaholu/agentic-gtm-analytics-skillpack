@@ -1,0 +1,96 @@
+{
+  "skill": "platform-router",
+  "cases": [
+    {
+      "id": "router-ga4-dashboard-request",
+      "type": "honest-limit",
+      "prompt": "Connect GA4 and build the marketing team a dashboard of channel performance.",
+      "expect_pass": [
+        "Declares the capability bound before starting work: GA4 has no API for reports, Explorations or dashboards",
+        "Routes to the ga4 module for extraction and to the delivery tier for the artefact",
+        "States the honest delivery path up front, which is query and deliver into Sheets, BigQuery, Looker Studio or a static artefact",
+        "Does not say it will build a GA4 dashboard at any point"
+      ],
+      "expect_fail": [
+        "Accepts the dashboard request and discovers the limit later",
+        "Routes straight to a platform module without declaring the capability bound",
+        "Refuses the whole request"
+      ]
+    },
+    {
+      "id": "router-cross-platform-disagreement",
+      "type": "routing",
+      "prompt": "Why doesn't GA4 match Meta on conversions?",
+      "expect_pass": [
+        "Classifies this as a data-quality and disagreement question and routes to the audit tier, specifically cross-system-reconciliation",
+        "Calls comparability-rules before any module computes anything",
+        "Names the structural causes it expects to find rather than promising an exact match",
+        "Notes that the meta-ads module is not in the shipped set and offers the generic route"
+      ],
+      "expect_fail": [
+        "Routes to whichever platform the user named first and starts querying",
+        "Promises to reconcile the two exactly",
+        "Implies a meta-ads module exists when it does not"
+      ]
+    },
+    {
+      "id": "router-credential-aware-choice",
+      "type": "routing",
+      "prompt": "I want to understand which channels drive signups. We use GA4, PostHog and Google Ads, but we have never set up a Google Ads developer token.",
+      "expect_pass": [
+        "Checks credentials before planning and routes around the missing developer token",
+        "States that Google Ads developer-token approval takes days to weeks and advises starting it now, in parallel",
+        "Plans the answerable part from PostHog and GA4 today, and says which part will be missing without Google Ads",
+        "Names the attribution prerequisite: identity-resolution and journey-assembler before any multi-source attribution claim"
+      ],
+      "expect_fail": [
+        "Builds a plan that silently depends on Google Ads access",
+        "Presents a single-source view as full-funnel attribution",
+        "Stops because one platform is unavailable"
+      ]
+    },
+    {
+      "id": "router-salesforce-dashboard-asymmetry",
+      "type": "honest-limit",
+      "prompt": "Create a Salesforce report and a matching dashboard for pipeline by stage.",
+      "expect_pass": [
+        "Declares that the report can be created from nothing over REST, and that dashboards over that API are clone only",
+        "Routes report creation to the salesforce module and names the Metadata API as the general dashboard path, out of scope here",
+        "Does not offer CRM Analytics without checking for the licence"
+      ],
+      "expect_fail": [
+        "Promises both artefacts",
+        "Treats the report and the dashboard as the same capability"
+      ]
+    },
+    {
+      "id": "router-stays-thin",
+      "type": "scope",
+      "prompt": "What is our NRR and which platform should I pull it from?",
+      "expect_pass": [
+        "Routes to gtm-metric-dictionary for the definition and to the subscription or billing source for the data, rather than defining NRR itself",
+        "Produces a routing plan with an order and a handoff, not an analysis"
+      ],
+      "expect_fail": [
+        "Defines NRR inside the router",
+        "Writes the query in the router",
+        "Answers the metric question without routing"
+      ]
+    },
+    {
+      "id": "router-unshipped-module",
+      "type": "honest-limit",
+      "prompt": "Pull our HubSpot custom report output and compare it to Salesforce.",
+      "expect_pass": [
+        "States that HubSpot has no endpoint that takes a report id and returns rows, and that report creation does not exist there either",
+        "States that the hubspot module is not in the shipped set and offers the generic extraction route",
+        "Routes the Salesforce half to the salesforce module and calls comparability-rules before any comparison"
+      ],
+      "expect_fail": [
+        "Claims it can read a HubSpot custom report's output",
+        "Pretends a shipped hubspot module exists",
+        "Compares the two sources without a comparability check"
+      ]
+    }
+  ]
+}

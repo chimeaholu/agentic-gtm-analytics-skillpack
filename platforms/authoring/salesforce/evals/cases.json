@@ -1,0 +1,119 @@
+{
+  "skill": "salesforce",
+  "cases": [
+    {
+      "id": "sf-alldata-false-truncation",
+      "type": "annotated-answer",
+      "prompt": "Run the Open Pipeline report and tell me total pipeline, and which five reps have the most open deals.",
+      "setup": "Run response has allData: false, factMap['T!T'].aggregates grand total present, 2,000 detail rows returned out of roughly 9,400 matching.",
+      "expect_pass": [
+        "Gives the grand total from the aggregates and states it is computed over the full result set",
+        "States that only the first 2,000 detail rows returned, so the per-rep ranking built from rows is incomplete and biased by the report's sort order",
+        "Names allData: false as the field that revealed it",
+        "Offers the complete route: Bulk API 2.0 against Opportunity, with the caveat that any custom summary formula in the report cannot be reproduced there"
+      ],
+      "expect_fail": [
+        "Presents the top-five rep ranking as complete",
+        "Withholds the grand total because the rows were truncated",
+        "Claims the report returned all rows",
+        "Attempts to paginate the report API"
+      ]
+    },
+    {
+      "id": "sf-fls-missing-field",
+      "type": "honest-limit",
+      "prompt": "What is average deal size by industry this quarter?",
+      "setup": "The integration user has no FLS on Account.Industry; the field is absent from the response rather than null.",
+      "expect_pass": [
+        "Detects that the requested column is absent from the response rather than empty, and identifies FLS on the running user as the cause",
+        "Returns a typed unavailable result for the industry breakdown, naming the specific fix: grant FLS on that field to the integration user",
+        "Still gives overall average deal size, which is computable",
+        "Does not report industry as null, blank or unknown for every record"
+      ],
+      "expect_fail": [
+        "Reports every deal as industry unknown",
+        "Concludes the org does not populate Industry",
+        "Withholds the overall average as well"
+      ]
+    },
+    {
+      "id": "sf-dashboard-authoring-limit",
+      "type": "honest-limit",
+      "prompt": "Build me a Salesforce dashboard showing pipeline by stage, win rate and rep leaderboard.",
+      "setup": "Standard org, no CRM Analytics licence.",
+      "expect_pass": [
+        "States plainly that dashboards over the Reports and Dashboards REST API are clone only and cannot be authored from nothing",
+        "Offers what is genuinely possible: create the underlying saved reports via POST /analytics/reports, then either clone an existing dashboard or have an admin assemble the dashboard from those reports",
+        "Names the Metadata API as the fully-general dashboard-authoring route and that it is out of scope for this module",
+        "Does not present CRM Analytics as an available option without first checking the licence"
+      ],
+      "expect_fail": [
+        "Says it will build the dashboard",
+        "Claims POST /analytics/dashboards creates a dashboard from a specification",
+        "Produces a report and calls it a dashboard"
+      ]
+    },
+    {
+      "id": "sf-report-list-is-recently-viewed",
+      "type": "failure-handling",
+      "prompt": "How many reports does this org have and what are they?",
+      "setup": "GET /analytics/reports returns 12 reports; SOQL on the Report object returns 1,840.",
+      "expect_pass": [
+        "Uses SOQL on the Report object for the inventory",
+        "States that GET /analytics/reports only returns the running user's recently-viewed reports, up to 200, so it is not an inventory"
+      ],
+      "expect_fail": [
+        "Reports that the org has 12 reports",
+        "Describes the org as nearly empty"
+      ]
+    },
+    {
+      "id": "sf-currency-basis-mixing",
+      "type": "annotated-answer",
+      "prompt": "The report says 3.1M closed won and your extract says 2.87M. Which is right?",
+      "setup": "Multi-currency org. Report amounts converted to the report currency at current rates; Bulk extract returned Amount plus CurrencyIsoCode unconverted.",
+      "expect_pass": [
+        "States both numbers are internally correct and measure different things",
+        "Names the cause: report amounts are converted at current or dated rates into the report's currency, while Bulk returns record currency with CurrencyIsoCode and no conversion",
+        "Notes that SOQL convertCurrency() does not apply to the report API",
+        "Recommends one basis, states the FX rate date, and recomputes on that basis"
+      ],
+      "expect_fail": [
+        "Averages the two figures",
+        "Declares one wrong without establishing the currency basis",
+        "Mixes report figures and extracted figures in one calculation"
+      ]
+    },
+    {
+      "id": "sf-timezone-month-boundary",
+      "type": "annotated-answer",
+      "prompt": "Why does the THIS_MONTH report total differ from what sales ops sees?",
+      "setup": "Integration user timezone is UTC; the requester's is America/Los_Angeles.",
+      "expect_pass": [
+        "Identifies that relative date filters and date groupings evaluate in the running user's timezone at run time",
+        "Gives both totals and explains the boundary records rather than calling one wrong",
+        "Recommends pinning and documenting the integration user's timezone, or using explicit startDate and endDate instead of relative tokens"
+      ],
+      "expect_fail": [
+        "Attributes the difference to data quality",
+        "Assumes the org timezone or UTC governs the report"
+      ]
+    },
+    {
+      "id": "sf-no-reporting-mcp",
+      "type": "disclosure",
+      "prompt": "Connect the Salesforce MCP and run our Pipeline report.",
+      "setup": "salesforcecli/mcp is connected with the data toolset enabled.",
+      "expect_pass": [
+        "States that no MCP server, official or community, wraps the Reports and Dashboards REST API, and that the official server is a developer-tooling server whose only data tool is run_soql_query",
+        "Falls back to a direct REST call to the report API, or to the Reports and Dashboards MCP server this pack ships, and says which it used",
+        "Does not treat a community server advertising report tools as usable"
+      ],
+      "expect_fail": [
+        "Claims the official MCP can run reports",
+        "Reports the task as impossible because no reporting MCP exists",
+        "Substitutes a SOQL aggregate for the report without saying the metric definition changed"
+      ]
+    }
+  ]
+}
