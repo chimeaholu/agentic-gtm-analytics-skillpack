@@ -1,0 +1,107 @@
+{
+  "skill": "timeseries-forecasting-models",
+  "cases": [
+    {
+      "id": "tsf-01-twelve-quarters",
+      "type": "honest-limit",
+      "scenario": "A forecast of next quarter's bookings is requested. The series has twelve quarterly observations with a visible Q4 lift each year.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Gives a point forecast and an interval rather than refusing",
+        "States that twelve observations is below both the seasonal minimum of twenty and the non-seasonal minimum of sixteen for quarterly data",
+        "Names the omitted Q4 seasonality and the direction of the resulting error",
+        "Offers the re-aggregation route: the same data at monthly grain is thirty-six observations, which supports a seasonal model",
+        "Notes that for B2B bookings this is a cross-check and the pipeline model is primary"
+      ],
+      "fail_if": [
+        "Fits a seasonal model to twelve quarterly points",
+        "Refuses to produce any forecast",
+        "Gives a point estimate with no interval"
+      ]
+    },
+    {
+      "id": "tsf-02-structural-break-fitted-through",
+      "type": "correctness",
+      "scenario": "Revenue dropped by a third after a pricing change nine months ago. A forecast is requested with no intervention handling.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Identifies the pricing change as a level shift that must be modelled, not smoothed over",
+        "States that fitting through it produces a forecast assuming it never happened, which will be high",
+        "Prescribes a step regressor from the event date, and notes the pre-change level is no longer relevant to the level component",
+        "Requires an intervention register and recommends changepoint detection to find breaks the register missed"
+      ],
+      "fail_if": [
+        "Fits the full history without intervention handling",
+        "Drops the pre-change data without stating the cost in observations",
+        "Treats the break as an outlier to be winsorised"
+      ]
+    },
+    {
+      "id": "tsf-03-intervals-too-narrow",
+      "type": "honest-limit",
+      "scenario": "A model reports 80% prediction intervals. Rolling-origin backtesting shows actuals fell inside them 61% of the time.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports both nominal and measured coverage",
+        "States that model-based intervals are systematically too narrow on business series and why",
+        "Widens the interval using empirical residual quantiles at the target horizon",
+        "Ships the widened interval as the deliverable and says it was widened"
+      ],
+      "fail_if": [
+        "Reports the nominal interval without the measured coverage",
+        "Discards the forecast because coverage was poor",
+        "Narrows the confidence level instead of widening the interval"
+      ]
+    },
+    {
+      "id": "tsf-04-loses-to-naive",
+      "type": "honest-limit",
+      "scenario": "A tuned model achieves MASE 1.14 at the four-period horizon in rolling-origin backtesting.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States plainly that MASE above 1 means the model is worse than the naive baseline at this horizon",
+        "Delivers the naive forecast as the recommendation",
+        "Checks the by-horizon-step breakdown, since the model may beat naive at shorter horizons",
+        "Does not present the tuned model as an improvement"
+      ],
+      "fail_if": [
+        "Ships the model because it is more sophisticated",
+        "Reports MASE without comparing it to the 1.0 baseline",
+        "Withholds any forecast"
+      ]
+    },
+    {
+      "id": "tsf-05-settling-window-last-bar",
+      "type": "correctness",
+      "scenario": "A daily forecast is fitted on data including the last three days, from a source that reprocesses over 24 to 48 hours.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Excludes the unsettled periods from the fit and says why",
+        "States that including them teaches the model a downturn that is a reprocessing artefact",
+        "Raises equal-maturity backtesting: a backtest on settled data is optimistic relative to production",
+        "Names the read log as what would quantify the gap, and states the result is optimistic by an unmeasured amount without it"
+      ],
+      "fail_if": [
+        "Fits on the unsettled tail without comment",
+        "Claims the backtest is representative of production without the maturity caveat"
+      ]
+    },
+    {
+      "id": "tsf-06-pipeline-disagreement",
+      "type": "honest-limit",
+      "scenario": "The time-series forecast for B2B bookings is 30% below the pipeline-based forecast for the same quarter.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Gives both numbers rather than averaging them",
+        "States that for B2B bookings the pipeline model is primary and the time series is a cross-check",
+        "Frames the divergence as the finding: either the pipeline is inflated or something changed that history cannot see",
+        "Names what would resolve it: pipeline conversion rates backtested against the same history"
+      ],
+      "fail_if": [
+        "Averages the two forecasts",
+        "Presents the time-series number as the answer for B2B bookings",
+        "Suppresses one of the two forecasts"
+      ]
+    }
+  ]
+}

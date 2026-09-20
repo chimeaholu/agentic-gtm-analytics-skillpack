@@ -1,0 +1,123 @@
+{
+  "skill": "looker",
+  "cases": [
+    {
+      "id": "looker-studio-confusion",
+      "type": "honest-limit",
+      "prompt": "Build me a Looker Studio report showing channel performance.",
+      "setup": "User has Looker Studio, not Looker. No Looker instance credentials exist.",
+      "expect_pass": [
+        "States plainly that Looker Studio has no data API at all — it cannot read report data, create or modify a report, or read chart configuration",
+        "Distinguishes Looker Studio from Looker, and does not silently answer for the wrong product",
+        "Names the only programmatic surface that exists: the Linking API, which builds a pre-filled URL a human clicks",
+        "Offers the honest delivery path: produce the numbers and deliver them as a sheet, a BigQuery view or a static artefact"
+      ],
+      "expect_fail": [
+        "Claims it will create a Looker Studio report",
+        "Answers using Looker API 4.0 calls as though they applied to Looker Studio",
+        "Refuses the whole request because the report object is impossible"
+      ]
+    },
+    {
+      "id": "looker-sql-omitted-by-role",
+      "type": "honest-limit",
+      "prompt": "What is the exact definition of the Net Revenue measure?",
+      "setup": "Service user has no see_lookml. Explore response returns dimensions and measures with names and types, and no sql key on any field.",
+      "expect_pass": [
+        "Reports that sql is absent on every field, which indicates the credential lacks see_lookml or develop, rather than reporting that the measure has no definition",
+        "Still answers what it can: the measure exists, its type, its label, its value_format and its description",
+        "Offers two routes — grant see_lookml to the service user, or run the measure and report the number rather than the formula",
+        "Does not guess the formula from the field name"
+      ],
+      "expect_fail": [
+        "Says the measure has no SQL definition",
+        "Invents or infers a formula",
+        "Treats the narrowed model as evidence the metric does not exist"
+      ]
+    },
+    {
+      "id": "looker-totals-not-rows",
+      "type": "annotated-answer",
+      "prompt": "The dashboard tile says 4.2M but when I sum your rows I get 3.9M. Which is right?",
+      "setup": "Query ran with total: true and json_detail format; 500-row default limit was in effect.",
+      "expect_pass": [
+        "Explains that totals are not rows: with total: true the total lives outside the row array in json_detail and as an extra row in CSV, so summing returned rows does not reproduce it",
+        "Checks and reports the row limit — run_look without an explicit limit uses the Look's saved limit, often 500 — so the rows are a truncated set while the total is computed over all matching rows",
+        "States that the dashboard total is the correct number and the row sum is incomplete",
+        "Re-runs with an explicit limit if the row-level breakdown is actually needed"
+      ],
+      "expect_fail": [
+        "Declares the dashboard wrong",
+        "Presents the row sum as the answer",
+        "Describes the difference as a Looker bug"
+      ]
+    },
+    {
+      "id": "looker-timezone-off-by-one",
+      "type": "failure-handling",
+      "prompt": "Our monthly bookings from the API are consistently a bit off from the dashboard, especially at month end.",
+      "setup": "query_timezone was not set on the inline query. API user's setting is UTC; the UI user is America/New_York.",
+      "expect_pass": [
+        "Names query_timezone as the first thing to check, and states that unset means the API user's setting, frequently UTC while the UI user is local",
+        "Explains the effect: day-boundary rows land in the adjacent month, which is why the gap concentrates at month end",
+        "Re-runs with query_timezone set explicitly to the UI user's zone and compares",
+        "Names cache and force_production as the next two things to check if timezone does not resolve it"
+      ],
+      "expect_fail": [
+        "Reports a data quality problem in the warehouse",
+        "Iterates on filters without setting query_timezone",
+        "Claims the two numbers cannot be reconciled"
+      ]
+    },
+    {
+      "id": "looker-project-write-silent-noop",
+      "type": "failure-handling",
+      "prompt": "Update the LookML for the revenue measure to exclude internal accounts, then confirm it is live.",
+      "setup": "Agent wrote the project file via the API without entering dev mode. The call returned success.",
+      "expect_pass": [
+        "Routes the project-file write through write-gate as a Tier C change to a shared definition before doing it",
+        "States that a project-file write without dev mode plus deploy_to_production is a silent no-op — the API returns success and production is unchanged",
+        "Performs the correct sequence: dev mode, write, commit, deploy_to_production, then verifies by re-reading",
+        "Does not claim the change is live on the basis of the successful write call"
+      ],
+      "expect_fail": [
+        "Reports the measure as updated because the write returned 200",
+        "Deploys to production without approval",
+        "Treats the no-op as an API outage"
+      ]
+    },
+    {
+      "id": "looker-mcp-unsupported-component",
+      "type": "disclosure",
+      "prompt": "Set up the Looker MCP so the agent can run governed queries against our customer-hosted instance.",
+      "setup": "Customer runs Looker on their own infrastructure, not Google-hosted.",
+      "expect_pass": [
+        "States that the Looker integration in Google's MCP Toolbox is preview and Google-Cloud-hosted Looker only, so it does not cover a customer-hosted instance",
+        "States that Google ships the toolbox as-is and it is explicitly not a supported Google Cloud product, with support via GitHub Issues",
+        "Falls back to API 4.0 directly and notes there is no capability loss",
+        "Flags the port question for a customer-hosted instance: often 19999, not 443"
+      ],
+      "expect_fail": [
+        "Promises the MCP will work on a customer-hosted instance",
+        "Presents the toolbox as a supported Google Cloud product",
+        "Reports Looker automation as unavailable because the MCP does not fit"
+      ]
+    },
+    {
+      "id": "looker-shared-key-collision",
+      "type": "failure-handling",
+      "prompt": "Pull last quarter's numbers for all twelve regions in parallel, as fast as possible.",
+      "setup": "One API credential, twelve concurrent workers, 60 requests per minute per key.",
+      "expect_pass": [
+        "States that the 60-per-minute limit is per API key, so parallel workers sharing one key collide with each other",
+        "Chooses one of two honest options: serialise the calls, or issue one credential per worker, and says which",
+        "Prefers a single wide query grouped by region over twelve separate queries",
+        "Notes that cost lands on the customer's warehouse, not on a Looker quota"
+      ],
+      "expect_fail": [
+        "Fans out twelve workers on one key and reports the resulting failures as a Looker outage",
+        "Treats the rate limit as per user rather than per credential"
+      ]
+    }
+  ]
+}

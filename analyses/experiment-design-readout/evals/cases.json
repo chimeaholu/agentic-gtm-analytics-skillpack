@@ -1,0 +1,138 @@
+{
+  "skill": "experiment-design-readout",
+  "cases": [
+    {
+      "id": "edr-01-infeasible-test",
+      "type": "refusal",
+      "prompt": "Set up an A/B test on the pricing page to detect a 5% lift in signups.",
+      "setup": "Baseline conversion is 2%. Traffic is about 40,000 eligible users per month.",
+      "expect_pass": [
+        "computes the required sample of roughly 315,000 per arm and translates it to about thirteen months at this traffic",
+        "returns the verdict that the test cannot answer this question, rather than designing a shorter version",
+        "gives the levers with concrete numbers: a 20% MDE needs about 21,000 per arm and runs in roughly three weeks",
+        "offers the higher-baseline sub-population and the more sensitive proxy outcome as alternatives, naming what each costs in generalisation",
+        "makes a recommendation rather than listing options, and justifies it"
+      ],
+      "expect_fail": [
+        "designs a two-week test and notes it may be underpowered",
+        "reports the required sample without a go or no-go verdict"
+      ]
+    },
+    {
+      "id": "edr-02-null-read-as-negative",
+      "type": "annotated_answer",
+      "prompt": "The test came back not significant. So the new onboarding flow doesn't work — kill it?",
+      "setup": "Effect +3.1%, interval -2% to +8.4%. The test was powered to detect 9%.",
+      "expect_pass": [
+        "corrects the reading: the test could not detect an effect of 9% or larger, and a 6% effect would have looked like this result",
+        "reports the interval and notes it spans zero and extends to 8.4%, so effects worth having remain possible",
+        "distinguishes this from a decisive null, and says explicitly that this result does not support killing the flow",
+        "names what a conclusive test would take in sample or duration",
+        "does not claim the flow works either"
+      ],
+      "expect_fail": [
+        "agrees the flow does not work",
+        "reports only non-significance with no interval or MDE"
+      ]
+    },
+    {
+      "id": "edr-03-srm-invalidates",
+      "type": "refusal",
+      "prompt": "Variant B is up 7%. Ship it.",
+      "setup": "Arms split 54/46 against an intended 50/50, at a sample size where that is far outside chance. The imbalance grows with funnel depth.",
+      "expect_pass": [
+        "refuses to read the outcome and identifies the sample-ratio mismatch as invalidating",
+        "explains why: assignment was not random, so the outcome difference is confounded with whatever caused the imbalance",
+        "uses the funnel-depth pattern to name a likely cause, such as assignment being logged after a step that differs between arms",
+        "explicitly declines to report the 7% as a result while disclosing that it was observed",
+        "notes the design and power calculation remain valid for a re-run"
+      ],
+      "expect_fail": [
+        "reports the 7% lift with an SRM caveat",
+        "recommends shipping"
+      ]
+    },
+    {
+      "id": "edr-04-peeking",
+      "type": "annotated_answer",
+      "prompt": "We've been watching daily and it just crossed significance on day 6 of a planned 14-day test. Can we stop?",
+      "expect_pass": [
+        "says stopping now is not valid under a fixed-horizon design and explains why in one sentence: each look is another chance to cross, so the realised false-positive rate is far above 5%",
+        "states that switching to a sequential method now does not retroactively fix peeking already done",
+        "recommends running to the planned horizon, and notes that if the effect is real it will still be there",
+        "distinguishes health monitoring, which is required, from primary-outcome monitoring with intent to stop",
+        "if the result is reported anyway, requires the peeking to be disclosed and the result treated as a hypothesis for a clean re-run"
+      ],
+      "expect_fail": [
+        "approves stopping because significance was reached",
+        "suggests applying a sequential correction after the fact as though it repairs the design"
+      ]
+    },
+    {
+      "id": "edr-05-randomisation-unit-mismatch",
+      "type": "annotated_answer",
+      "prompt": "We randomised by lead and want to report the effect on account conversion rate.",
+      "expect_pass": [
+        "flags the unit mismatch: multiple leads per account are correlated, so treating accounts as independent understates variance",
+        "names the consequence directionally: results look more significant than they are",
+        "states the correct design, randomising by account, and acknowledges it costs sample size",
+        "offers the analysis options available now: analyse at lead level as randomised, or use a cluster-robust method at account level, naming the assumption each makes",
+        "does not report a naive account-level significance test"
+      ],
+      "expect_fail": [
+        "reports account-level significance from lead-level randomisation",
+        "declares the test worthless with no salvageable analysis"
+      ]
+    },
+    {
+      "id": "edr-06-segment-fishing",
+      "type": "annotated_answer",
+      "prompt": "Overall flat, but mobile-tablet users are up 14%. Can we ship to that segment?",
+      "setup": "Eleven segment cuts were examined. No correction was applied and no segment was pre-registered.",
+      "expect_pass": [
+        "states the family size and gives the arithmetic: across eleven cuts at alpha 0.05, at least one false positive was more likely than not",
+        "labels the segment result exploratory, explicitly and in the same sentence as the number",
+        "does not simply dismiss it: frames it as a hypothesis worth a dedicated pre-registered test if the mechanism is plausible",
+        "notes that the overall flat result is the pre-registered finding and is what governs the shipping decision",
+        "offers the correction that would apply if a formal answer is needed"
+      ],
+      "expect_fail": [
+        "endorses shipping to the segment",
+        "reports the 14% without the family size"
+      ]
+    },
+    {
+      "id": "edr-07-iterable-multichannel",
+      "type": "annotated_answer",
+      "prompt": "Set up A/B tests across our email, push and SMS campaigns and report results from one place.",
+      "expect_pass": [
+        "states that Iterable's experiment metrics endpoint supports email experiments only, so push, SMS and in-app tests have no metrics endpoint",
+        "does not imply parity across channels",
+        "requires the non-email measurement route to be established before launch, through the warehouse or event pipeline",
+        "notes that a readout route discovered after the test has run is an unrecoverable problem",
+        "still designs the tests, with the measurement plan differing by channel and that difference stated"
+      ],
+      "expect_fail": [
+        "promises a unified multichannel experiment readout from the platform",
+        "declines to design the tests"
+      ]
+    },
+    {
+      "id": "edr-08-mismatched-definitions",
+      "type": "annotated_answer",
+      "prompt": "Variant A won on conversion rate. Write it up.",
+      "setup": "Variant B launched one day later than variant A, so its measurement window is one day shorter.",
+      "expect_pass": [
+        "applies the comparison contract before reading the result and catches the window mismatch",
+        "states that equal window length is not equal coverage and that the arms are not comparable as measured",
+        "gives the correction: restrict both arms to the common window and recompute",
+        "reports the recomputed comparison rather than only objecting",
+        "notes that a winner declared from mismatched definitions survives every statistical check, which is why the contract runs first"
+      ],
+      "expect_fail": [
+        "writes up variant A as the winner on the mismatched windows",
+        "invalidates the test without offering the common-window recomputation"
+      ]
+    }
+  ]
+}

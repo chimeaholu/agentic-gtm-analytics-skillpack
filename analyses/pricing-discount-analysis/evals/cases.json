@@ -1,0 +1,140 @@
+{
+  "skill": "pricing-discount-analysis",
+  "cases": [
+    {
+      "id": "pda-01-discounting-wins-deals",
+      "type": "refusal",
+      "prompt": "Deals with discounts over 20% win 1.6x more often. Confirm that discounting works so I can raise rep discount authority.",
+      "expect_pass": [
+        "reports the 1.6x as observed and refuses the causal reading",
+        "names both directions of confounding: discounts are granted to deals already near close and to deals in trouble, and the measured correlation mixes them",
+        "gives the structural argument in one sentence: discounted deals are by construction deals that got far enough to be negotiated",
+        "runs or specifies the stage-at-discount conditioned comparison and reports both pooled and conditioned figures, with the gap as the measure of selection",
+        "names what would settle it: a segment-level price change or a territory holdout, routed through experiment-design-readout",
+        "does not endorse raising discount authority on this evidence"
+      ],
+      "expect_fail": [
+        "confirms that discounting wins deals",
+        "withholds the 1.6x figure"
+      ]
+    },
+    {
+      "id": "pda-02-concession-data-missing",
+      "type": "annotated_answer",
+      "prompt": "What's our real discount erosion?",
+      "setup": "The discount percentage field is populated. Service start dates, entitled quantity and the fee schedule are not available.",
+      "expect_pass": [
+        "reports the headline discount and labels it explicitly as a lower bound on erosion",
+        "names the direction: realised erosion is higher, always",
+        "sizes the gap with whatever evidence exists, such as the share of won deals whose contract term exceeds their billing term",
+        "refuses to invent a multiplier from headline to realised, and says why an invented number is worse than the gap",
+        "names the specific fields that would close it: entitled quantity, service start date, fee schedule, SOW register"
+      ],
+      "expect_fail": [
+        "applies a rule-of-thumb multiplier to estimate realised erosion and presents it as measured",
+        "withholds the headline discount because the full picture is unavailable"
+      ]
+    },
+    {
+      "id": "pda-03-mean-conceals-bimodal",
+      "type": "annotated_answer",
+      "prompt": "Average discount is 12%, that seems healthy. Anything to worry about?",
+      "setup": "The distribution is bimodal at 0% and 28%, with a pile-up in the bucket just below the 25% approval threshold.",
+      "expect_pass": [
+        "reports the distribution rather than accepting the mean, giving percentiles and the share at exactly zero",
+        "identifies the bimodality and states that the 12% mean describes almost no actual deal",
+        "flags the pile-up below the approval threshold as the most informative pattern, and reads it as the threshold being managed rather than respected",
+        "connects it to realised price: value pushed below the threshold usually reappears as unrecorded concessions",
+        "frames it as a governance finding rather than a pricing one"
+      ],
+      "expect_fail": [
+        "agrees 12% looks healthy",
+        "reports the distribution without interpreting the threshold pile-up"
+      ]
+    },
+    {
+      "id": "pda-04-rep-ranking-unnormalised",
+      "type": "annotated_answer",
+      "prompt": "Rank the reps by average discount so I can see who's giving away margin.",
+      "expect_pass": [
+        "does not deliver the raw ranking as the answer, and states that ranking on raw discount ranks territories",
+        "delivers the normalised version instead: deviation from the within-bucket median, bucketed by segment, product family and deal size",
+        "applies and states a small-n floor, excluding reps with too few closed deals",
+        "reports explicitly which apparent outliers disappear after normalisation, since that is often the most useful result",
+        "distinguishes the three findings that survive normalisation: conceding earlier, conceding more on the same profile, or buckets that failed to capture the deals"
+      ],
+      "expect_fail": [
+        "produces the raw ranking as requested with no normalisation",
+        "refuses to compare reps at all"
+      ]
+    },
+    {
+      "id": "pda-05-early-price-change-read",
+      "type": "annotated_answer",
+      "prompt": "We raised list price six weeks ago and revenue per deal is up 9%. The price increase worked.",
+      "setup": "Median sales cycle is four months.",
+      "expect_pass": [
+        "gives the 9% and identifies it as almost entirely a rate effect",
+        "states that the volume effect takes a full sales cycle to appear and that roughly a third of it is observable at six weeks",
+        "names the direction of the incompleteness: early reads flatter a price increase",
+        "runs the volume, mix, rate and interaction decomposition with the order declared and the interaction shown separately",
+        "says when a complete read will be possible and what to watch in the meantime, such as top-of-funnel volume and win rate on new-price deals"
+      ],
+      "expect_fail": [
+        "confirms the price increase worked",
+        "refuses to report the 9% because the cycle has not elapsed"
+      ]
+    },
+    {
+      "id": "pda-06-free-units-invisible",
+      "type": "annotated_answer",
+      "prompt": "Our per-seat realised price is holding steady at 900 against a 1,000 list. Nothing to see here?",
+      "setup": "The query filters line items to TotalPrice > 0.",
+      "expect_pass": [
+        "flags the filter as dropping every free-of-charge line, which carry UnitPrice of zero with a non-zero ListPrice",
+        "explains why this specific concession is invisible: free units leave revenue unchanged and reduce realised unit price",
+        "recomputes realised unit price over units delivered rather than units billed",
+        "notes the capacity consequence: the account consumes delivery capacity it does not pay for",
+        "gives the corrected figure, or names the field needed for entitled quantity if it is not available"
+      ],
+      "expect_fail": [
+        "confirms the 900 realised price",
+        "identifies the filter problem without recomputing or naming the field needed"
+      ]
+    },
+    {
+      "id": "pda-07-fx-blind-comparison",
+      "type": "annotated_answer",
+      "prompt": "Compare realised price across our EMEA and North America segments for the last three years.",
+      "setup": "Multi-currency is enabled. Dated exchange rates are not configured.",
+      "expect_pass": [
+        "flags that without dated exchange rates, historical records convert at today's rate, so every historical discount moves when the rate moves",
+        "states the consequence: a three-year comparison contains FX movement presented as pricing change",
+        "declares the conversion basis, rate source and rate date it is using, and whether list prices are converted too",
+        "offers the cleaner comparison: each region in its local currency, with the FX effect reported separately",
+        "still delivers the comparison, with the FX component named rather than withheld"
+      ],
+      "expect_fail": [
+        "compares converted amounts across three years with no FX statement",
+        "declines the comparison entirely"
+      ]
+    },
+    {
+      "id": "pda-08-amount-vs-line-items",
+      "type": "annotated_answer",
+      "prompt": "Your discount numbers don't match what finance reports. Which is right?",
+      "setup": "Deal amount is manually overridden on 14% of won deals, concentrated on deals with a services component.",
+      "expect_pass": [
+        "does not declare either side wrong, and reports both with their basis named",
+        "runs the reconciliation between deal amount and the line-item sum, and reports the mismatch count and total",
+        "identifies the concentration on services deals as the finding: services value is handled outside the line items, which is where unrecorded concessions live",
+        "states which figure is right for which question rather than picking one universally",
+        "does not average the two"
+      ],
+      "expect_fail": [
+        "declares one source authoritative without reconciling",
+        "averages the two figures"
+      ]
+    }
+  ]
+}

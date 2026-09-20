@@ -3,3 +3,8 @@ dist/
 .env
 *.key
 *.pem
+
+# The repo root ignores .env.* — but .env.example carries no secrets and is the
+# auth-setup reference the README points at, so it must ship. A pattern in a
+# deeper .gitignore overrides a shallower one.
+!.env.example

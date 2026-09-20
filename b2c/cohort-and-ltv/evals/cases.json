@@ -1,0 +1,134 @@
+{
+  "skill": "cohort-and-ltv",
+  "cases": [
+    {
+      "id": "clv-01-revenue-ltv",
+      "type": "annotated_answer",
+      "prompt": "Our LTV is 247 and CAC is 71, so we're at 3.5:1. Are we healthy?",
+      "setup": "The 247 is cumulative revenue per acquired customer at 12 months. Gross margin is 60%. CAC is media spend only.",
+      "expect_pass": [
+        "identifies that LTV is on revenue rather than gross profit and recomputes it on margin",
+        "states the size of the correction: revenue LTV overstates by one divided by gross margin",
+        "identifies the CAC as media-only rather than fully loaded and names what fully loaded includes",
+        "states that the ratio is wrong on both sides and gives the corrected ratio",
+        "leads with payback in months rather than the ratio, and says why the ratio alone is not decisive",
+        "notes the 3:1 rule has no empirical basis"
+      ],
+      "expect_fail": [
+        "endorses 3.5:1",
+        "corrects LTV but leaves the media-only CAC uncorrected",
+        "refuses to give a ratio"
+      ]
+    },
+    {
+      "id": "clv-02-different-horizons",
+      "type": "honest-limit",
+      "prompt": "The 2025 cohorts have LTV of 190 and the 2026 cohorts are at 61. Are the newer customers worse?",
+      "setup": "2025 cohorts have 18 months of history; 2026 cohorts have 4. Both figures are terminal cumulative values.",
+      "expected_result_type": "ambiguous",
+      "expect_pass": [
+        "identifies that the two figures are at different horizons so the comparison measures cohort age",
+        "recomputes both at a common horizon, the largest all cohorts have reached",
+        "reports the like-for-like comparison and answers whether newer cohorts are better or worse on that basis",
+        "labels the 2026 figure as a lower bound at its current maturity",
+        "does not drop the immature cohorts"
+      ],
+      "expect_fail": [
+        "concludes the newer cohorts are worse from the terminal figures",
+        "refuses to compare at all",
+        "drops the 2026 cohorts as too immature to discuss"
+      ]
+    },
+    {
+      "id": "clv-03-closed-form-high-nrr",
+      "type": "honest-limit",
+      "prompt": "Compute LTV with the standard formula. Our NRR is 118%.",
+      "setup": "Net revenue retention above 100%. Three years of cohort history exists.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "states that the closed form is invalid at NRR above 100% because the denominator goes to zero or negative and LTV approaches infinity",
+        "does not report a very large number",
+        "computes the bounded-horizon observed LTV from the available cohort history instead, with the horizon named",
+        "gives at least two horizons so the growth in value with tenure is visible",
+        "explains that a business with expansion needs a bounded horizon precisely because the value is not bounded by the formula"
+      ],
+      "expect_fail": [
+        "reports an enormous LTV figure",
+        "substitutes gross churn silently to make the formula work",
+        "returns unavailable with no observed alternative"
+      ]
+    },
+    {
+      "id": "clv-04-all-time-repeat-rate",
+      "type": "annotated_answer",
+      "prompt": "Our repeat purchase rate improved from 22% to 29% this year. Product-market fit is working.",
+      "setup": "The figures are all-time: customers with two or more orders ever divided by all customers. Acquisition slowed sharply this year.",
+      "expect_pass": [
+        "identifies all-time RPR as mechanically rising as the business ages and falling when acquisition accelerates",
+        "states that slowing acquisition alone raises the all-time figure with no behaviour change",
+        "recomputes by acquisition cohort with a fixed window, for example 90 days, and reports whether the improvement survives",
+        "names the competing definition, orders from repeat customers divided by total orders, and says it is a different number",
+        "gives a conclusion about whether the improvement is real"
+      ],
+      "expect_fail": [
+        "accepts the improvement as a product signal",
+        "identifies the problem but does not recompute by cohort"
+      ]
+    },
+    {
+      "id": "clv-05-predictive-unlabelled",
+      "type": "honest-limit",
+      "prompt": "Put the predicted LTV for each customer next to their actual spend in one table.",
+      "setup": "Predictions come from a BG/NBD plus Gamma-Gamma fit. No holdout validation has been run.",
+      "expect_pass": [
+        "produces the table but labels the predicted column as modelled at the point of display",
+        "states that no holdout validation has been run and that the model's accuracy on this data is unmeasured",
+        "names the holdout procedure: fit on an earlier window, compare predicted against actual in the held-out period",
+        "names the assumption most likely to break in DTC: monetary value independent of purchase frequency, and says to check it",
+        "notes that BG/NBD is for non-contractual settings and points to survival methods if the business is subscription-based"
+      ],
+      "expect_fail": [
+        "presents predicted and actual in one table with no modelled label",
+        "reports model accuracy from a published benchmark",
+        "refuses to produce the table"
+      ]
+    },
+    {
+      "id": "clv-06-identity-match-rate",
+      "type": "honest-limit",
+      "prompt": "Repeat rate is only 18%. Why is retention so bad?",
+      "setup": "Guest checkout is enabled and 31% of orders have no linkable customer identifier. No identity resolution has been run.",
+      "expect_pass": [
+        "reports the identity match rate before interpreting the repeat rate",
+        "states the direction: unlinked repeat purchases appear as separate one-time buyers, so the repeat rate is understated and the customer count is overstated",
+        "gives 18% as a lower bound rather than a measurement",
+        "names the resolving change: identity resolution on email, phone or payment token, and guest-checkout capture",
+        "offers the computable bound, for example the repeat rate among orders that do carry an identifier, with its own selection bias named"
+      ],
+      "expect_fail": [
+        "diagnoses a retention problem from the 18%",
+        "returns unavailable and gives no figure",
+        "reports 18% as the repeat rate with only a generic data-quality note"
+      ]
+    },
+    {
+      "id": "clv-07-cohort-too-small",
+      "type": "honest-limit",
+      "prompt": "Which acquisition channel produces the best LTV? Break it down by channel and month.",
+      "setup": "One channel has 6 to 11 customers per monthly cohort. Others have several hundred.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "reports the channels with adequate cohort sizes as point estimates",
+        "refuses point estimates on the thin channel and gives intervals plus raw counts instead",
+        "states the minimum cohort size used",
+        "suggests aggregating the thin channel to quarterly cohorts to reach a usable size, and says what is lost by doing so",
+        "notes that channel cohorts inherit the attribution rule used to assign acquisition channel, and names the rule"
+      ],
+      "expect_fail": [
+        "ranks the thin channel first or last on its point estimate",
+        "drops the thin channel silently",
+        "refuses the whole breakdown"
+      ]
+    }
+  ]
+}

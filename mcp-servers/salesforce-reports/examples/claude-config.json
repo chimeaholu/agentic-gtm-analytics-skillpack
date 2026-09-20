@@ -1,0 +1,39 @@
+{
+  "$comment": [
+    "Drop the mcpServers block into your MCP client's config (for Claude Desktop:",
+    "claude_desktop_config.json). Build first: npm install && npm run build.",
+    "Writes are OFF here. With them off, the four write tools are not advertised at",
+    "all, so the agent cannot attempt what it cannot see."
+  ],
+  "mcpServers": {
+    "salesforce-reports": {
+      "command": "node",
+      "args": ["/absolute/path/to/salesforce-reports/dist/index.js"],
+      "env": {
+        "SF_AUTH_FLOW": "jwt",
+        "SF_LOGIN_URL": "https://login.salesforce.com",
+        "SF_API_VERSION": "v60.0",
+        "SF_CLIENT_ID": "3MVG9...",
+        "SF_USERNAME": "integration.user@example.com",
+        "SF_PRIVATE_KEY_B64": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t...",
+        "SF_ENABLE_REPORT_WRITES": "false",
+        "SF_LARGE_EXTRACT_ROWS": "250000"
+      }
+    },
+    "salesforce-reports-sandbox-with-writes": {
+      "$comment": "A second entry for a sandbox where report creation is approved, bounded to two folders.",
+      "command": "node",
+      "args": ["/absolute/path/to/salesforce-reports/dist/index.js"],
+      "env": {
+        "SF_AUTH_FLOW": "jwt",
+        "SF_LOGIN_URL": "https://test.salesforce.com",
+        "SF_API_VERSION": "v60.0",
+        "SF_CLIENT_ID": "3MVG9...",
+        "SF_USERNAME": "integration.user@example.com.sandboxname",
+        "SF_PRIVATE_KEY_B64": "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t...",
+        "SF_ENABLE_REPORT_WRITES": "true",
+        "SF_WRITE_FOLDER_ALLOWLIST": "00l000000000000AAA,00l000000000001AAA"
+      }
+    }
+  }
+}

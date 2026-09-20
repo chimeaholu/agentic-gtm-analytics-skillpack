@@ -1,0 +1,136 @@
+{
+  "skill": "content-seo-attribution",
+  "cases": [
+    {
+      "id": "csa-01-gsc-ga4-reconciliation",
+      "type": "refusal",
+      "prompt": "Search Console says 84,000 organic clicks, GA4 says 61,000 organic sessions. Reconcile them so we have one organic number.",
+      "expect_pass": [
+        "states the two are not reconcilable and gives the reasons: a click and a session are different units, consent affects one and not the other, the day boundaries differ, and GSC covers only Google Search",
+        "reports both figures with their basis labelled rather than picking one",
+        "names the likely dominant cause of the gap, consent and tracking loss, and its direction",
+        "states which figure to use for which question: GSC for search demand and visibility, GA4 for on-site behaviour and conversion",
+        "does not average them or derive a blended organic number"
+      ],
+      "expect_fail": [
+        "produces a single reconciled organic number",
+        "declares one source wrong"
+      ]
+    },
+    {
+      "id": "csa-02-content-judged-on-traffic",
+      "type": "annotated_answer",
+      "prompt": "Content traffic is up 40% year on year. How much pipeline did content contribute?",
+      "expect_pass": [
+        "answers the pipeline question rather than restating the traffic figure",
+        "gives the contribution under at least first-touch and last-touch and reports the spread, noting the spread is wide for content by construction",
+        "reports the join coverage from session to person to CRM record and labels the pipeline figure a floor",
+        "states that the uncovered remainder is not zero and is disproportionately the anonymous top-of-funnel readership",
+        "checks the branded and non-branded split before crediting the traffic growth to content"
+      ],
+      "expect_fail": [
+        "answers with traffic growth",
+        "gives a single-model pipeline figure as the content contribution"
+      ]
+    },
+    {
+      "id": "csa-03-branded-organic-credited-to-content",
+      "type": "annotated_answer",
+      "prompt": "Organic sessions are up 34% since we started the content programme. It's working.",
+      "setup": "Branded organic is up 34%. Non-branded organic is flat.",
+      "expect_pass": [
+        "splits branded from non-branded before answering and reports both",
+        "states the finding directly: the growth is entirely branded, so organic is collecting demand created elsewhere rather than creating it",
+        "explains why branded organic is mostly harvest: the searcher already knows the company exists",
+        "states the classification rule used, including how competitor-comparison and brand-plus-modifier queries were handled",
+        "notes the anonymisation gap means the branded split is computed on the non-anonymised query subset"
+      ],
+      "expect_fail": [
+        "confirms the content programme is working on the blended organic figure",
+        "splits branded and non-branded without stating the classification rule"
+      ]
+    },
+    {
+      "id": "csa-04-cardinality-rollup",
+      "type": "annotated_answer",
+      "prompt": "Here's the page-level report. The pages only add up to 70% of site sessions — is data missing?",
+      "setup": "The GA4 response has dataLossFromOtherRow set to true.",
+      "expect_pass": [
+        "identifies the cardinality rollup from the response flag rather than guessing",
+        "states that individual page rows are valid but the set is incomplete, so page figures will not sum to the site total",
+        "states that this is not reconcilable by construction and should not be chased",
+        "gives the routes around it in order: BigQuery export, shorter window, path-prefix filter, fewer dimensions",
+        "notes that for a content site over a long window this is the default outcome rather than an anomaly"
+      ],
+      "expect_fail": [
+        "attributes the gap to tracking loss or a data pipeline fault",
+        "attempts to reconcile the page sum to the site total"
+      ]
+    },
+    {
+      "id": "csa-05-gsc-query-sum",
+      "type": "annotated_answer",
+      "prompt": "I exported the query report and totalled the clicks. That's our organic traffic from search, right?",
+      "expect_pass": [
+        "says no, and names query anonymisation: queries below a privacy threshold are omitted entirely rather than bucketed",
+        "states the ordering: query-level clicks are less than page-level clicks, which are less than the site total, and all three are correct",
+        "quantifies the gap from the data rather than describing it qualitatively",
+        "notes the gap is largest on long-tail content, which is most of a content programme",
+        "recommends the page dimension for contribution work and the query dimension for intent analysis"
+      ],
+      "expect_fail": [
+        "confirms the query total as organic search traffic",
+        "describes the gap without quantifying it when the page-level figure is available"
+      ]
+    },
+    {
+      "id": "csa-06-content-compared-across-ages",
+      "type": "annotated_answer",
+      "prompt": "Rank all our blog posts by pipeline contributed so we know what to write more of.",
+      "setup": "Publication dates span four years.",
+      "expect_pass": [
+        "flags that a cumulative ranking across four years ranks age as much as quality",
+        "delivers the matched-age comparison instead: contribution at the same months-since-publication",
+        "reports the cohort trend in median per-piece performance, which is the question behind the request",
+        "states that piece-level pipeline attribution is usually below the volume floor and aggregates to topic cluster or content type before ranking",
+        "asks or states which date basis was used, first published or last substantive update, given that refreshed pieces distort cohorts"
+      ],
+      "expect_fail": [
+        "produces the cumulative ranking as the answer",
+        "ranks individual pieces on one or two attributed deals each"
+      ]
+    },
+    {
+      "id": "csa-07-direct-absorbing-content",
+      "type": "annotated_answer",
+      "prompt": "Direct traffic is up 28% this quarter. Our brand is getting stronger.",
+      "expect_pass": [
+        "names Direct as a dumping ground and lists what it absorbs: untagged email, dark social, app-to-web, stripped referrers, typed URLs",
+        "gives the two competing explanations for a 28% rise: genuine brand recall, or tagging degradation, and says both need checking",
+        "recommends auditing tagging changes and campaign parameters in the window before concluding anything",
+        "notes that content-driven return visits legitimately land in Direct, so a rise is consistent with content working and being invisible",
+        "does not fold Direct into brand or organic"
+      ],
+      "expect_fail": [
+        "confirms the brand-strength reading",
+        "attributes the Direct rise to content without checking tagging"
+      ]
+    },
+    {
+      "id": "csa-08-custom-visibility-metric",
+      "type": "annotated_answer",
+      "prompt": "Chart our share of voice against the vendor tool's share of voice so we can see if they agree.",
+      "expect_pass": [
+        "declines to chart them on one axis and explains that they are two metrics sharing a name, with different keyword sets and different denominators",
+        "requires the in-house metric to be named distinctly and versioned",
+        "reports both separately, each with its denominator labelled",
+        "notes that the vendor metric changes when the tool's keyword set changes, which is not a visibility change",
+        "states what can be compared: the direction of movement over the same window, with both definitions stated"
+      ],
+      "expect_fail": [
+        "charts the two series together",
+        "declares one metric correct"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "skill": "churn-prediction-models",
+  "cases": [
+    {
+      "id": "chn-01-involuntary-dominates",
+      "type": "honest-limit",
+      "scenario": "A combined churn model reports 0.93 test AUC. 31% of churn in the training data was payment failure. The team plans to use the model to drive CSM outreach.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Flags 0.93 as implausible for voluntary churn against the 0.70-0.82 band and identifies involuntary churn as the likely driver",
+        "States the operational consequence: CSMs will call customers whose card expired",
+        "Requires the split before modelling and reports the 31% share as the first finding",
+        "Notes that dunning and a card updater are a cheaper fix than any model",
+        "Does not discard the model, but rescopes it to voluntary churn"
+      ],
+      "fail_if": [
+        "Reports 0.93 AUC as a strong result",
+        "Ships the combined model for CSM outreach",
+        "Treats the involuntary share as a data-quality nuisance rather than a finding"
+      ]
+    },
+    {
+      "id": "chn-02-undefined-churn",
+      "type": "honest-limit",
+      "scenario": "A non-contractual ecommerce business asks for its churn rate. No lapse definition exists.",
+      "expected_result_type": "ambiguous",
+      "pass_if": [
+        "States that churn is not observable in a non-contractual business and is a window threshold",
+        "Derives candidate windows from the return-gap distribution rather than picking a round number",
+        "Gives the churn rate under at least two defined windows with both numbers",
+        "States the expected false-churn rate implied by each window",
+        "Notes the gap distribution is computed over customers who returned and is therefore biased short",
+        "Does not end by asking the user to choose before giving any number"
+      ],
+      "fail_if": [
+        "Picks 90 days without justification and reports one rate",
+        "Refuses to give a churn rate until a definition is supplied",
+        "Ends the turn with a clarification question and no number"
+      ]
+    },
+    {
+      "id": "chn-03-horizonless-risk",
+      "type": "correctness",
+      "scenario": "A health-score dashboard labels accounts 'at risk' with no horizon attached, and the CSM save plan takes six weeks to execute.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "States that risk without a horizon is unactionable",
+        "Recommends a horizon matched to the intervention lead time rather than to data convenience",
+        "Explains that 30, 60 and 90-day horizons are different models with different features and achievable performance",
+        "Notes the renewal-date concentration problem for annual contracts and the fix"
+      ],
+      "fail_if": [
+        "Accepts the horizonless score",
+        "Picks a horizon without reference to the intervention lead time"
+      ]
+    },
+    {
+      "id": "chn-04-no-billing-status",
+      "type": "honest-limit",
+      "scenario": "The voluntary/involuntary split is requested but the extract has no payment status field.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "States the split is unavailable and gives the combined churn figure",
+        "Offers the proxy: churn preceded by a failed payment with no user cancel event, labelled explicitly as a proxy",
+        "Names the direction of error: voluntary churn is overstated without the split",
+        "Names the specific fix: expose the payment status field in the extract"
+      ],
+      "fail_if": [
+        "Reports a voluntary-churn figure as if the split were made",
+        "Refuses to give any churn figure",
+        "Presents the proxy as the measured split"
+      ]
+    },
+    {
+      "id": "chn-05-health-score-as-prediction",
+      "type": "correctness",
+      "scenario": "A weighted-sum health score is used to forecast churn. No evaluation has been run against it.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "States that a health score is a rule and that being a rule is legitimate",
+        "Requires it to be evaluated as a prediction, since it is being used as one: same baselines, lift by tier with intervals, calibration if red is claimed to mean a probability",
+        "Routes the evaluation to scoring-model-evaluation",
+        "Notes that a health score reaching a large share of a model's lift at lower operational cost is a valid reason to keep it"
+      ],
+      "fail_if": [
+        "Dismisses the health score because it is not a model",
+        "Accepts it as a prediction without evaluation",
+        "Requires replacement with a model as the only option"
+      ]
+    },
+    {
+      "id": "chn-06-save-rate-without-holdout",
+      "type": "honest-limit",
+      "scenario": "A save programme reports a 62% save rate on flagged accounts and wants to scale.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that a save rate with no control group cannot distinguish saves from accounts that would have stayed",
+        "Explains that the highest-risk accounts are not necessarily the saveable ones",
+        "Routes to uplift-and-causal-models and specifies the minimum: a randomised holdout from the save programme",
+        "Warns about the sleeping-dog risk in retention outreach",
+        "Gives the risk and revenue-at-risk figures, which are computable, rather than withholding everything"
+      ],
+      "fail_if": [
+        "Endorses scaling on the 62% figure",
+        "Withholds the risk scores as well as the effectiveness claim",
+        "Proposes a better risk model as the fix for an attribution problem"
+      ]
+    }
+  ]
+}

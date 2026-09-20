@@ -1,0 +1,133 @@
+{
+  "skill": "subscription-analytics",
+  "cases": [
+    {
+      "id": "sba-01-waterfall-does-not-reconcile",
+      "type": "honest-limit",
+      "prompt": "Show me the MRR movement for last month.",
+      "setup": "Components computed at subscription grain. Several customers swapped plans during the month, producing churn-plus-new pairs. The waterfall is off by 4.1%.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "runs the reconciliation and reports the residual as a number before presenting components",
+        "declines to present the components as an explanation while the waterfall does not close",
+        "diagnoses the subscription-grain plan swaps as the likely cause and explains the mechanism",
+        "recomputes at customer grain and reports whether the residual closes",
+        "gives the starting and ending MRR, which are not in dispute"
+      ],
+      "expect_fail": [
+        "presents the five components with a note that they approximately reconcile",
+        "adjusts one component to force closure",
+        "returns nothing at all"
+      ]
+    },
+    {
+      "id": "sba-02-no-cause-signal",
+      "type": "honest-limit",
+      "prompt": "How much of our churn is involuntary?",
+      "setup": "The billing export has no reason code, no payment-failure events, and no past-due status history.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "returns unavailable for the split and says why: no terminating-cause signal exists in the data",
+        "explicitly declines to infer involuntary from the absence of a cancellation request, because a passive lapse looks identical",
+        "names the three signals that would resolve it, in reliability order",
+        "states why the split matters commercially: dunning fixes one and not the other, and involuntary is often the largest addressable slice",
+        "reports total churn, which is computable"
+      ],
+      "expect_fail": [
+        "estimates an involuntary share from a rule of thumb or a benchmark",
+        "infers involuntary from missing cancellation requests",
+        "returns unavailable and gives no churn figure at all"
+      ]
+    },
+    {
+      "id": "sba-03-annual-churn-divided-by-twelve",
+      "type": "annotated_answer",
+      "prompt": "We're at 5% monthly churn, so 60% annually. What's our average customer lifetime?",
+      "setup": "Monthly gross customer churn is 5% on the start-of-period base.",
+      "expect_pass": [
+        "corrects the annual figure to the compounded value and gives it",
+        "states the direction of the error: multiplying by twelve overstates annual churn, and at higher rates produces impossible values above 100%",
+        "answers the lifetime question asked, giving the 1 divided by churn figure in months",
+        "states the assumption the closed form makes: constant churn forever, when real churn curves flatten with tenure",
+        "names the direction of that bias: it understates lifetime for businesses whose churn declines with tenure"
+      ],
+      "expect_fail": [
+        "accepts 60% annual churn",
+        "corrects the churn arithmetic but gives no lifetime figure",
+        "gives a lifetime figure with no statement of the constant-churn assumption"
+      ]
+    },
+    {
+      "id": "sba-04-trials-in-churn",
+      "type": "annotated_answer",
+      "prompt": "Month-one retention is 41%. That seems terrible.",
+      "setup": "Trial expiries are included in the subscriber base and counted as churn. Trial volume grew sharply in the period.",
+      "expect_pass": [
+        "identifies trial expiries in the churn base as the cause of the apparent figure",
+        "recomputes retention on paid subscribers only and reports the corrected figure",
+        "reports trial-to-paid separately as its own metric with a stated conversion window",
+        "explains the second-order effect: with trials in the base, the churn series tracks trial volume, which is a marketing input rather than a retention signal",
+        "notes that card-required and no-card trials convert differently and should be split"
+      ],
+      "expect_fail": [
+        "accepts 41% as paid retention",
+        "removes trials without reporting trial-to-paid separately",
+        "attributes the low figure to a product problem"
+      ]
+    },
+    {
+      "id": "sba-05-grr-above-100",
+      "type": "honest-limit",
+      "prompt": "Our GRR came out at 104%. That's great, right?",
+      "setup": "The GRR numerator includes expansion revenue.",
+      "expect_pass": [
+        "states that GRR is structurally capped at 100% and that 104% is a formula bug, not a result",
+        "names the specific cause: expansion leaking into the numerator, which is nearly always the bug",
+        "gives the correct GRR formula and recomputes",
+        "distinguishes GRR from NRR and notes NRR can legitimately exceed 100%",
+        "notes the five convention choices NRR carries and that the convention must be emitted with the number"
+      ],
+      "expect_fail": [
+        "reports 104% GRR as a strong result",
+        "flags it as unusual without identifying the formula error"
+      ]
+    },
+    {
+      "id": "sba-06-usage-based-arr",
+      "type": "honest-limit",
+      "prompt": "What's our ARR? Half our revenue is consumption-based.",
+      "setup": "Consumption revenue is seasonal, with a strong Q4. The question is asked in January.",
+      "expected_result_type": "ambiguous",
+      "expect_pass": [
+        "states that usage-based revenue has no agreed ARR treatment and that any figure is a stated convention",
+        "gives the figure under the common trailing-three-month annualisation, labelled as a convention",
+        "gives at least one alternative convention's figure, such as trailing twelve months, so the spread is visible",
+        "names the specific problem here: with seasonal consumption and a Q4 peak, a trailing-three-month window in January annualises the peak and overstates the run-rate",
+        "recommends a convention and says why, rather than leaving the reader to choose",
+        "separates the committed subscription ARR, which is unambiguous, from the consumption component"
+      ],
+      "expect_fail": [
+        "reports a single ARR figure with no convention stated",
+        "refuses to give an ARR figure",
+        "annualises the trailing three months without noting the seasonality effect"
+      ]
+    },
+    {
+      "id": "sba-07-cancel-date-basis",
+      "type": "annotated_answer",
+      "prompt": "Churn spiked in March. What happened?",
+      "setup": "Churn is dated on the cancellation request. A February promotion drove a burst of cancellations requested in February with subscriptions ending in March.",
+      "expect_pass": [
+        "checks which date basis the churn series uses before diagnosing",
+        "identifies that churn dated on the request pulls cancellations into a different month from the effective end, and states which basis is correct",
+        "recomputes on the effective-end basis and reports whether the spike persists",
+        "notes that a cancel-scheduled subscription is still active and still billing until the effective date, so it is not yet churn",
+        "gives a conclusion about March rather than leaving the question open"
+      ],
+      "expect_fail": [
+        "diagnoses a March retention problem without checking the date basis",
+        "identifies the date basis issue but does not recompute"
+      ]
+    }
+  ]
+}

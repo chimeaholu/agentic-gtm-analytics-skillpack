@@ -18,13 +18,14 @@ export interface Config {
   maxAsyncRequestsPerHour: number;
 }
 
-function req(name: string): string {
-  const v = process.env[name];
+function require_(env: NodeJS.ProcessEnv, name: string): string {
+  const v = env[name];
   if (!v) throw new Error(`${name} is required for this auth flow. See .env.example.`);
   return v;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+  const req = (name: string) => require_(env, name);
   const authFlow = (env.SF_AUTH_FLOW ?? 'jwt') as AuthFlow;
   if (!['jwt', 'client_credentials', 'refresh_token'].includes(authFlow)) {
     throw new Error(`SF_AUTH_FLOW must be jwt, client_credentials or refresh_token (got "${authFlow}")`);
