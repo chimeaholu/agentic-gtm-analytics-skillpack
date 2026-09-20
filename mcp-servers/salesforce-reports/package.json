@@ -1,0 +1,24 @@
+{
+  "name": "salesforce-reports-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for the Salesforce Reports and Dashboards REST API — report execution, metadata, creation and dashboard clone, with Bulk API 2.0 as the escape hatch from the 2,000-row ceiling.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "salesforce-reports-mcp": "dist/index.js" },
+  "main": "dist/index.js",
+  "files": ["dist", "README.md"],
+  "engines": { "node": ">=20.11" },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "skill": "territory-quota-capacity",
+  "cases": [
+    {
+      "id": "tqc-01-ramp-omitted",
+      "type": "annotated_answer",
+      "prompt": "We're hiring 10 reps at 1M quota each this year, so that's 10M of capacity. How much pipeline do we need?",
+      "setup": "Reps hired roughly one per month. Six-month ramp observable in the org's own hiring history. Created-cohort win rate 21%.",
+      "expect_pass": [
+        "corrects the capacity figure using a ramp curve and gives both the naive and ramp-adjusted numbers",
+        "states that the ramp curve came from the org's own bookings-by-tenure-month history rather than an assumption",
+        "shows that hiring pattern matters: spreading hires through the year yields materially less year-one capacity than hiring early",
+        "derives the coverage requirement as 1 divided by the win rate rather than quoting a benchmark multiple",
+        "computes the pipeline requirement against the adjusted capacity, not the naive one",
+        "answers the pipeline question asked rather than only critiquing the premise"
+      ],
+      "expect_fail": [
+        "accepts 10M of year-one capacity",
+        "quotes a 3x coverage benchmark",
+        "corrects the capacity but computes coverage against the naive figure"
+      ]
+    },
+    {
+      "id": "tqc-02-no-hiring-history",
+      "type": "honest-limit",
+      "prompt": "Model our capacity for next year.",
+      "setup": "The team has hired four reps ever, all within the last five months. No tenured bookings history by tenure month exists.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "states that no measured ramp curve is available and that the curve used is assumed",
+        "bounds the assumption with the arithmetic floor: ramp cannot be shorter than the median sales cycle plus time to create first pipeline",
+        "delivers the capacity model anyway, with the assumed curve named",
+        "leads with the sensitivity across a plausible ramp range rather than a point estimate",
+        "expresses the sensitivity in a decision-useful form, such as what a month of ramp reduction is worth in capacity"
+      ],
+      "expect_fail": [
+        "produces a single capacity figure with an unstated ramp assumption",
+        "refuses to model capacity at all"
+      ]
+    },
+    {
+      "id": "tqc-03-quota-vs-attainment-distribution",
+      "type": "annotated_answer",
+      "prompt": "Leadership set the quota by dividing the target by headcount. Is it achievable?",
+      "setup": "Plan requires 71% of reps at quota. Historical share at or above 100% is 43% over six quarters. The new quota is 20% above last year's.",
+      "expect_pass": [
+        "compares required attainment to the historical achievability rate and states both numbers",
+        "names the three levers plainly: lower the quota, raise the headcount, or accept the plan will miss",
+        "notes that the historical 43% was measured against a lower quota, so it overstates achievability at the raised quota",
+        "runs the quota-invariant comparison: share of historical rep-periods whose bookings met or exceeded the new quota",
+        "reports the attainment distribution rather than a mean, and notes the right skew"
+      ],
+      "expect_fail": [
+        "declares the quota achievable because mean attainment exceeds 100%",
+        "compares to the historical attainment rate without noting the quota changed",
+        "refuses to judge achievability"
+      ]
+    },
+    {
+      "id": "tqc-04-blanket-coverage-benchmark",
+      "type": "annotated_answer",
+      "prompt": "We have 3.2x coverage. That's above the 3x benchmark, so we're fine?",
+      "setup": "Win rate is 20% on the created-cohort basis. A third of open pipeline has a close date in the following quarter. Several deals are past their p90 stage duration.",
+      "expect_pass": [
+        "derives the requirement as 1 divided by the win rate, giving 5x at a 20% win rate",
+        "states the size of the shortfall in currency, not just in multiples",
+        "applies the two qualifiers: pipeline must be filtered to close-date-in-period, and stale pipeline is not full-value coverage",
+        "recomputes actual coverage after both filters and reports how far it falls",
+        "notes that coverage declines mechanically through a period, so the comparison should be same-day-of-period"
+      ],
+      "expect_fail": [
+        "endorses 3.2x as adequate",
+        "corrects the benchmark but does not filter the pipeline",
+        "reports a shortfall without quantifying it"
+      ]
+    },
+    {
+      "id": "tqc-05-territory-potential-unavailable",
+      "type": "honest-limit",
+      "prompt": "Are our territories balanced? Each rep has about 200 accounts.",
+      "setup": "No potential estimate exists: no spend history for most accounts, no firmographic enrichment, no intent data.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "states that equal account counts are not equal territories and that balance requires a potential estimate",
+        "returns the account-count view as computable but explicitly not a balance measure",
+        "names the potential sources in reliability order and what each would cost to obtain",
+        "offers the computable proxy with its bias named, for example historical won-deal value by territory, and says it measures past performance and territory quality together",
+        "does not declare the territories balanced or unbalanced from counts"
+      ],
+      "expect_fail": [
+        "declares the territories balanced because account counts match",
+        "returns unavailable with no proxy and no route to a potential estimate"
+      ]
+    },
+    {
+      "id": "tqc-06-attrition-divided-by-twelve",
+      "type": "annotated_answer",
+      "prompt": "At 18% annual attrition that's 1.5% a month — factor that in.",
+      "setup": "Twelve-month planning horizon with monthly hiring.",
+      "expect_pass": [
+        "corrects the monthly rate using the compounding form rather than dividing by twelve, and gives the corrected figure",
+        "states the direction and size of the error over the horizon",
+        "models the replacement as a new hire restarting the ramp rather than as continuity",
+        "quantifies a departure's cost as lost tenured months plus backfill gap plus replacement ramp",
+        "notes that first-year attrition usually exceeds the tenured rate, so heavy hiring inherits a worse hazard than the blended figure implies"
+      ],
+      "expect_fail": [
+        "accepts 1.5% monthly",
+        "corrects the rate but treats the backfill as a wash",
+        "corrects the arithmetic without stating the effect on the plan"
+      ]
+    },
+    {
+      "id": "tqc-07-composite-mixed-cohorts",
+      "type": "honest-limit",
+      "prompt": "Pipeline velocity for the team: 140 opportunities, 24% win rate, 85k average deal value, 62-day cycle.",
+      "setup": "The 24% win rate is enterprise-only. The 85k value is blended. The 62-day cycle is a mean over SMB deals.",
+      "expect_pass": [
+        "identifies that the four inputs come from different segments and cohorts, so the composite describes no team that exists",
+        "flags the cycle length as a mean where the median is required, and names the direction: means on right-skewed cycle data overstate duration",
+        "recomputes per segment with matched inputs and reports the segment-level velocities",
+        "states the units correctly as revenue per unit time, not a duration",
+        "gives usable numbers rather than only refusing the blended one"
+      ],
+      "expect_fail": [
+        "computes and reports the blended velocity as given",
+        "flags the mismatch but produces no corrected figures",
+        "describes pipeline velocity as a duration"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "skill": "product-led-growth-analytics",
+  "cases": [
+    {
+      "id": "plg-01-unknown-match-rate",
+      "type": "refusal",
+      "prompt": "What's the revenue per active product user?",
+      "setup": "Product events are in a product-analytics platform, revenue in the CRM. No shared key exists and no reconciliation has been run.",
+      "expect_pass": [
+        "does not produce the figure while the match rate is unknown, and states the distinction: a low match rate is a number with a named gap, an unknown one is a number with no floor",
+        "runs or specifies the reconciliation first, naming the candidate keys in preference order",
+        "delivers what is computable now without the join: active users from the product side, revenue from the CRM side, each on its own grain",
+        "names the resolving change: send the CRM account ID as a product event property, which fixes everything after it ships but not history",
+        "does not silently join on email domain"
+      ],
+      "expect_fail": [
+        "divides CRM revenue by product actives and reports the result",
+        "joins on email domain and presents the figure as matched"
+      ]
+    },
+    {
+      "id": "plg-02-low-match-rate-still-answered",
+      "type": "annotated_answer",
+      "prompt": "Do accounts using integrations expand more?",
+      "setup": "Match rate is 78%, covering 94% of product usage. Unmatched accounts skew self-serve and newer.",
+      "expect_pass": [
+        "gives the comparison plainly, with the coverage stated alongside it",
+        "names the direction the gap pushes the estimate rather than saying it may be inaccurate",
+        "reports unmatched usage share, not only the account-level match rate",
+        "attaches the correlational caveat in one sentence: accounts adopting integrations were likely to expand anyway",
+        "says when the figure is fine, such as prioritising investment, and when it is not, such as claiming adoption drives expansion"
+      ],
+      "expect_fail": [
+        "withholds the comparison because the match rate is below 100%",
+        "reports the figure with no coverage statement"
+      ]
+    },
+    {
+      "id": "plg-03-convenience-activation-metric",
+      "type": "annotated_answer",
+      "prompt": "Our activation metric is profile completion. Is that a good one?",
+      "setup": "Profile completion: 81% coverage, 41% retention among completers, 26% among non-completers, 15pp separation. The activity control of two logins in week one gives 25pp separation.",
+      "expect_pass": [
+        "answers no, and gives the reason numerically: 15pp separation is below the 25pp activity control, so it carries less signal than simply returning to the product",
+        "explains the control's purpose in one sentence: any milestone requiring a return visit correlates with retention, so the control establishes the floor",
+        "does not merely assert that the metric was chosen for convenience",
+        "names what to test instead, with the criteria: strong separation, usable coverage, and a clear margin over the control",
+        "notes that the current number is not useless for tracking onboarding completion, it is just not an activation metric"
+      ],
+      "expect_fail": [
+        "endorses profile completion because completers retain better",
+        "rejects it without running the control comparison"
+      ]
+    },
+    {
+      "id": "plg-04-power-user-milestone",
+      "type": "annotated_answer",
+      "prompt": "Accounts that make 50 API calls in two weeks retain at 89% versus 35%. That's our activation metric.",
+      "expect_pass": [
+        "reports the 54-point separation as real and then names the disqualifying problem: coverage",
+        "states that a milestone reached by a small fraction of signups describes power users and cannot function as an onboarding target",
+        "explains the practical consequence: the great majority of the base is never measured by it, so it cannot guide onboarding work",
+        "recommends selecting on separation and coverage together, and suggests looking for an earlier milestone on the same path",
+        "notes the API-call threshold is still useful as a power-user or PQL signal, just not as activation"
+      ],
+      "expect_fail": [
+        "accepts it as the activation metric on separation alone",
+        "dismisses the 54-point separation as meaningless"
+      ]
+    },
+    {
+      "id": "plg-05-latest-value-person-property",
+      "type": "annotated_answer",
+      "prompt": "Show feature usage by plan for the last twelve months.",
+      "setup": "The query reads plan from the person property.",
+      "expect_pass": [
+        "flags that person properties are latest-value-wins on the major product platforms, so this returns each account's current plan applied to twelve months of history",
+        "names the direction of the error: accounts that upgraded appear to have always been on the higher plan, inflating its historical usage and deflating the lower plan's",
+        "gives the correct sources: an event property captured at event time, a daily snapshot table, or a slowly changing dimension in the warehouse",
+        "still delivers the current-plan cut, correctly labelled as usage by today's plan, since that is a legitimate question",
+        "does not present the current-plan cut as a historical plan cut"
+      ],
+      "expect_fail": [
+        "delivers the breakdown as usage by plan over time with no correction",
+        "refuses to deliver anything"
+      ]
+    },
+    {
+      "id": "plg-06-adoption-denominator",
+      "type": "annotated_answer",
+      "prompt": "What's adoption of the reporting feature? I heard it's 71%.",
+      "expect_pass": [
+        "asks which denominator the 71% used, or computes all three and shows the spread",
+        "names the three: all accounts, accounts entitled to the feature, and accounts that reached the surface",
+        "states that the same feature can legitimately show very different rates under each, and that 71% is most likely the reached-the-surface figure",
+        "recommends the denominator that fits the decision and says why",
+        "adds the recency bound, distinguishing used once ever from used in the last 30 days"
+      ],
+      "expect_fail": [
+        "confirms 71% without establishing the denominator",
+        "asserts a single correct denominator without reference to the decision"
+      ]
+    },
+    {
+      "id": "plg-07-taxonomy-drift",
+      "type": "annotated_answer",
+      "prompt": "Plot four years of adoption for the export feature.",
+      "setup": "Event inventory shows file_exported stops 18 months ago and export_completed starts the same week, with similar volume.",
+      "expect_pass": [
+        "detects the rename from the first and last occurrence of each event name before plotting anything",
+        "does not produce the naive four-year chart, which would show a cliff and a new series",
+        "offers the two honest options: union the names with a documented mapping, or start the trend at the rename and say why",
+        "warns that the two events may not be semantically identical and that the mapping is an assumption to record",
+        "checks for near-duplicate names and volume step changes at release dates as part of the same pass"
+      ],
+      "expect_fail": [
+        "plots four years on one event name and reports a decline",
+        "unions the names without recording the mapping as an assumption"
+      ]
+    },
+    {
+      "id": "plg-08-usage-narrated-as-value",
+      "type": "annotated_answer",
+      "prompt": "This account's session count tripled. They're clearly getting a lot of value — flag them for an upsell.",
+      "expect_pass": [
+        "says tripled sessions is consistent with both success and struggle, and names concrete struggle signatures such as repeated identical searches or rising ticket volume",
+        "names the outcome signals to pair with it before narrating: task completion, error rate, support tickets, expansion history",
+        "still supports flagging the account for a conversation, while correcting the framing from upsell-ready to investigate",
+        "does not assert the account is struggling either, since the usage figure alone does not establish that"
+      ],
+      "expect_fail": [
+        "confirms the account is getting value and endorses the upsell on session count alone",
+        "asserts the account is struggling with no supporting signal"
+      ]
+    }
+  ]
+}

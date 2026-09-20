@@ -1,0 +1,131 @@
+{
+  "skill": "ecommerce-analytics",
+  "cases": [
+    {
+      "id": "eca-01-aov-definition",
+      "type": "annotated_answer",
+      "prompt": "Our AOV dropped from 92 to 78. What happened?",
+      "setup": "The 92 was computed gross. The 78 was computed net of discounts after a promotional period began. Basket distribution is right-skewed.",
+      "expect_pass": [
+        "establishes which AOV definition each figure used before diagnosing anything",
+        "states that the two numbers are computed differently and are not comparable as stated",
+        "recomputes both on a single consistent definition and reports the like-for-like change",
+        "names the five defensible AOV definitions or at least the discount and returns dimensions, and says which it used",
+        "reports the median alongside the mean given the skew"
+      ],
+      "expect_fail": [
+        "explains the drop as a behaviour change without checking the definitions",
+        "refuses to give a comparison"
+      ]
+    },
+    {
+      "id": "eca-02-new-returning-mix",
+      "type": "annotated_answer",
+      "prompt": "Conversion rate fell from 2.31% to 2.09%. Is the new site design hurting us?",
+      "setup": "Returning-visitor share fell from 34% to 27% after a retention email pause. Returning visitors convert at roughly four times new. Within-group rates are flat.",
+      "expect_pass": [
+        "decomposes into mix, rate and interaction before offering a cause",
+        "reports that the movement is almost entirely mix and that within-group rates are flat",
+        "states the general fact that new and returning differ several-fold so a site-wide rate moves on mix alone",
+        "answers the question asked: the site design is not indicated, and names what evidence would indicate it",
+        "notes that sessions are a constructed denominator and the comparison assumes sessionization rules did not change"
+      ],
+      "expect_fail": [
+        "attributes the decline to the site design",
+        "reports the site-wide decline without decomposing",
+        "asserts a mix explanation without computing it"
+      ]
+    },
+    {
+      "id": "eca-03-return-rate-unaged",
+      "type": "honest-limit",
+      "prompt": "What's our return rate this quarter?",
+      "setup": "Return window is 60 days. Roughly half the quarter's orders are still inside it. The naive figure reads 9.4%; the last fully-aged cohort was 14.1%.",
+      "expected_result_type": "lower_bound",
+      "expect_pass": [
+        "gives the 9.4% figure and labels it a lower bound rather than withholding it",
+        "explains that half the cohort is still inside the return window so the rate can only rise",
+        "gives the last fully-aged cohort figure as the number to plan on",
+        "identifies the naive computation as a ratio of two unrelated populations and names its direction of error under growth",
+        "offers the return curve as the way to project the remainder, labelled modelled if used"
+      ],
+      "expect_fail": [
+        "reports 9.4% as the return rate",
+        "withholds any return figure until cohorts age",
+        "reports the aged-cohort figure as if it described the current quarter without saying so"
+      ]
+    },
+    {
+      "id": "eca-04-line-item-fanout",
+      "type": "honest-limit",
+      "prompt": "Revenue by product category — I joined orders to order_lines and summed gross_value.",
+      "setup": "Average 2.4 lines per order. The query sums an order-level column after joining to lines.",
+      "expect_pass": [
+        "identifies fan-out: the order-level value repeats once per line after the join",
+        "states the approximate magnitude, roughly the average lines per order, and that the trend shape is unchanged which is why it goes unnoticed",
+        "gives the correct pattern: aggregate each grain separately and join the aggregates",
+        "gives the one-line diagnostic: distinct order count unchanged while row count grew",
+        "notes that category revenue specifically needs line-level value, so the fix is line revenue not order revenue"
+      ],
+      "expect_fail": [
+        "accepts the figures",
+        "flags the problem without giving the correct aggregation pattern"
+      ]
+    },
+    {
+      "id": "eca-05-abandonment-cross-tool",
+      "type": "honest-limit",
+      "prompt": "Our analytics tool says 79% cart abandonment, the commerce platform says 68%. Which is right?",
+      "setup": "The analytics tool counts add-to-cart events; the platform counts server-side cart objects.",
+      "expected_result_type": "ambiguous",
+      "expect_pass": [
+        "states that both are right about different denominators and names the two event definitions",
+        "explains that cart-initiation definitions differ by platform and that abandonment is not comparable across tools without normalising the event",
+        "does not pick one as correct without a stated reason",
+        "offers the more useful artefact: the step funnel with each event named and the drop at each step",
+        "says which figure to use for which purpose"
+      ],
+      "expect_fail": [
+        "declares one tool wrong",
+        "averages the two",
+        "reports a single abandonment number with no event definition"
+      ]
+    },
+    {
+      "id": "eca-06-ga4-other-row",
+      "type": "honest-limit",
+      "prompt": "Give me revenue by product for all 4,000 SKUs from GA4.",
+      "setup": "The response has dataLossFromOtherRow true. Total revenue matches the expected figure.",
+      "expect_pass": [
+        "reads dataLossFromOtherRow and reports that dimension combinations were rolled into an other bucket",
+        "states the specific consequence: the long tail of SKUs is missing while the total stays correct, which is the shape of a silently wrong report",
+        "names the cause: a dimension exceeding roughly 500 unique values in a day",
+        "gives the top SKUs that are present, labelled as covering only part of the catalogue, with the covered share quantified where the response allows",
+        "names the route to complete data: the commerce platform's own order data, or the BigQuery export which has no other row"
+      ],
+      "expect_fail": [
+        "presents the SKU list as complete",
+        "reports SKUs not in the response as zero revenue",
+        "refuses to give any product breakdown"
+      ]
+    },
+    {
+      "id": "eca-07-margin-level-unstated",
+      "type": "annotated_answer",
+      "prompt": "Our contribution margin is 38%. What ROAS do we need to break even?",
+      "setup": "The 38% was computed on gross revenue before returns, and the CM level was not stated. Category return rate is around 18%.",
+      "expect_pass": [
+        "asks for or infers the CM level and states which level the break-even calculation assumes",
+        "flags that the margin was computed on gross revenue in a category with material returns, and names the direction: the real margin is lower",
+        "recomputes the margin on net revenue and gives the corrected figure",
+        "gives the break-even figure from the corrected margin as one divided by contribution margin, and gives the figure from 38% as well so the gap is visible",
+        "notes that a ROAS target on revenue rather than margin is the underlying problem and points to the blended measure"
+      ],
+      "expect_fail": [
+        "computes break-even from 38% with no returns correction",
+        "refuses to give a break-even figure",
+        "corrects the margin without giving the break-even number asked for"
+      ]
+    }
+  ]
+}

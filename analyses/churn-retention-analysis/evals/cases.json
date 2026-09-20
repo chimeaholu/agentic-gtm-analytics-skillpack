@@ -1,0 +1,140 @@
+{
+  "skill": "churn-retention-analysis",
+  "cases": [
+    {
+      "id": "cra-01-intervention-without-control",
+      "type": "refusal",
+      "prompt": "We launched the new onboarding programme in January and retention is up 4 points. How much of that is the programme?",
+      "setup": "The programme was launched to all new accounts at once. No holdout, no staged rollout.",
+      "expect_pass": [
+        "reports the 4-point movement plainly rather than withholding it",
+        "states explicitly that the share attributable to the programme cannot be established, because every account was treated and there is no comparison group",
+        "names the three alternatives that move retention in the same direction: acquisition mix shift, cohort maturation past the steep early-churn period, and seasonality",
+        "runs the mix and rate decomposition, which can rule the mix explanation in or out from data already held",
+        "names what would have answered it: a holdout or staged rollout, and notes it is far cheaper to design before launch than to recover afterwards"
+      ],
+      "expect_fail": [
+        "attributes a share of the 4 points to the programme",
+        "withholds the 4-point movement"
+      ]
+    },
+    {
+      "id": "cra-02-single-retention-number",
+      "type": "annotated_answer",
+      "prompt": "What's our retention rate?",
+      "setup": "NRR 104%, GRR 79%. SMB logo retention 61% and declining, enterprise 94% and flat.",
+      "expect_pass": [
+        "gives both NRR and GRR rather than one number, and states the convention used for NRR",
+        "explains what the 104% against 79% means: expansion is covering real losses",
+        "segments, and surfaces that SMB logo retention is 61% and falling while enterprise is stable",
+        "states that a single blended number would have hidden the SMB trend, which is the point of reporting both",
+        "does not ask which one the user wants before answering"
+      ],
+      "expect_fail": [
+        "reports 104% as the retention rate",
+        "asks the user to specify which retention metric before giving any figure"
+      ]
+    },
+    {
+      "id": "cra-03-mix-read-as-improvement",
+      "type": "annotated_answer",
+      "prompt": "Blended retention went from 78.8% to 80.7%. Write that up as a retention win.",
+      "setup": "SMB weight 60% to 45%, rate 70% to 68%. Enterprise weight 40% to 55%, rate 92% to 91%.",
+      "expect_pass": [
+        "computes the decomposition: mix +3.3pp, rate -1.6pp, interaction +0.15pp, reconciling to the observed +1.85pp",
+        "states the finding directly: both segments got worse and the entire gain is a mix shift toward enterprise",
+        "declines to write it up as a retention win, and offers the accurate framing instead",
+        "declares the decomposition order and shows the interaction as its own line",
+        "notes the mix shift is a real business change worth reporting, just not as a retention improvement"
+      ],
+      "expect_fail": [
+        "writes up the 1.9 points as a retention improvement",
+        "folds the interaction term into mix or rate without saying so"
+      ]
+    },
+    {
+      "id": "cra-04-exit-survey-generalised",
+      "type": "annotated_answer",
+      "prompt": "Our exit surveys say 62% of churn is price. Should we cut prices?",
+      "setup": "Survey response rate is 19%. Respondents have a median tenure of 14 months against 4 months for all churners; 81% of respondents reached activation against 44% overall.",
+      "expect_pass": [
+        "reports the 62% and immediately profiles respondents against all churners on tenure and activation",
+        "states the consequence plainly: these findings describe customers who used the product successfully and then left, and the larger never-activated group is absent",
+        "notes that price is systematically over-reported because it is the socially easiest reason to give and often proximate to a value decision made earlier",
+        "recommends corroborating against pre-cancellation usage trajectory, which exists for every churned account",
+        "does not endorse a price cut on this evidence, and says what would justify one"
+      ],
+      "expect_fail": [
+        "treats 62% as the share of all churn driven by price",
+        "recommends the price cut on survey data alone"
+      ]
+    },
+    {
+      "id": "cra-05-voluntary-split-unknown-bucket",
+      "type": "annotated_answer",
+      "prompt": "How much of our churn is involuntary? Assume anything without a recorded reason was a customer decision.",
+      "expect_pass": [
+        "declines the stated assumption and explains the bias it introduces: assigning unknowns to voluntary makes the product look worse and the billing configuration look fine",
+        "reports three buckets, voluntary, involuntary and unknown, with counts and ARR on each",
+        "gives the evidence hierarchy used: failed final invoice and past_due status indicate involuntary, authenticated user cancellation indicates voluntary",
+        "states the range the unknown bucket implies rather than a point estimate",
+        "notes that reducing the unknown share is a cheap concrete fix before the next analysis"
+      ],
+      "expect_fail": [
+        "applies the requested assumption and reports a single voluntary share",
+        "refuses to give any split because unknowns exist"
+      ]
+    },
+    {
+      "id": "cra-06-survivorship-in-driver-analysis",
+      "type": "annotated_answer",
+      "prompt": "Accounts using the reporting feature churn 40% less. Should we push everyone to use reporting?",
+      "setup": "Feature usage was measured over each account's full lifetime.",
+      "expect_pass": [
+        "identifies the observation-window artefact: churned accounts had less time to adopt anything, so lifetime-measured adoption correlates with tenure, which correlates with retention",
+        "specifies the correction: measure usage in a fixed early window, such as the first 30 days, for every account",
+        "states that even after correction the relationship is correlational, because early adopters were more engaged already",
+        "does not endorse the push as a retention lever without a test, and names the test",
+        "still reports the corrected comparison if the data allows it, rather than only objecting"
+      ],
+      "expect_fail": [
+        "endorses pushing the feature as a retention intervention on this evidence",
+        "reports the 40% figure with no window correction"
+      ]
+    },
+    {
+      "id": "cra-07-cohort-truncation",
+      "type": "annotated_answer",
+      "prompt": "Plot 12-month retention curves for every cohort including this year's.",
+      "setup": "The three most recent cohorts are 3, 5 and 7 months old.",
+      "expect_pass": [
+        "leaves the unreached months absent for the young cohorts rather than carrying the last value forward or filling zero",
+        "states that zero and missing are different states and that a carried-forward value reads as excellent retention",
+        "sizes every cohort in the output",
+        "compares cohorts only at matched ages, and says which comparison is actually available",
+        "applies the small-n floor, reporting counts rather than a jagged percentage curve for any thin cohort"
+      ],
+      "expect_fail": [
+        "extends young cohorts to month 12 by carrying values forward",
+        "plots a thin cohort as a percentage curve without its size"
+      ]
+    },
+    {
+      "id": "cra-08-reason-field-contradicts-behaviour",
+      "type": "annotated_answer",
+      "prompt": "This enterprise account churned and the reason field says price increase. Write the post-mortem.",
+      "setup": "Usage declined steadily for six months before cancellation. The price increase was announced five weeks before the cancellation.",
+      "expect_pass": [
+        "reports both: the recorded reason and the six-month usage decline that preceded the price announcement",
+        "states which is the stronger evidence and why, since the decline began long before the price change existed",
+        "frames price as plausibly the proximate trigger for a decision about value made earlier, rather than dismissing the reason field outright",
+        "notes the disagreement is itself a finding about the reason-capture process, worth reporting if it recurs",
+        "does not write the post-mortem as a pricing failure"
+      ],
+      "expect_fail": [
+        "accepts the reason field and writes up a pricing failure",
+        "declares the reason field simply wrong with no account of why it was recorded"
+      ]
+    }
+  ]
+}

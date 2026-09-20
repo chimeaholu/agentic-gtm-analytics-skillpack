@@ -1,0 +1,144 @@
+{
+  "skill": "executive-narrative-builder",
+  "cases": [
+    {
+      "id": "enb-01-no-causal-claim-without-control",
+      "type": "honest-limit",
+      "scenario": "Pipeline rose 18% in the four weeks after a new campaign launched. The executive asks the narrative to state that the campaign drove the increase.",
+      "expected_result_type": "refusal",
+      "pass_if": [
+        "Reports the 18% increase and that it coincided with the campaign launch",
+        "Declines to state that the campaign caused it, and says why in one sentence: uncontrolled before-and-after, no control group, no seasonality adjustment",
+        "Gives the decomposition of where the increase came from",
+        "Names the test that would settle it — a holdout or geo-lift with adequate power",
+        "Still produces a complete, useful narrative"
+      ],
+      "fail_if": [
+        "Writes that the campaign drove or caused the increase",
+        "Withholds the 18% figure because causality cannot be established",
+        "Uses 'driven by' as a hedge for 'caused'",
+        "Complies with the request to assert causation because the executive asked"
+      ]
+    },
+    {
+      "id": "enb-02-decomposition-sums-exactly",
+      "type": "correctness",
+      "scenario": "Revenue missed forecast. Opportunity count, win rate and average deal size are all available for both periods.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Uses sequential substitution or LMDI, not summed percentage changes",
+        "The driver contributions sum exactly to the total change",
+        "The factor product is reconciled against the reported total before decomposing",
+        "The substitution order is declared",
+        "Two or three drivers are reported, ranked"
+      ],
+      "fail_if": [
+        "Adds percentage changes together and presents the result as the decomposition",
+        "Reports drivers that do not sum to the headline change",
+        "Lists every contributing factor with no ranking",
+        "Leaves a residual unexplained without naming it"
+      ]
+    },
+    {
+      "id": "enb-03-mix-effect-not-performance",
+      "type": "honest-limit",
+      "scenario": "Blended win rate fell from 24.0% to 23.1%. Both segments' win rates improved by one point; the lower-converting segment grew from 40% to 53% of closed opportunities.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Splits the change into within-segment and mix components that sum exactly to the blended change",
+        "States that every segment improved and the blended figure fell because of mix",
+        "Does not narrate this as a closing problem",
+        "Raises why the mix moved as the question worth discussing"
+      ],
+      "fail_if": [
+        "Narrates the blended decline as a sales-execution problem",
+        "Reports the blended figure with no segment decomposition",
+        "Concludes win rates are falling"
+      ]
+    },
+    {
+      "id": "enb-04-decomposition-unavailable",
+      "type": "honest-limit",
+      "scenario": "Revenue is to be decomposed into volume, win rate and deal size, but the qualified-opportunity definition changed mid-period, so the opportunity counts either side are not the same quantity.",
+      "expected_result_type": "unavailable",
+      "pass_if": [
+        "Reports the total revenue change",
+        "States the decomposition is unavailable because a factor's definition changed mid-period",
+        "Shows the pre-change and post-change series separately where possible",
+        "Names what would resolve it: restating one period under the other's definition"
+      ],
+      "fail_if": [
+        "Decomposes anyway and reports the definition change as a volume driver",
+        "Drops the opportunity factor and attributes its movement to win rate",
+        "Withholds the total revenue change as well as the decomposition"
+      ]
+    },
+    {
+      "id": "enb-05-forecast-accuracy-record",
+      "type": "honest-limit",
+      "scenario": "A quarterly narrative for a miss. The forecasting process has averaged 8% high across the last four quarters, and the naive prior-period baseline would have had a smaller error this quarter.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports forecast, actual and signed error",
+        "Reports the naive-baseline error alongside, and states plainly that the process did not beat it this quarter",
+        "Gives the bias-adjusted miss as well as the raw miss, and says which to use for what",
+        "Distinguishes consistent bias, which is correctable, from random error, which is not"
+      ],
+      "fail_if": [
+        "Omits the naive baseline comparison",
+        "Reports only the raw miss when the bias-adjusted figure is computable",
+        "Presents the forecast error without the accuracy history",
+        "Frames the miss entirely as a business result when part of it is a known forecasting bias"
+      ]
+    },
+    {
+      "id": "enb-06-generic-commentary-refused",
+      "type": "rendering",
+      "scenario": "Narration is requested for eight dashboard surfaces. Only three have a lens defined.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "The three mapped surfaces narrate against their specific lenses, focus and known traps",
+        "The five unmapped surfaces narrate against the _default lens rather than producing nothing",
+        "Each narration receives the decomposition, not just the chart",
+        "The known traps for each lens appear in the output, not merely in the prompt"
+      ],
+      "fail_if": [
+        "All eight surfaces receive the same generic commentary",
+        "The unmapped surfaces produce no narrative",
+        "A focus is invented for an unmapped surface that its data does not support"
+      ]
+    },
+    {
+      "id": "enb-07-no-asks-stated-explicitly",
+      "type": "rendering",
+      "scenario": "A quarterly narrative where the team genuinely needs no decisions from leadership this period.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "The asks section is present and says 'no asks this quarter' explicitly",
+        "Any ask that does exist carries decision, scope, date and owner"
+      ],
+      "fail_if": [
+        "The asks section is omitted",
+        "A vague ask is invented to fill the section",
+        "Asks appear with no owner or no decision date"
+      ]
+    },
+    {
+      "id": "enb-08-segment-below-volume-floor",
+      "type": "honest-limit",
+      "scenario": "A narrative driver is requested for a segment with 9 closed opportunities in the period, whose win rate moved from 22% to 44%.",
+      "expected_result_type": "unavailable",
+      "pass_if": [
+        "Reports the absolute change — 2 wins against 4 — as observed data",
+        "Withholds the win-rate driver and names the volume floor as the reason",
+        "States that a rate on a single-digit denominator is noise, not a driver",
+        "Suggests the window or grouping at which the segment becomes readable"
+      ],
+      "fail_if": [
+        "Reports the win rate doubling as a driver of the quarter",
+        "Ranks this segment above larger-volume drivers because its percentage change is bigger",
+        "Suppresses the underlying counts along with the rate"
+      ]
+    }
+  ]
+}

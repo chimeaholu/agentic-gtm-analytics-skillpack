@@ -1,0 +1,104 @@
+{
+  "skill": "identity-resolution",
+  "cases": [
+    {
+      "id": "idr-01-missing-backfill-signature",
+      "type": "annotated_answer",
+      "prompt": "Our first-touch report says 61% of customers came from Direct and 22% from Branded Search. Should we cut the paid social budget?",
+      "expect_pass": [
+        "recognises the channel mix as the signature of missing anonymous-to-known backfill rather than as a finding about demand",
+        "explains the mechanism in one pass: anonymous browsing is stitched retroactively at the form fill, and if pre-identification history is never attached, first touch becomes the form fill, which is usually Direct or Branded Search",
+        "gives the diagnostic that settles it: the share of touches flagged pre-identification, which should be materially above zero, and the first-touch channel mix recomputed after backfill",
+        "answers the budget question directly: do not cut on this report, because the report cannot see upper-funnel touches by construction",
+        "states the bound honestly once backfill runs: the horizon is limited by cookie lifetime under ITP, so upper-funnel is understated rather than fully recovered, and publishes the median and p90 horizon"
+      ],
+      "expect_fail": [
+        "accepts the channel mix at face value and advises on budget",
+        "attributes the Direct share to brand strength without checking backfill"
+      ]
+    },
+    {
+      "id": "idr-02-no-shared-key-is-unavailable",
+      "type": "honest_limit",
+      "prompt": "Join our CRM contacts to our email platform profiles and give me the overlap.",
+      "setup": "The email platform has no CRM id field populated, and the CRM has no email-platform id. Emails are present on both sides but the email platform stores only hashed emails with an unknown salt.",
+      "expect_pass": [
+        "returns unavailable for the joined count, and names the precise reason: no rung-1 or rung-2 key, and the hashed email is unusable because the salt and pre-hash normalisation cannot be verified as identical",
+        "gives each side's marginal total separately rather than nothing",
+        "refuses fuzzy name and domain matching explicitly, with the reason that a false merge inflates one account and deletes another while the totals still reconcile",
+        "names the changes that would create a key: write the CRM id onto the email-platform profile as an external id, or agree a shared salt and normalisation and verify it on a known sample",
+        "notes that verifying a shared hash needs only a handful of known-identical records, so this is a short task rather than a project"
+      ],
+      "expect_fail": [
+        "matches on hashed email assuming the salt matches",
+        "produces an overlap figure from name or domain similarity",
+        "returns only a refusal with no marginal totals and no resolving change"
+      ]
+    },
+    {
+      "id": "idr-03-ambiguous-is-its-own-bucket",
+      "type": "annotated_answer",
+      "prompt": "What's our match rate?",
+      "setup": "Of 1.48M identifiers: 1.21M resolve to exactly one person deterministically, 96K probabilistically, 168K have no edge, and 12K resolve to more than one candidate person.",
+      "expect_pass": [
+        "gives the four numbers as four buckets: matched deterministic, matched probabilistic, unmatched, ambiguous, with shares",
+        "states that ambiguous is neither matched nor unmatched, and that collapsing it into either is the most common way a coverage report lies",
+        "distinguishes match rate from accuracy: a coverage figure says nothing about how many probabilistic matches are correct, and there is no precision figure without a labelled holdout",
+        "states the downstream consequence in one sentence: a person-level rate computed here covers about 81% of identifiers deterministically, so every rate inherits that coverage",
+        "notes that unmatched people are real and their activity is real, so they are reported as an excluded population, never as zero"
+      ],
+      "expect_fail": [
+        "reports a single match rate of 88% by folding probabilistic and ambiguous together",
+        "presents the match rate as an accuracy figure"
+      ]
+    },
+    {
+      "id": "idr-04-role-address-over-merge",
+      "type": "annotated_answer",
+      "prompt": "One person in our graph has 340 sessions this month and 47 opportunities attributed to them. Impressive.",
+      "expect_pass": [
+        "identifies the likely over-merge rather than celebrating it, and names the usual cause: a role address such as info@ or sales@ treated as a person, or a shared device",
+        "explains why over-merge is the dangerous direction: it poisons journeys by interleaving several people's touches, and the output stays coherent so nothing errors",
+        "gives the checks to run: role-address pattern match on the person's identifiers, identifier-count distribution against the population p99, and concurrent activity across countries or devices",
+        "prescribes the fix at the right layer: exclude role addresses from person identity at ingestion and keep them as an account-level attribute, which is what they are",
+        "requires the correction to go to a review queue and through the write gate, with the blast radius stated, because a merge change restates historical person counts and every per-person rate"
+      ],
+      "expect_fail": [
+        "treats the record as a high-value customer",
+        "auto-merges or auto-splits on the heuristic without review"
+      ]
+    },
+    {
+      "id": "idr-05-bitemporal-restatement",
+      "type": "annotated_answer",
+      "prompt": "We re-ran last quarter's attribution and got a different answer. No data changed. Is the model broken?",
+      "expect_pass": [
+        "identifies the identity graph as the most likely cause: merges since the original run changed who the touches belong to",
+        "states the structural requirement: valid_from and valid_to so a journey can be rebuilt as the graph knew it at the time, plus known_from and known_to so the report date is queryable",
+        "gives the query shape that reproduces the original number: filter the graph to what was known by the original report date",
+        "says plainly that the new number is usually the better one, and that restatement is legitimate, but it must be labelled and marked on the timeline rather than read as a trend",
+        "recommends recording the graph version on every published report so this question is answerable with the specific merge rather than by argument"
+      ],
+      "expect_fail": [
+        "concludes the attribution model is non-deterministic or broken",
+        "recommends freezing the identity graph to keep numbers stable"
+      ]
+    },
+    {
+      "id": "idr-06-lead-conversion-broken-join",
+      "type": "annotated_answer",
+      "prompt": "Half our marketing-sourced activity disappears from the pipeline report after a lead converts. Where does it go?",
+      "expect_pass": [
+        "names the mechanism: Salesforce lead-to-contact conversion retires the Lead ID, and activity logged against the Lead does not follow a naive join to the Contact",
+        "gives the fix by field name: route through ConvertedContactId, ConvertedAccountId and ConvertedOpportunityId, and keep both ids as edges in the identity graph with their observed timestamps",
+        "adds the second common instance in this family: marketing-automation merge events that rewrite ids, which must be consumed rather than ignored",
+        "quantifies the impact before fixing: count converted leads with pre-conversion activity, which bounds the missing activity exactly",
+        "notes the 15 versus 18 character id form as a related silent-zero-rows join failure, and normalising to 18 at the staging boundary"
+      ],
+      "expect_fail": [
+        "attributes the loss to attribution-window settings",
+        "recommends re-keying the activity table on email without noting the normalisation policy"
+      ]
+    }
+  ]
+}

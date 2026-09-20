@@ -1,0 +1,137 @@
+{
+  "skill": "budget-allocation",
+  "cases": [
+    {
+      "id": "ba-01-single-model-reallocation",
+      "type": "refusal",
+      "prompt": "Last-touch says email is our best channel. Move 40% of the paid budget into email.",
+      "expect_pass": [
+        "does not execute the recommendation on one model's point estimate",
+        "shows email's range across the models that ran and names last-touch's specific bias toward harvest channels",
+        "still gives a directional answer rather than only objecting: what the agreement gate supports for email today",
+        "states the bound: a 40% shift requires evidence that could distinguish a 40% effect from zero, and last-touch provides none",
+        "names the experiment that would justify the move and roughly what it costs"
+      ],
+      "expect_fail": [
+        "recommends the 40% shift",
+        "refuses and offers no allocation guidance at all"
+      ]
+    },
+    {
+      "id": "ba-02-good-roas-loss-making",
+      "type": "annotated_answer",
+      "prompt": "This channel runs at 6x ROAS, way above our 4x target. Should we scale it hard?",
+      "setup": "Contribution margin is 15%.",
+      "expect_pass": [
+        "computes break-even ROAS as 1/0.15 = 6.67 and states that 6.0 is below it",
+        "says plainly that the channel is currently loss-making on contribution and that the 4x target is the wrong number",
+        "distinguishes the 6.0 as an average return and notes the marginal return is lower, so scaling makes it worse rather than better",
+        "asks for or names the source of contribution margin, since the whole conclusion turns on it",
+        "does not recommend scaling"
+      ],
+      "expect_fail": [
+        "endorses scaling because 6x beats the 4x target",
+        "treats the platform ROAS target as a profitability threshold"
+      ]
+    },
+    {
+      "id": "ba-03-average-read-as-marginal",
+      "type": "annotated_answer",
+      "prompt": "Our best channel has a 9x average ROAS. How much more should we put into it?",
+      "setup": "No MMM, no saturation curve, no spend-level experiment. Attribution data only.",
+      "expect_pass": [
+        "answers the question with what is available rather than withholding: the channel is the strongest on average returns and an increase is directionally supported",
+        "states explicitly that this is an average-return recommendation and names the direction of the error: it tends to over-fund the largest existing channel",
+        "explains in one sentence that average return is above marginal return everywhere under diminishing returns, so 9x average does not mean the next unit returns 9x",
+        "recommends a staged increase with a gate, rather than a size derived from the 9x",
+        "names the better evidence: a spend-up test, which both answers the question and extends the measured range"
+      ],
+      "expect_fail": [
+        "sizes the increase from the average ROAS",
+        "declines to recommend anything because no marginal evidence exists"
+      ]
+    },
+    {
+      "id": "ba-04-models-disagree",
+      "type": "annotated_answer",
+      "prompt": "Display looks weak in every report. Cut it and move the money.",
+      "setup": "Display credit ranges from 6% to 21% across the models run, and its rank flips between models.",
+      "expect_pass": [
+        "verdict is test, not cut, and the reason is that the range and the rank flip mean the contribution is unresolved rather than low",
+        "distinguishes explicitly between unresolved and low, because the user has read them as the same thing",
+        "ships the test design: holdout or geo, market count, duration, MDE and opportunity cost",
+        "notes that the test costs less than the reallocation being considered, if that is true, as the argument for running it",
+        "still gives an interim position: hold display flat this period rather than cutting or increasing"
+      ],
+      "expect_fail": [
+        "recommends the cut",
+        "reports uncertainty with no experiment named and no interim position"
+      ]
+    },
+    {
+      "id": "ba-05-extrapolation-beyond-range",
+      "type": "annotated_answer",
+      "prompt": "The geo test showed 9% lift. Triple the budget on that channel.",
+      "expect_pass": [
+        "states that the 9% was measured at current spend and that 3x spend is outside the range anything measured",
+        "explains the specific risk: the saturation curve's shape past the observed range is extrapolation, and this is the most common way a good test becomes a bad decision",
+        "gives the staged alternative with concrete gates: +20%, re-read CPA and MER, then a further increase, then re-measure",
+        "notes that each stage extends the measured range, which is worth more than the increase itself",
+        "names the operational ceiling as a separate constraint from the measurement one"
+      ],
+      "expect_fail": [
+        "recommends the 3x increase on the strength of the lift result",
+        "refuses to recommend any increase"
+      ]
+    },
+    {
+      "id": "ba-06-cross-platform-sum",
+      "type": "annotated_answer",
+      "prompt": "I added up conversions from all four ad platforms to build the allocation. The total is 8,412.",
+      "expect_pass": [
+        "reports the 8,412 rather than withholding it, and names the direction: it overstates true unique conversions",
+        "names the four causes in one sentence each: overlap across platforms, different event sets, different view-through windows, and modelled conversions in at least two of them",
+        "states that the overlap cannot be quantified without a shared key and declines to invent a percentage",
+        "explains the consequence for allocation specifically: the platforms that model most are inflated most, so allocation built on this sum shifts budget toward them",
+        "names the better route for allocation: warehouse deduplication for a unique count, incrementality for what the spend caused"
+      ],
+      "expect_fail": [
+        "uses the naive sum as the allocation basis without naming the direction of error",
+        "refuses to state the total"
+      ]
+    },
+    {
+      "id": "ba-07-no-marginal-evidence-at-all",
+      "type": "annotated_answer",
+      "prompt": "Give me the optimal budget split across our six channels.",
+      "setup": "Attribution data only. No MMM, no saturation curves, no experiments, contribution margin known.",
+      "expect_pass": [
+        "says an optimal split cannot be computed from attribution alone, and gives the reason in one sentence: optimisation needs marginal returns and attribution gives credit shares, which are not returns",
+        "still delivers a directional allocation from the agreement gate, explicitly labelled as average-return based",
+        "applies the break-even MER constraint, which needs no attribution model and survives every dispute about the per-channel numbers",
+        "names the test queue that would turn the directional answer into an optimisation",
+        "does not leave the user with nothing, since they will reallocate today regardless"
+      ],
+      "expect_fail": [
+        "produces an optimal split from credit shares",
+        "refuses and delivers no allocation guidance"
+      ]
+    },
+    {
+      "id": "ba-08-cutting-the-harvest-channel",
+      "type": "annotated_answer",
+      "prompt": "Brand search converts at a huge ROAS but those people were searching for us anyway. Cut it to zero?",
+      "expect_pass": [
+        "identifies this as the canonical harvest-channel question and states that no attribution model can resolve it, because all of them credit the observed touch",
+        "gives both readings with their consequences: if the demand arrives anyway the spend is waste, and if competitors capture the query the loss is real and does not show up in the channel's own metrics",
+        "names the resolving evidence: a brand-search holdout, and notes it is one of the most commonly run incrementality tests for exactly this reason",
+        "warns that cutting it also removes the measurement of it, so an uncontrolled cut produces an ambiguous outcome",
+        "recommends a partial geo holdout rather than a full cut, so the counterfactual exists"
+      ],
+      "expect_fail": [
+        "recommends cutting to zero on the reasoning in the prompt",
+        "defends the spend using its reported ROAS"
+      ]
+    }
+  ]
+}

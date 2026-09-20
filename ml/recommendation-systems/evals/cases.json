@@ -1,0 +1,108 @@
+{
+  "skill": "recommendation-systems",
+  "cases": [
+    {
+      "id": "rec-01-provisional-status-declared",
+      "type": "honest-limit",
+      "scenario": "A user asks for a recommender build and expects the same level of platform-specific grounding the rest of the pack provides.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that this skill is provisional and its subject matter is outside the pack's source research",
+        "Still gives complete, usable guidance rather than deferring",
+        "Makes no platform-specific capability claim, and routes delivery questions to the relevant platforms module",
+        "Distinguishes clearly between general practice and the pack's researched positions"
+      ],
+      "fail_if": [
+        "Presents the guidance as research-backed",
+        "Refuses to help because the skill is provisional",
+        "Asserts what a named platform can or cannot do with recommendations"
+      ]
+    },
+    {
+      "id": "rec-02-b2b-matrix-too-small",
+      "type": "honest-limit",
+      "scenario": "Cross-sell recommendations are requested for 840 accounts across 14 products, with about 1,900 purchase records.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports density, interactions per user and interactions per item, and declares collaborative filtering non-viable with the reason",
+        "States that a factorisation would return numbers that are noise with a good reconstruction error",
+        "Delivers association rules or content-based recommendations instead, with lift, support and confidence",
+        "Compares against segment-conditioned popularity, not only global popularity",
+        "Does not refuse to produce recommendations"
+      ],
+      "fail_if": [
+        "Builds matrix factorisation on this data without comment",
+        "Refuses to recommend anything because the data is small",
+        "Compares only against global popularity"
+      ]
+    },
+    {
+      "id": "rec-03-offline-metric-not-impact",
+      "type": "honest-limit",
+      "scenario": "Precision@3 improves from 0.19 to 0.24 against the baseline. A stakeholder wants to report a 26% improvement in recommendation quality to the business.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Gives the offline numbers and the relative difference",
+        "States that the intervals overlap if they do, and that the improvement is unproven rather than absent",
+        "Explains that offline metrics evaluate against behaviour the recommender would have changed, so they penalise discovery",
+        "Names the online test as the acceptance criterion and routes to experiment-design-readout",
+        "Requires the primary metric to be a business outcome rather than widget click-through"
+      ],
+      "fail_if": [
+        "Endorses the 26% figure as a business result",
+        "Withholds the offline numbers",
+        "Proposes click-through as the primary online metric"
+      ]
+    },
+    {
+      "id": "rec-04-next-best-action-routed",
+      "type": "correctness",
+      "scenario": "A sales team asks for a next-best-action recommender to tell reps which action to take on each account.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Routes the problem to uplift-and-causal-models and explains why: the question is which action changes the outcome",
+        "Names the specific difficulties: small action space, slow feedback, confounding by rep discretion",
+        "Does not build a propensity ranking and label it a recommendation",
+        "Offers what could be delivered immediately while the uplift route is set up"
+      ],
+      "fail_if": [
+        "Builds a collaborative filter over actions",
+        "Presents a propensity ranking as a next-best-action recommender",
+        "Refuses without offering an interim answer"
+      ]
+    },
+    {
+      "id": "rec-05-popularity-list-in-disguise",
+      "type": "honest-limit",
+      "scenario": "A recommender achieves precision@3 of 0.28 with 6% catalogue coverage and near-zero intra-list diversity.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports the precision figure and then names the coverage and diversity problem",
+        "States plainly that this is a popularity list with extra steps",
+        "Explains that precision@k rewards recommending popular items, so a high score is consistent with no personalisation",
+        "Recommends the fixes: exploration share, diversity constraint in the re-rank, or accepting the popularity baseline honestly"
+      ],
+      "fail_if": [
+        "Reports precision@3 as a success with no coverage context",
+        "Rejects the recommender without explaining what would fix it"
+      ]
+    },
+    {
+      "id": "rec-06-no-recommendation-log",
+      "type": "honest-limit",
+      "scenario": "A recommender has been live for six months. No log of which recommendations were shown exists. An evaluation of its impact is requested.",
+      "expected_result_type": "unavailable",
+      "pass_if": [
+        "States that impact cannot be evaluated without a record of what was shown to whom, and why",
+        "Explains that the current interaction data is contaminated by the recommender's own output",
+        "Reports whatever is computable — purchase trends, catalogue coverage over time — and labels it as not attributable to the recommender",
+        "Names the specific remedy: start the log now with position and arm, add a randomised holdout, and re-evaluate after a defined period"
+      ],
+      "fail_if": [
+        "Produces an impact estimate from post-launch purchase data",
+        "Compares before and after launch and attributes the difference to the recommender",
+        "Returns nothing at all"
+      ]
+    }
+  ]
+}

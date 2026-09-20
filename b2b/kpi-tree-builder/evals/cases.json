@@ -1,0 +1,132 @@
+{
+  "skill": "kpi-tree-builder",
+  "cases": [
+    {
+      "id": "ktb-01-product-edge-wrong-cohort",
+      "type": "annotated_answer",
+      "prompt": "The tree says opportunities created times win rate should equal opportunities won, but it's off by 18%. Is the data broken?",
+      "setup": "Win rate is the close-date figure. Opportunities created is a cohort count.",
+      "expect_pass": [
+        "identifies the cause as a cohort mismatch rather than a data quality problem",
+        "states that the product edge is an identity only when the win rate is the created-cohort rate over the same cohort",
+        "recomputes with the created-cohort win rate and reports the new residual",
+        "notes that the created cohort must have matured or the recomputed rate is a lower bound and the edge will still not close",
+        "reports the residual as a number rather than as pass or fail"
+      ],
+      "expect_fail": [
+        "attributes the gap to data quality and recommends a pipeline investigation",
+        "adjusts one node to force reconciliation",
+        "declares an 18% residual acceptable"
+      ]
+    },
+    {
+      "id": "ktb-02-overlapping-filter-children",
+      "type": "annotated_answer",
+      "prompt": "New plus expansion plus renewal comes to 104% of revenue. Where's the extra 4%?",
+      "setup": "Upsells to existing customers are sometimes booked as new-logo opportunities, so they appear under both new and expansion.",
+      "expect_pass": [
+        "identifies a partition failure on the filter edge rather than a summing error",
+        "names the specific overlap: upsells booked as new-logo opportunities appearing under two children",
+        "gives the diagnostic: list rows matching more than one child's filter and count them",
+        "states that the children must partition, so every revenue row belongs to exactly one, and proposes the rule that achieves it",
+        "notes the opposite possibility, that children can sum correctly while overlapping if an offsetting gap exists, so the partition check is separate from the sum check"
+      ],
+      "expect_fail": [
+        "scales the children down to sum to 100%",
+        "reports the discrepancy without identifying the overlap mechanism"
+      ]
+    },
+    {
+      "id": "ktb-03-unmeasurable-node-kept",
+      "type": "honest-limit",
+      "prompt": "Build the demand funnel branch. We don't track sales-accepted leads.",
+      "setup": "No SAL event exists in the CRM. Every other funnel stage is instrumented.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "keeps the SAL node in the tree marked unmeasurable rather than pruning it",
+        "records what instrumentation would make it measurable, specifically a lead status value or a task type logged on acceptance",
+        "records the consequence: MQL to SQL blends rejected and never-worked leads, which have opposite fixes",
+        "excludes the node from the arithmetic while leaving it visible, so the reconciliation is not distorted",
+        "assigns an owner to the gap"
+      ],
+      "expect_fail": [
+        "drops the node from the tree",
+        "estimates SAL from available fields and treats it as measured",
+        "leaves the node in the arithmetic, breaking the reconciliation"
+      ]
+    },
+    {
+      "id": "ktb-04-driver-edge-in-arithmetic",
+      "type": "honest-limit",
+      "prompt": "Add NPS under retention so we can see how much of retention it explains.",
+      "setup": "NPS is a survey score. Retention is a rate on the revenue base.",
+      "expect_pass": [
+        "adds NPS as a driver-of edge, not a product, sum or ratio edge",
+        "states that driver edges are excluded from every reconciliation check because they are not arithmetic",
+        "explains that mixing a driver edge into a product produces numbers nobody can reproduce",
+        "offers what can honestly be shown: the historical relationship between the two series, labelled as correlation with its lag",
+        "notes that survey response bias makes NPS a property of respondents, not of the base"
+      ],
+      "expect_fail": [
+        "creates a product or ratio edge from NPS to retention",
+        "reports a share of retention explained by NPS from an uncontrolled comparison",
+        "refuses to include NPS in the tree at all"
+      ]
+    },
+    {
+      "id": "ktb-05-all-lagging-branch",
+      "type": "annotated_answer",
+      "prompt": "Here's our exec dashboard: revenue, bookings, win rate, ACV, NRR, churn. Good?",
+      "setup": "All six are lagging indicators. Pipeline created, meetings held and trial starts are available but not on the dashboard.",
+      "expect_pass": [
+        "labels each existing tile lead or lag and states that all six are lagging",
+        "explains the consequence concretely: the dashboard confirms what already happened and cannot steer anything this quarter",
+        "proposes at least one leading node per branch from the metrics actually available",
+        "applies the test for a leading label: does the node historically move before its parent, at a lag consistent with the cycle, and says the label is asserted where this cannot be checked",
+        "keeps the tile count within a range an exec audience will actually read"
+      ],
+      "expect_fail": [
+        "approves the dashboard as-is",
+        "adds leading indicators without checking they lead",
+        "proposes a long list of additional tiles"
+      ]
+    },
+    {
+      "id": "ktb-06-disputed-top-node",
+      "type": "honest-limit",
+      "prompt": "Build the tree with revenue at the top. Finance says 12.4M, the CRM says 13.1M.",
+      "setup": "The two systems have not been reconciled. The difference has been known for two quarters.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "states that a tree built on a disputed top node propagates the dispute into every branch",
+        "builds the structure anyway, since the formulas and edges do not depend on which figure is right",
+        "leaves the top node's value open with both figures shown and the 700k difference named",
+        "routes the reconciliation itself to the appropriate work rather than guessing which system is right",
+        "names the likely causes worth checking first, such as bookings versus recognised revenue, currency conversion, and records excluded by one system's filters"
+      ],
+      "expect_fail": [
+        "picks one figure without stating why",
+        "averages the two",
+        "refuses to build any part of the tree until the dispute is settled"
+      ]
+    },
+    {
+      "id": "ktb-07-unit-mismatch-in-product",
+      "type": "annotated_answer",
+      "prompt": "We put pipeline velocity under revenue as a child. It doesn't reconcile.",
+      "setup": "Pipeline velocity is (opportunities × win rate × deal value) ÷ cycle length. Revenue is currency per period.",
+      "expect_pass": [
+        "runs the dimensional check and reports that velocity's units are currency per unit time, not currency",
+        "states that velocity is therefore not a child of a currency node under any arithmetic edge",
+        "proposes the correct placement: velocity as a derived diagnostic, with its three numerator factors placed under revenue as a genuine product edge",
+        "notes that velocity is routinely mislabelled as a duration",
+        "notes that all four of its inputs must come from the same cohort and segment or the figure describes no team"
+      ],
+      "expect_fail": [
+        "keeps velocity as an arithmetic child and adjusts a tolerance to make it pass",
+        "describes pipeline velocity as a duration",
+        "removes velocity from the analysis entirely"
+      ]
+    }
+  ]
+}

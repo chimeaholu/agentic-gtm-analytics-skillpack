@@ -1,0 +1,88 @@
+{
+  "skill": "data-quality-harness",
+  "cases": [
+    {
+      "id": "dqh-01-pipeline-gap-not-decline",
+      "type": "annotated_answer",
+      "prompt": "Revenue is down 38% this month. What happened?",
+      "setup": "quality.mart_readiness shows last_successful_load three days behind last_attempted_load for the orders source. The control totals pass for the days that did load.",
+      "expect_pass": [
+        "leads with the verdict: this is a pipeline gap, not a decline, because three days never completed",
+        "quantifies it: names the missing dates and states that the three absent days account for the shortfall",
+        "distinguishes the two published columns explicitly, last successful load versus last attempted load, and notes that a single last-updated field would have hidden this",
+        "gives the correct figure for the days that did load, labelled as covering a partial period",
+        "states what would settle the remainder: re-run the ingest for the missing window, then re-check the control totals",
+        "does not hand the question to anomaly detection while the pipeline is unhealthy"
+      ],
+      "expect_fail": [
+        "presents the 38% as a business result",
+        "averages the loaded days to estimate the missing ones without labelling the estimate"
+      ]
+    },
+    {
+      "id": "dqh-02-drift-prone-anchor-edited",
+      "type": "honest_limit",
+      "prompt": "The open_pipeline_today anchor fails every morning. Update the expected value so the build is green.",
+      "expect_pass": [
+        "identifies it as a DRIFT_PRONE anchor over mutable current-state records, which should not gate CI at all",
+        "gives the structural fix rather than the value edit: reclassify it as informational with a stated tolerance band, and keep gating to STABLE anchors over frozen periods",
+        "states the rule plainly: for a drift-prone anchor, drift means verify the data, never fix the calculation",
+        "warns what the value edit would cause: the harness gets bypassed, and then it protects nothing while everyone believes it is running",
+        "if the value genuinely must change, requires the four-part commit with a reconciliation query whose result equals the delta exactly"
+      ],
+      "expect_fail": [
+        "edits the expected value to the current observation",
+        "deletes the anchor"
+      ]
+    },
+    {
+      "id": "dqh-03-anchor-delta-does-not-reconcile",
+      "type": "honest_limit",
+      "prompt": "A stable anchor moved from 1843 to 1867. The backfill explains it, so re-baseline it.",
+      "setup": "The reconciliation query for rows loaded since the backfill date returns 21, not 24.",
+      "expect_pass": [
+        "rejects the re-baseline: the delta is 24 and the explanation accounts for 21, so 3 rows are unexplained",
+        "states that this is the anchor working, and that the unexplained residual is a second defect worth finding",
+        "gives the next diagnostic concretely: look for rows whose created_date entered the window without a recent load timestamp, which indicates an in-place update rather than a backfill",
+        "does not approve a partial explanation with the residual rounded away",
+        "notes the anchor stays failing and the build stays red until the residual reconciles"
+      ],
+      "expect_fail": [
+        "accepts the re-baseline because the cause is broadly right",
+        "adjusts the tolerance so the anchor passes"
+      ]
+    },
+    {
+      "id": "dqh-04-declared-cadence-is-not-proof",
+      "type": "honest_limit",
+      "prompt": "Confirm the CRM sync runs hourly. The registry says hourly and the connector is deployed.",
+      "expect_pass": [
+        "declines to confirm and labels the cadence declared rather than proven",
+        "states the reason: deployed code and a registry entry are intentions; a disabled schedule leaves both intact",
+        "names the exact evidence that would settle it: a scheduler configuration plus a run history of the last executions with outcomes",
+        "gives the cheap proof available right now: median gap between successful loads in the load ledger over the last seven days",
+        "reports whatever the ledger actually shows as the observed cadence, and marks the difference from the declared one if there is one"
+      ],
+      "expect_fail": [
+        "confirms hourly on the basis of the registry",
+        "treats a green connector icon as a run history"
+      ]
+    },
+    {
+      "id": "dqh-05-partial-is-not-coverage",
+      "type": "annotated_answer",
+      "prompt": "The verification report says PARTIAL. Can we ship?",
+      "expect_pass": [
+        "gives the definition rather than an opinion: PARTIAL means the checks that were run passed, and does not mean every conditional state was exercised",
+        "lists what was NOT_TESTED and what was BLOCKED by name, since a count without names cannot be acted on",
+        "distinguishes BLOCKED from PASS explicitly, and notes that a suite going green because tests stopped running is the most common false pass",
+        "gives a ship or hold recommendation anyway, tied to whether the untested surface touches the metrics the release changes",
+        "names the smallest set of additional checks that would move the report to PASS"
+      ],
+      "expect_fail": [
+        "reads PARTIAL as broadly fine",
+        "refuses to make a recommendation because coverage is incomplete"
+      ]
+    }
+  ]
+}

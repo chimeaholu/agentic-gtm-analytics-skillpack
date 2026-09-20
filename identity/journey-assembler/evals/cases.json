@@ -1,0 +1,104 @@
+{
+  "skill": "journey-assembler",
+  "cases": [
+    {
+      "id": "ja-01-completeness-below-floor",
+      "type": "honest_limit",
+      "prompt": "Run a Markov attribution model across our channels for last quarter.",
+      "setup": "Journey completeness is 0.41 against a declared floor of 0.50. Non-converting paths were not assembled.",
+      "expect_pass": [
+        "refuses multi-touch attribution and names the specific reason: 41% completeness against the declared 50% floor means the model would fit a minority of journeys and extrapolate to a majority it never saw",
+        "refuses Markov specifically on a second, independent ground: without non-converting paths the transition matrix is conditioned on success, so every removal effect is meaningless",
+        "does not return nothing: gives the completeness rate, the single-touch descriptive breakdown, first and last touch channel mixes, median path length and time to conversion",
+        "names the ranked causes of low completeness in frequency order, starting with missing anonymous-to-known backfill and a lookback shorter than the sales cycle",
+        "names exactly what would unlock the model: run the backfill, assemble non-converters over a declared observation window, and re-measure completeness"
+      ],
+      "expect_fail": [
+        "runs Markov on converter-only paths",
+        "runs a multi-touch model and mentions completeness only as a footnote",
+        "refuses and provides no descriptive statistics"
+      ]
+    },
+    {
+      "id": "ja-02-lookback-truncation",
+      "type": "annotated_answer",
+      "prompt": "First touch is overwhelmingly Paid Search for our 30-day report. Should we shift budget there?",
+      "setup": "Touch data was assembled only for the 30-day reporting window. Median time from first touch to conversion is 34 days.",
+      "expect_pass": [
+        "identifies the structural defect: a 90-day lookback over a 30-day window needs 120 days of touch data, and assembling only the window truncates every journey that started earlier",
+        "states the direction of the bias precisely: truncation removes early touches, so upper-funnel channels are understated and late-funnel channels such as Paid Search are overstated",
+        "supports it with the observable check: first touches clustering at the window start is the fingerprint of truncation",
+        "answers the budget question: do not shift on this report, and gives the corrected assembly as the next step",
+        "notes the completeness rate must be recomputed after re-assembly, since the current figure is measured against a truncated population"
+      ],
+      "expect_fail": [
+        "recommends the budget shift",
+        "explains the bias without stating its direction"
+      ]
+    },
+    {
+      "id": "ja-03-direct-is-not-a-channel",
+      "type": "annotated_answer",
+      "prompt": "Direct jumped from 12% to 31% of touches last week. Our brand must be getting stronger.",
+      "expect_pass": [
+        "rejects the brand reading and names the far more likely cause: a tagging regression, typically an email template shipped without UTMs or an untagged campaign launch",
+        "states what Direct actually collects: untagged email, dark social, app-to-web transitions, stripped referrers, QR and offline, with genuine type-in traffic a minority",
+        "gives the diagnostic: break Direct down by its recorded reason code, and cross-check against campaigns with spend but no attributable touches",
+        "notes the step-change shape itself as evidence, since brand strength does not move 19 points in a week",
+        "flags the downstream consequence: if last-non-direct is in use, this misassigns credit silently, and the rule must be named in the output"
+      ],
+      "expect_fail": [
+        "accepts the brand-strength explanation",
+        "treats Direct as a legitimate channel without a reason breakdown"
+      ]
+    },
+    {
+      "id": "ja-04-fractional-credit-is-not-people",
+      "type": "annotated_answer",
+      "prompt": "The model says Paid Social drove 4.3 conversions. How do we contact those 4 customers?",
+      "expect_pass": [
+        "states plainly that fractional attributed credit is not a count of people, and that 4.3 is a share of credit spread across many journeys",
+        "explains what is contactable instead: the people whose journeys contained a Paid Social touch, which is a different and larger number, and gives it or names the query for it",
+        "adds the related caution: an attributed flow diagram is an aggregate flow, explicitly not an ordered user journey that anyone walked",
+        "does not withhold the credit figure, since it is correct for the question it answers"
+      ],
+      "expect_fail": [
+        "produces a list of four people",
+        "refuses to explain the difference between credit and count"
+      ]
+    },
+    {
+      "id": "ja-05-campaign-rename-splits-performance",
+      "type": "annotated_answer",
+      "prompt": "This campaign ended on the 8th and performance dropped. A new one launched the same day and is underperforming.",
+      "expect_pass": [
+        "recognises the pattern as one renamed campaign rather than two campaigns, since a stop and a near-identical start on the same date is the signature",
+        "gives the check: compare the platform campaign ids, which are stable, rather than the names, which are not",
+        "states the consequence: treating one campaign as two halves its measured performance and breaks its trend on both sides",
+        "prescribes the fix at the right rung: map on platform campaign id in the campaign map, with effective dating so a genuinely repurposed id is still two keys",
+        "recommends the drift monitor so the next rename is caught within a day rather than after a quarter"
+      ],
+      "expect_fail": [
+        "analyses the two as separate campaigns",
+        "fuzzy-matches the campaign names to merge them"
+      ]
+    },
+    {
+      "id": "ja-06-sessionization-gap-changes-rates",
+      "type": "annotated_answer",
+      "prompt": "Our per-session conversion rate improved 40% after the engineering team updated the analytics config. Great news?",
+      "setup": "The inactivity gap was changed from 30 minutes to 60.",
+      "expect_pass": [
+        "attributes the change to the denominator, not to behaviour: a longer inactivity gap merges sessions, lowering session counts and raising every per-session rate",
+        "states that a 30-minute gap is a convention rather than a law, and must be pinned, versioned and stated in any session-denominated output",
+        "says the two periods are not comparable and names the fix: recompute the prior period at the new gap, or the new period at the old one, and mark the change on the timeline",
+        "gives the computable comparison anyway rather than withholding, with the basis stated",
+        "notes that vendor session counts will still differ, because GA4 also restarts sessions at midnight in the property timezone and on campaign change"
+      ],
+      "expect_fail": [
+        "reports the improvement as a conversion gain",
+        "compares the two periods without restating one of them"
+      ]
+    }
+  ]
+}

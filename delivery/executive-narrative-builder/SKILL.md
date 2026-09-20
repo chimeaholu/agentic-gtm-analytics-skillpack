@@ -119,37 +119,41 @@ and presenting the remainder as complete.
 ### Worked, with illustrative figures
 
 ```
-                 Forecast (R₀)      Actual (R₁)
-Opportunities          420               370        −11.9%
-Win rate              0.24              0.228        −5.0%
-Avg deal size        49,600            50,100        +1.0%
-Revenue           5,000,000          4,288,000       −14.2%   (−712,000)
+                 Forecast (R₀)      Actual (R₁)      Change
+Opportunities          420               370          −11.9%
+Win rate              0.240             0.228          −5.0%
+Avg deal size        49,600            50,100          +1.0%
+─────────────────────────────────────────────────────────────
+Revenue           4,999,680         4,226,436         −15.5%   (−773,244)
 ```
+
+**First, reconcile the factor product against the reported total.** The forecast
+was communicated as "5.0M"; the factors multiply to 4,999,680. That 320 is
+rounding in the headline, and saying so takes one clause. A residual larger than
+rounding means the factors do not actually multiply to the metric — stop and find
+the missing one, which is usually a segment mix effect (§3) or a revenue line
+outside the funnel. **Never decompose into an unexplained residual and present the
+result as complete.**
 
 Sequential substitution, order volume → conversion → price:
 
 ```
-ΔN : (370 − 420) × 0.24  × 49,600           = −595,200
-ΔW : 370 × (0.228 − 0.24) × 49,600          = −220,224
-ΔA : 370 × 0.228 × (50,100 − 49,600)        = + 42,180
-                                     total  = −773,244
+ΔN : (370 − 420) × 0.240 × 49,600            = −595,200     −11.9 points of the miss
+ΔW : 370 × (0.228 − 0.240) × 49,600          = −220,224      −4.4 points
+ΔA : 370 × 0.228 × (50,100 − 49,600)         = + 42,180      +0.8 points
+──────────────────────────────────────────────────────────
+                                      total  = −773,244     −15.5 points  ✓ exact
 ```
-
-That total does not equal −712,000 — because 420 × 0.24 × 49,600 is 4,999,680,
-not exactly 5,000,000. **Reconcile the factor product against the reported total
-before decomposing.** A residual is either rounding (state it) or a sign that the
-factors do not actually multiply to the metric (stop, and find the missing
-factor — usually a segment mix effect or a revenue line outside the funnel).
 
 Narrated:
 
-> Revenue came in at 4.29M against a 5.0M forecast, a 14% miss. Opportunity
-> volume accounts for 8.4 points of it, win rate for 3.1 points, and deal size
-> worked slightly in our favour at +0.6 points. This is a top-of-funnel problem,
-> not a closing problem.
+> Revenue came in at 4.23M against a 5.0M forecast, a 15.5% miss. Opportunity
+> volume accounts for 11.9 points of it, win rate for 4.4, and deal size worked
+> slightly in our favour at +0.8. This is a top-of-funnel problem, not a closing
+> problem.
 
-**That last sentence is what the decomposition buys.** It is a direction for the
-next quarter's effort, and it is defensible because the arithmetic sums to the
+**That last sentence is what the decomposition buys.** It is a direction for next
+quarter's effort, and it is defensible because the arithmetic sums exactly to the
 miss.
 
 ---
@@ -180,12 +184,27 @@ def mix_decomposition(w0, r0, w1, r1):
     return {'within_segment': within, 'mix_shift': mix}
 ```
 
+Worked:
+
+```
+             share w₀   rate r₀   share w₁   rate r₁
+Enterprise     0.60      0.30       0.47      0.31
+SMB            0.40      0.15       0.53      0.16
+blended                  0.240                0.2305        −0.95 points
+
+within-segment : 0.60×(+0.01) + 0.40×(+0.01)            = +1.00 points
+mix shift      : (0.47−0.60)×0.31 + (0.53−0.40)×0.16    = −1.95 points
+─────────────────────────────────────────────────────────────────────
+                                                  total = −0.95 points  ✓ exact
+```
+
 **Run this before narrating any blended-rate change.** If the mix term dominates,
 the honest sentence is:
 
-> Blended win rate fell from 24% to 22.8%. Every segment's win rate held or
-> improved; the blended figure fell because the lower-converting segment grew from
-> 31% to 44% of closed opportunities. This is a mix change, not a closing problem.
+> Blended win rate fell from 24.0% to 23.1%. Both segments' win rates improved by
+> a point; the blended figure fell because the lower-converting segment grew from
+> 40% to 53% of closed opportunities. This is a mix change, not a closing problem —
+> and the thing worth discussing is why the mix moved.
 
 ---
 
@@ -225,11 +244,11 @@ settle it — see `incrementality-and-mmm`.
 | | Value |
 |---|---|
 | Forecast (made 2026-07-01) | 5.00M |
-| Actual | 4.29M |
-| Error | −0.71M, −14.2% |
-| Naive baseline (= prior period) | 4.55M → error −5.7% |
-| Our last four quarters' errors | −14.2%, +2.1%, −8.9%, −11.4% |
-| Mean signed error | −8.1% — **we forecast high, consistently** |
+| Actual | 4.23M |
+| Error | −0.77M, −15.5% |
+| Naive baseline (= prior period) | 4.55M → error −7.1% |
+| Our last four quarters' errors | −15.5%, +2.1%, −8.9%, −11.4% |
+| Mean signed error | −8.4% — **we forecast high, consistently** |
 
 Two columns do the work here.
 
@@ -321,11 +340,11 @@ narration given the decomposition explains the business.
 **Answer first.** The headline is the number and its direction. The caveats follow
 in plain sentences, each one sentence long:
 
-> **Revenue came in at 4.29M against a 5.0M forecast, a 14% miss.** Opportunity
-> volume accounts for 8.4 points, win rate for 3.1, and deal size helped by 0.6.
+> **Revenue came in at 4.23M against a 5.0M forecast, a 15.5% miss.** Opportunity
+> volume accounts for 11.9 points, win rate for 4.4, and deal size helped by 0.8.
 > Our forecast has run 8% high on average across the last four quarters, so part
-> of this gap is a known forecasting bias rather than a business result; the
-> bias-adjusted miss is nearer 6%. Two of the twelve weeks sit inside the CRM's
+> of this gap is a known forecasting bias rather than a business result; against a
+> bias-adjusted forecast of 4.6M the miss is nearer 8%. Two of the twelve weeks sit inside the CRM's
 > close-date edit window, so the actual will rise slightly. The decomposition
 > shows where the number went, not why — no holdout ran, so nothing here is a
 > causal claim.

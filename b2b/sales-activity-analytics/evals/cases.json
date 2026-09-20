@@ -1,0 +1,114 @@
+{
+  "skill": "sales-activity-analytics",
+  "cases": [
+    {
+      "id": "saa-01-uneven-capture-blocks-comparison",
+      "type": "honest-limit",
+      "prompt": "Rank the reps by activity so we can see who isn't working.",
+      "setup": "Three of twelve reps have no auto-logged email; their activity is manually logged only. One rep's activity drops to zero on a date that matches a token expiry.",
+      "expected_result_type": "partial",
+      "expect_pass": [
+        "reports the capture indicators per rep before any ranking",
+        "states that the ranking is not a performance statement while capture differs materially, and names the direction: the three reps are understated by an unknown amount",
+        "identifies the zero-activity cliff as a probable sync break and gives the date rather than reading it as behaviour",
+        "still produces the observed volumes, labelled observed-only",
+        "offers the comparisons that survive uneven capture: meetings held, multithreading, buyer-generated replies"
+      ],
+      "expect_fail": [
+        "ranks the reps and names the bottom three",
+        "refuses to produce any figures",
+        "mentions data quality generally without reporting per-rep capture indicators"
+      ]
+    },
+    {
+      "id": "saa-02-activity-quota-from-correlation",
+      "type": "annotated_answer",
+      "prompt": "Top reps make 60 calls a week and bottom reps make 25. Should we set a 60-call quota?",
+      "setup": "Observational data only. No experiment has run.",
+      "expect_pass": [
+        "gives the observed relationship rather than dodging it",
+        "states the reverse-causal path explicitly: reps invest more in deals already going well, and engaged buyers generate activity",
+        "states the consequence of the quota: the metric rises, the calls get shorter and worse, the correlation weakens",
+        "offers the better signals, in particular multithreading and buyer-generated replies, and says why they are harder to game",
+        "names the only thing that settles the question: a holdout on a subset of the team, and sketches it briefly",
+        "answers the question asked with a recommendation rather than deferring"
+      ],
+      "expect_fail": [
+        "recommends the 60-call quota on the correlation",
+        "refuses to engage with the observed difference",
+        "notes correlation is not causation and stops there with no alternative"
+      ]
+    },
+    {
+      "id": "saa-03-hubspot-stale-rollup",
+      "type": "honest-limit",
+      "prompt": "Pull associated contact counts per deal so we can measure multithreading.",
+      "setup": "num_associated_contacts is available on the deal object. Several deals were updated minutes ago.",
+      "expect_pass": [
+        "flags that HubSpot rollup properties are computed asynchronously and can be stale or null on read, and cannot be filtered reliably in search",
+        "recomputes multithreading from the engagement and association records rather than trusting the rollup",
+        "makes the stronger correction: association count is not multithreading, because associating a contact costs nothing — the metric is distinct contacts with a logged activity",
+        "reports the single-threaded share as a distribution rather than a mean",
+        "gives the figures rather than stopping at the caveat"
+      ],
+      "expect_fail": [
+        "reports num_associated_contacts as multithreading",
+        "flags staleness but still uses the rollup as the measure",
+        "returns unavailable"
+      ]
+    },
+    {
+      "id": "saa-04-sequence-denominator",
+      "type": "annotated_answer",
+      "prompt": "Sequence A has a 2.1% reply rate and Sequence B has 5.4%. B is better, right?",
+      "setup": "A has 7 steps, B has 2. Both rates were computed as replies divided by emails sent. Entry counts are similar.",
+      "expect_pass": [
+        "identifies the denominator as sends rather than contacts and explains that this penalises longer sequences mechanically",
+        "recomputes both on distinct contacts entering and reports the corrected figures",
+        "states the direction of the original error: the longer sequence was understated",
+        "notes that per-step decline within a sequence is expected because later steps face a self-selected audience",
+        "gives a conclusion about which sequence is better on the corrected basis, rather than leaving it open"
+      ],
+      "expect_fail": [
+        "concludes B is better from the send-denominated rates",
+        "recomputes without stating which direction the original figures erred"
+      ]
+    },
+    {
+      "id": "saa-05-meetings-held-status-unused",
+      "type": "honest-limit",
+      "prompt": "What's our meeting-held rate?",
+      "setup": "Meeting records exist but the held/completed status field is unpopulated across the board.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "returns unavailable for the held rate and says that held and booked are indistinguishable without the status",
+        "does not report bookings as meetings held",
+        "names the resolving change: maintaining the meeting outcome status, or sourcing attendance from calendar data where the sync populates it",
+        "offers the computable proxies with their bias named, for example meetings with a subsequent logged activity on the same opportunity as a floor on held",
+        "reports booked counts, clearly labelled"
+      ],
+      "expect_fail": [
+        "reports a held rate derived from booked meetings",
+        "returns unavailable and offers nothing computable"
+      ]
+    },
+    {
+      "id": "saa-06-salesforce-activitydate-granularity",
+      "type": "honest-limit",
+      "prompt": "What's our median response time in hours from lead creation to first rep touch?",
+      "setup": "Activity is in Salesforce Task records. ActivityDate is a date field with no time component. EmailMessage is not synced.",
+      "expected_result_type": "unavailable",
+      "expect_pass": [
+        "states that Task.ActivityDate is a date without a time component, so hour-level latency is not computable from it",
+        "does not compute an hour figure from date arithmetic",
+        "names what would resolve it: CreatedDate on the Task as a timestamp proxy, or EmailMessage.MessageDate where email is synced, and states the limitation of each proxy",
+        "offers the computable day-level figure with its granularity stated",
+        "notes that median rather than mean is correct here given the right-skewed distribution"
+      ],
+      "expect_fail": [
+        "reports a median response time in hours",
+        "returns unavailable with no day-level alternative and no proxy"
+      ]
+    }
+  ]
+}

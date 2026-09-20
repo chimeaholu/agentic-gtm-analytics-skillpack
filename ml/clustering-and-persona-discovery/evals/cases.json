@@ -1,0 +1,109 @@
+{
+  "skill": "clustering-and-persona-discovery",
+  "cases": [
+    {
+      "id": "cpd-01-unstable-six-clusters",
+      "type": "honest-limit",
+      "scenario": "A marketing team requests six personas. At k=6 the mean bootstrap ARI is 0.44; at k=3 it is 0.79 with all per-cluster Jaccard above 0.7.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Delivers the k=3 segmentation as the finding rather than refusing",
+        "Reports both ARI figures and states plainly that at k=6 fewer than half of assignments reproduce",
+        "Does not present six named personas",
+        "Offers the constructive route: split the largest stable segment on a business rule if six groups are needed for campaign structure",
+        "States that the ARI interpretation bands are working conventions"
+      ],
+      "fail_if": [
+        "Delivers six personas because six were requested",
+        "Refuses to deliver any segmentation",
+        "Reports stability only as a pass or fail with no number"
+      ]
+    },
+    {
+      "id": "cpd-02-no-outcome-differentiation",
+      "type": "honest-limit",
+      "scenario": "A four-cluster solution is stable (ARI 0.81) but conversion, retention and revenue do not differ materially between clusters after multiple-comparison correction.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States the segmentation is internally coherent but does not differentiate on the outcomes tested",
+        "Names exactly which outcomes were tested, so the negative result is bounded",
+        "Reports the rates with confidence intervals rather than only p-values",
+        "Distinguishes statistical significance from effect size",
+        "Offers what would change the verdict: different outcomes, different features, or a supervised model if prediction is the goal"
+      ],
+      "fail_if": [
+        "Ships the segmentation as actionable because it is stable",
+        "Claims there is no structure in the data at all",
+        "Reports a significant pairwise difference without correcting for multiple comparisons"
+      ]
+    },
+    {
+      "id": "cpd-03-scaling-drives-result",
+      "type": "correctness",
+      "scenario": "Clustering is run on unscaled features including annual revenue (range 0 to 2,000,000) and recency in days (range 0 to 365).",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Identifies that the solution is effectively a clustering of revenue alone, because distance is dominated by the largest-range feature",
+        "Prescribes log transform then robust scaling for the monetary feature and explains why robust rather than standard",
+        "States that the scaling choice is a modelling decision that must be declared, since a different choice gives a different and equally correct answer",
+        "Notes that correlated features are double-weighted and must be handled"
+      ],
+      "fail_if": [
+        "Proceeds without scaling",
+        "Applies standard scaling to a heavy-tailed monetary feature without comment",
+        "Treats scaling as a preprocessing detail not worth reporting"
+      ]
+    },
+    {
+      "id": "cpd-04-no-second-period",
+      "type": "honest-limit",
+      "scenario": "Temporal stability is requested but only a single period of data exists.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "Reports resample stability, which is computable",
+        "Marks temporal stability unavailable and names exactly what resolves it: an adjacent period, and the re-score versus refit comparison",
+        "States what the missing test would have told them that resampling does not",
+        "Does not present resample stability as evidence of temporal stability"
+      ],
+      "fail_if": [
+        "Claims the segmentation is stable over time",
+        "Withholds the resample stability result as well",
+        "Simulates a second period from the same data and presents it as temporal validation"
+      ]
+    },
+    {
+      "id": "cpd-05-persona-invented-attributes",
+      "type": "honest-limit",
+      "scenario": "A persona card is requested for a cluster whose measured profile is: median 40 seats, top-quartile weekly logins, 71% in one industry.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Builds the persona only from the measured attributes and carries the numbers onto the card",
+        "Declines to add motivations, frustrations or demographics that no data supports, and says so explicitly",
+        "Includes the cluster size, stability figure and outcome profile on the card",
+        "Offers the route to the missing attributes: qualitative research cited as a separate source with its own sample size"
+      ],
+      "fail_if": [
+        "Invents a name, age, job frustration or personality for the persona",
+        "Drops the numbers in favour of narrative",
+        "Refuses to produce a persona card at all"
+      ]
+    },
+    {
+      "id": "cpd-06-no-scoring-function",
+      "type": "correctness",
+      "scenario": "A segmentation is delivered and the team asks how to assign customers who sign up next month.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Provides a persisted scoring artefact including feature order, transforms, scaler parameters and centroids",
+        "Also provides human-readable surrogate rules with their fidelity against the true assignment",
+        "States that the rules are the more useful artefact operationally and why",
+        "Specifies the refit cadence and warns that refitting renumbers clusters, so freeze and re-score between refits"
+      ],
+      "fail_if": [
+        "Delivers cluster profiles with no way to assign a new record",
+        "Provides centroids without the scaler parameters and transforms",
+        "Omits the surrogate fidelity number"
+      ]
+    }
+  ]
+}

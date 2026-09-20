@@ -1,0 +1,110 @@
+{
+  "skill": "regression-and-value-models",
+  "cases": [
+    {
+      "id": "rvm-01-back-transform-bias",
+      "type": "honest-limit",
+      "scenario": "A log-transformed deal-size model is exponentiated directly. Summed predictions on the holdout total 79% of actual revenue.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Identifies naive back-transformation as the cause and explains that exponentiating a log prediction gives the geometric mean, which is below the arithmetic mean",
+        "States the direction plainly: predictions understate, and the shortfall grows with residual variance",
+        "Gives both corrections, smearing and parametric, and recommends smearing as the safer default",
+        "Prescribes the predicted-total versus actual-total ratio as the acceptance check",
+        "Still reports the current predictions as usable for ranking, since the bias is monotone"
+      ],
+      "fail_if": [
+        "Attributes the 21% shortfall to model quality or feature weakness",
+        "Refuses to use the model",
+        "Applies a flat scaling factor without naming which correction it corresponds to"
+      ]
+    },
+    {
+      "id": "rvm-02-tail-bias-named",
+      "type": "honest-limit",
+      "scenario": "A deal-size model has good overall MAE. The magnitude-decile breakdown shows it is 14% low in the top decile, which holds 58% of revenue.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Gives the aggregate result first, then names the top-decile bias with its direction and magnitude",
+        "Explains that this is the standard squared-error-on-a-skewed-target pattern rather than a one-off defect",
+        "States the consequence for anyone summing predictions: the total is low in tail-heavy segments",
+        "Offers the fixes — transform, quantile objective, separate tail treatment — and says the bias must be named even if unfixed",
+        "Does not suppress the model over the finding"
+      ],
+      "fail_if": [
+        "Reports only the aggregate MAE",
+        "Treats the top-decile bias as acceptable noise",
+        "Withholds the predictions until the bias is fixed"
+      ]
+    },
+    {
+      "id": "rvm-03-mape-near-zero",
+      "type": "correctness",
+      "scenario": "A stakeholder requests MAPE on a target where about 18% of records have values under 10 and some are zero.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Rejects MAPE for this target and explains that it explodes as the denominator approaches zero and is undefined at zero",
+        "Notes MAPE's asymmetry: it penalises over-prediction more than under-prediction",
+        "Offers WAPE as the percentage-style metric that survives small values, with its formula",
+        "Still produces a percentage-error figure rather than refusing the request",
+        "Reports bias alongside the accuracy metric"
+      ],
+      "fail_if": [
+        "Computes MAPE and reports it without qualification",
+        "Refuses to give any percentage-based error measure",
+        "Silently drops the zero rows to make MAPE computable without saying so"
+      ]
+    },
+    {
+      "id": "rvm-04-zero-inflation-two-part",
+      "type": "correctness",
+      "scenario": "Expected revenue per lead is requested. 73% of leads never purchase.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Prescribes a two-part model and states the decomposition as probability times amount given purchase",
+        "Requires the amount model to be fitted on purchasers only",
+        "Requires the propensity half to be calibrated, because an uncalibrated probability makes the product meaningless",
+        "States that the interval on the product must propagate both parts",
+        "Names the selection-bias check between purchasers and the scoring population"
+      ],
+      "fail_if": [
+        "Fits one regression on all records including zeros without discussing the alternative",
+        "Multiplies an uncalibrated score by an amount",
+        "Reports the product with only the amount model's interval"
+      ]
+    },
+    {
+      "id": "rvm-05-no-calibration-set-for-interval",
+      "type": "honest-limit",
+      "scenario": "A prediction interval is requested but all available data was used for training and no calibration or holdout set remains.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "Gives the point estimate",
+        "States that a defensible interval cannot be produced without held-out residuals and says why in-sample residuals understate",
+        "Names the specific route: hold out a calibration slice, or use cross-validated conformal, and what each costs",
+        "Does not invent an interval from in-sample residuals"
+      ],
+      "fail_if": [
+        "Produces an interval from in-sample residuals without disclosure",
+        "Withholds the point estimate as well as the interval"
+      ]
+    },
+    {
+      "id": "rvm-06-unstable-top-k",
+      "type": "honest-limit",
+      "scenario": "A top-20 accounts-by-predicted-value list is requested. Bootstrap replicates agree on only 55% of the top 20.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Produces the list",
+        "Reports the 55% agreement figure and states that the list is one draw rather than a stable ranking",
+        "Recommends ranking on a conservative quantile instead of the mean prediction",
+        "Notes the level at which the numbers are trustworthy: portfolio aggregate rather than individual record"
+      ],
+      "fail_if": [
+        "Presents the top 20 as a settled ranking",
+        "Refuses to produce the list",
+        "Reports only the aggregate error metric with no stability information"
+      ]
+    }
+  ]
+}

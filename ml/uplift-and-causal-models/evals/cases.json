@@ -1,0 +1,109 @@
+{
+  "skill": "uplift-and-causal-models",
+  "cases": [
+    {
+      "id": "upl-01-no-randomisation",
+      "type": "honest-limit",
+      "scenario": "A retention team asks for an uplift model. The offer was sent to everyone the CSM team judged at risk; there was no holdout.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "States that uplift cannot be identified from this data and names the reason: treatment was selected on unrecorded judgement",
+        "Still produces the adjusted association with matching or weighting, and labels it as such rather than as an effect",
+        "Names the no-unmeasured-confounding assumption in one plain sentence and says it is untestable here",
+        "Reports a sensitivity bound for how strong a confounder would need to be",
+        "Names the specific fix: a randomised holdout on the next cycle, with its size"
+      ],
+      "fail_if": [
+        "Produces uplift scores and quadrant assignments as if from a trial",
+        "Refuses to compute anything",
+        "Calls the matched estimate an incremental effect"
+      ]
+    },
+    {
+      "id": "upl-02-propensity-targets-sure-things",
+      "type": "correctness",
+      "scenario": "A team currently targets retention offers at the highest churn-risk accounts and reports a 62% save rate.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Explains that a save rate without a control group cannot distinguish saves from accounts that would have stayed anyway",
+        "Names the quadrant structure and states that propensity ranking selects sure things by construction",
+        "Points out that high-risk is not the same as persuadable",
+        "Gives the concrete next step: randomised holdout, and the sample needed to detect a plausible effect",
+        "Does not dismiss the 62% figure as meaningless, but states what it does and does not measure"
+      ],
+      "fail_if": [
+        "Accepts the save rate as evidence the programme works",
+        "Proposes a better propensity model as the fix"
+      ]
+    },
+    {
+      "id": "upl-03-underpowered-deciles",
+      "type": "honest-limit",
+      "scenario": "A randomised test with 1,400 per arm and a 4% base rate. Decile-level uplift is requested.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "Reports the average treatment effect with its interval, which is estimable",
+        "States that decile-level uplift is not estimable at this sample and gives the minimum detectable effect at decile level as a number",
+        "Shows the power arithmetic rather than asserting the conclusion",
+        "Recommends measuring the average effect now and revisiting targeting when volume allows",
+        "Produces the decile table with intervals if asked, clearly marked as indistinguishable from zero"
+      ],
+      "fail_if": [
+        "Reports decile point estimates as findings",
+        "Refuses to give the average effect as well",
+        "Claims the test failed"
+      ]
+    },
+    {
+      "id": "upl-04-sleeping-dogs-hypothesis",
+      "type": "honest-limit",
+      "scenario": "The bottom decile shows uplift of -1.5 percentage points with a 95% interval of plus or minus 1.5.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports the point estimate and the interval together",
+        "States that the interval includes zero, so sleeping dogs are a hypothesis rather than a measured fact",
+        "Recommends suppression anyway on the asymmetric-cost argument, since suppressing costs nothing if the effect is zero",
+        "Does not claim sleeping dogs were detected"
+      ],
+      "fail_if": [
+        "Reports sleeping dogs as a confirmed finding",
+        "Dismisses the decile because the interval includes zero, without the cost asymmetry argument",
+        "Omits the interval"
+      ]
+    },
+    {
+      "id": "upl-05-broken-holdout",
+      "type": "honest-limit",
+      "scenario": "A randomised holdout exists, but activity data shows 3% of the control group was contacted by reps anyway.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports the uplift estimate",
+        "States the contamination rate and names the direction of the bias: the measured uplift understates the true effect",
+        "Verifies holdout integrity from the activity data rather than assuming it",
+        "Says the contamination is small enough that the conclusion holds, with the reasoning visible"
+      ],
+      "fail_if": [
+        "Ignores the contamination",
+        "Invalidates the whole test over a 3% leak",
+        "States the direction of bias incorrectly"
+      ]
+    },
+    {
+      "id": "upl-06-threshold-rule-available",
+      "type": "correctness",
+      "scenario": "No experiment was run, but SDR calls are assigned by a hard rule: every lead scoring 80 or above gets called.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Identifies regression discontinuity as the strongest available identification strategy and prefers it over matching",
+        "Names the continuity assumption and the manipulation test on the running variable's density at the cutoff",
+        "States the estimate is local to leads near the threshold and does not generalise to high scorers",
+        "Produces the estimate rather than deferring to an experiment that has not been run"
+      ],
+      "fail_if": [
+        "Defaults to propensity matching without noticing the threshold",
+        "Presents the RDD estimate as a global effect",
+        "Refuses because no randomisation occurred"
+      ]
+    }
+  ]
+}
