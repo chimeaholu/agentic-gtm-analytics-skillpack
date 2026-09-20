@@ -1,0 +1,127 @@
+{
+  "skill": "report-estate-audit",
+  "cases": [
+    {
+      "id": "rea-01-salesforce-recently-viewed",
+      "type": "refusal",
+      "prompt": "I called /analytics/reports and got 200 reports back. So the org has about 200 reports?",
+      "expect_pass": [
+        "says no",
+        "states that GET /analytics/reports returns only up to 200 recently-viewed reports for the running user, and returns a different list for a different user",
+        "gives the correct enumeration: SOQL on the Report object for the full catalogue",
+        "notes that 200 is exactly the cap, which is itself the signal that the list is truncated",
+        "does not report 200 as the estate size"
+      ],
+      "expect_fail": [
+        "accepts 200 as the report count"
+      ]
+    },
+    {
+      "id": "rea-02-tableau-hidden-worksheets",
+      "type": "annotated_answer",
+      "prompt": "List Views returned 1,402 items. That's a big Tableau estate.",
+      "expect_pass": [
+        "flags that List Views includes hidden worksheets that back dashboards, so the figure over-counts substantially",
+        "gives the correct enumeration: workbooks, then dashboards within them, attributing worksheets to their parent",
+        "reports the dashboard count as the estate size with the worksheet count noted separately",
+        "states the enumeration method alongside the count"
+      ],
+      "expect_fail": [
+        "reports 1,402 as the number of dashboards or reports"
+      ]
+    },
+    {
+      "id": "rea-03-soft-deleted-counted-as-live",
+      "type": "annotated_answer",
+      "prompt": "Looker search returned 412 Looks. Inventory them all.",
+      "expect_pass": [
+        "checks the deleted flag and re-queries with deleted=false",
+        "states that Looker search returns soft-deleted content by default, with roughly a 90-day trash",
+        "reports the live count separately from the including-deleted count",
+        "also reads the errors block on explore calls, because a broken model returns fewer fields and silently truncates the inventory"
+      ],
+      "expect_fail": [
+        "inventories all 412 as live content"
+      ]
+    },
+    {
+      "id": "rea-04-duplicates-with-different-definitions",
+      "type": "refusal",
+      "prompt": "These two dashboards compute the same metrics from the same model. Merge them.",
+      "setup": "One uses win_rate v1 (no-decision bucketed as Lost), the other uses win_rate v2 (no-decision excluded).",
+      "expect_pass": [
+        "refuses to merge",
+        "states that artefacts using different metric definitions are not duplicates, they are a definition divergence",
+        "explains the consequence of merging: the survivor silently picks one definition and half the audience starts getting a different number with no announcement",
+        "routes it to metric-definition-audit and marks the cluster blocked_pending_definition_decision",
+        "names who has to decide"
+      ],
+      "expect_fail": [
+        "merges them and picks a definition"
+      ]
+    },
+    {
+      "id": "rea-05-orphan-with-a-subscription",
+      "type": "annotated_answer",
+      "prompt": "This dashboard hasn't been opened in eight months. Retire it.",
+      "setup": "It has an active weekly subscription with 14 recipients.",
+      "expect_pass": [
+        "does not retire it on the view count alone",
+        "states that a scheduled delivery counts as usage even with zero interactive views, and names the 14 recipients as the people who will notice",
+        "also checks for seasonal usage patterns and for downstream consumers including unevidenced ones",
+        "if retirement still stands, requires the delivery to be migrated or the recipients notified explicitly, because a dropped subscription is a silent outage"
+      ],
+      "expect_fail": [
+        "retires it without accounting for the subscription"
+      ]
+    },
+    {
+      "id": "rea-06-ga4-explorations-not-enumerable",
+      "type": "refusal",
+      "prompt": "Include our GA4 Explorations in the estate inventory.",
+      "expect_pass": [
+        "states plainly that GA4 Explorations have no API at all and cannot be inventoried programmatically",
+        "does not attempt a workaround or imply partial coverage",
+        "lists them under not_enumerable_by_design with the reason",
+        "gives the same treatment to the other non-enumerable surfaces where relevant: Looker Studio configuration, HubSpot report rows, Marketo reports, Snowsight dashboards, spreadsheets",
+        "notes that an audit omitting these without saying so will be read as complete"
+      ],
+      "expect_fail": [
+        "claims to have inventoried GA4 Explorations",
+        "silently omits them"
+      ]
+    },
+    {
+      "id": "rea-07-scanner-rate-limit-partial",
+      "type": "annotated_answer",
+      "prompt": "Inventory all 340 Power BI workspaces.",
+      "expect_pass": [
+        "uses the batched scanner API flow with getModifiedWorkspaces, getInfo, scanStatus and scanResult rather than per-item calls",
+        "states the Fabric Administrator requirement and the roughly 16 workspace-scans-per-hour historical limit",
+        "if the limit is hit, delivers the partial inventory with an explicit coverage block naming how many workspaces were scanned",
+        "does not present the partial result as the whole tenant",
+        "notes that scanner APIs can return items users can no longer see, and deleted Fabric items sit in a Recycle Bin"
+      ],
+      "expect_fail": [
+        "loops per workspace",
+        "presents a partial scan as complete"
+      ]
+    },
+    {
+      "id": "rea-08-broken-and-still-scheduled",
+      "type": "annotated_answer",
+      "prompt": "Give me the priority list from the estate audit.",
+      "setup": "11 artefacts are broken; 4 of them still have active scheduled deliveries.",
+      "expect_pass": [
+        "puts broken-and-still-scheduled at the top of the priority list regardless of view counts",
+        "explains why: it fails quietly and the recipient assumes no news is good news",
+        "leads with the decision-driving counts rather than the inventory table",
+        "distinguishes broken, orphaned, duplicated and blocked-on-a-definition as separate buckets with separate actions"
+      ],
+      "expect_fail": [
+        "prioritises by view count alone",
+        "opens with the full inventory table"
+      ]
+    }
+  ]
+}

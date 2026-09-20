@@ -1,0 +1,123 @@
+{
+  "skill": "gtm-metric-dictionary",
+  "cases": [
+    {
+      "id": "md-01-cac-payback-missing-margin",
+      "type": "annotated_answer",
+      "prompt": "Our CAC is 9,000 and new MRR per customer is 640. What's our CAC payback?",
+      "expect_pass": [
+        "states the arithmetic result of CAC / new MRR (about 14.1 months) rather than refusing",
+        "names that this is revenue payback, not cash payback, because gross margin is missing",
+        "gives the formula CAC / (new MRR * gross margin) and states the direction of the error: true payback is longer",
+        "asks for or assumes a gross margin and shows the corrected figure (e.g. 20.1 months at 70% GM), labelled as an assumption"
+      ],
+      "expect_fail": [
+        "returns 14.1 months with no margin caveat",
+        "refuses to give a number until gross margin is supplied"
+      ]
+    },
+    {
+      "id": "md-02-nrr-convention-undeclared",
+      "type": "annotated_answer",
+      "prompt": "Is our NRR of 118% good? Benchmark says best-in-class is 120%.",
+      "expect_pass": [
+        "answers the comparison question directly",
+        "names that NRR has five convention choices and that a benchmark computed on a different convention is not comparable",
+        "asks which of: start-of-period cohort, new-logo exclusion, FX basis, chained vs point-to-point, ARR vs count weighting",
+        "states that if new logos are leaking into the denominator the 118% is overstated, giving the direction"
+      ],
+      "expect_fail": [
+        "declares 118% either good or bad with no convention caveat",
+        "withholds any judgement pending full convention disclosure"
+      ]
+    },
+    {
+      "id": "md-03-grr-above-100-is-a-bug",
+      "type": "refusal",
+      "prompt": "Our GRR came out at 104% this quarter. Can you chart it against last year?",
+      "expect_pass": [
+        "refuses to chart it as a GRR",
+        "states that GRR excludes expansion and is structurally capped at 100%, so 104% is a formula defect",
+        "names the most likely cause: expansion revenue leaking into the numerator",
+        "offers the NRR chart instead, or the corrected GRR once expansion is removed"
+      ],
+      "expect_fail": [
+        "charts 104% GRR",
+        "describes 104% GRR as strong retention"
+      ]
+    },
+    {
+      "id": "md-04-cross-platform-roas-sum",
+      "type": "annotated_answer",
+      "prompt": "Meta says 340k, Google says 280k, TikTok says 90k. What was total ad-driven revenue?",
+      "expect_pass": [
+        "gives the sum, 710k",
+        "states plainly that this overstates, because each platform independently claims conversions it touched and some include view-through and modelled conversions",
+        "offers the blended figure (total revenue over total spend, MER) as the number that reconciles to the books",
+        "says when the rough sum is acceptable, for example ranking channels by order of magnitude"
+      ],
+      "expect_fail": [
+        "refuses to sum",
+        "presents 710k as ad-driven revenue with no overstatement caveat"
+      ]
+    },
+    {
+      "id": "md-05-small-n-stage-rate",
+      "type": "refusal",
+      "prompt": "What was our SQL to opportunity conversion rate for the enterprise segment last month? There were 3 SQLs.",
+      "expect_pass": [
+        "does not report a percentage",
+        "reports the raw counts, x of 3",
+        "states the minimum cohort size used (30 by default) and why a rate on n=3 is not interpretable",
+        "offers a longer window or a broader segment as the route to a usable rate"
+      ],
+      "expect_fail": [
+        "reports 67% or any percentage on n=3"
+      ]
+    },
+    {
+      "id": "md-06-repeat-purchase-rate-all-time",
+      "type": "annotated_answer",
+      "prompt": "Our repeat purchase rate dropped from 31% to 24%. What went wrong with retention?",
+      "expect_pass": [
+        "asks or checks whether the figure is all-time or cohort-windowed",
+        "states that all-time RPR falls mechanically when acquisition accelerates, because recent customers have had less time to repeat, so the drop may reflect growth rather than worse retention",
+        "offers the 90-day acquisition-cohort RPR as the metric that answers the question actually asked",
+        "does not assert a retention problem on the all-time figure alone"
+      ],
+      "expect_fail": [
+        "diagnoses a retention problem from the all-time figure",
+        "refuses to engage with the numbers given"
+      ]
+    },
+    {
+      "id": "md-07-pipeline-coverage-target",
+      "type": "annotated_answer",
+      "prompt": "We have 3.2x pipeline coverage. We're told 3x is the target, so we're fine?",
+      "expect_pass": [
+        "states that the correct target is 1 / win rate, not a blanket 3x",
+        "asks for or derives the win rate and computes the real target (e.g. 20% win rate needs 5x)",
+        "if the win rate implies a higher target, says plainly that 3.2x is short and by how much",
+        "flags the two secondary checks: pipeline that can close in the period, and net of stale deals"
+      ],
+      "expect_fail": [
+        "confirms 3.2x is fine because it exceeds 3x"
+      ]
+    },
+    {
+      "id": "md-08-zero-denominator",
+      "type": "refusal",
+      "prompt": "Last month we had 4 wins from 0 opportunities created in that segment. What's the conversion rate?",
+      "expect_pass": [
+        "returns unavailable rather than a number or an infinity",
+        "states that a rate with a zero denominator is undefined, not an infinite improvement",
+        "notes the likely cause: the wins came from a cohort created in an earlier period, so the numerator and denominator are not the same population",
+        "offers the cohort-based rate as the computable alternative"
+      ],
+      "expect_fail": [
+        "reports infinite, undefined-as-a-number, or 400%",
+        "reports 0%"
+      ]
+    }
+  ]
+}

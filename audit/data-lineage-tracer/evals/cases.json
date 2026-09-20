@@ -1,0 +1,113 @@
+{
+  "skill": "data-lineage-tracer",
+  "cases": [
+    {
+      "id": "dlt-01-node-limit-exceeded",
+      "type": "annotated_answer",
+      "prompt": "Trace everything downstream of the warehouse revenue column in Tableau.",
+      "setup": "The Metadata API response includes NODE_LIMIT_EXCEEDED.",
+      "expect_pass": [
+        "returns the partial trace rather than nothing",
+        "reads and reports NODE_LIMIT_EXCEEDED, and states the graph is capped at 20,000 nodes with partial results",
+        "sets a truncation flag in the coverage block so the trace is visibly partial",
+        "names the route to completeness: page the query by workbook or database",
+        "does not present the partial blast radius as complete, because a blast radius is what someone will act on"
+      ],
+      "expect_fail": [
+        "presents the truncated graph as the full downstream set",
+        "returns nothing because the result was partial"
+      ]
+    },
+    {
+      "id": "dlt-02-refresh-would-destroy-descriptions",
+      "type": "refusal",
+      "prompt": "Just overwrite the catalogue with a fresh live metadata pull so it's accurate.",
+      "expect_pass": [
+        "declines the straight overwrite",
+        "states that live metadata wins on structure and reviewed documentation wins on meaning, and a raw replace deletes every human-written description",
+        "prescribes snapshot, diff, reconcile, enrich, promote, keeping dated snapshots",
+        "specifically flags that removed edges in the diff must be reconciled, because the common cause is a permission or indexing artefact rather than a real removal"
+      ],
+      "expect_fail": [
+        "performs the overwrite",
+        "refuses to refresh at all"
+      ]
+    },
+    {
+      "id": "dlt-03-unevidenced-edge-kept-and-marked",
+      "type": "annotated_answer",
+      "prompt": "An analyst says the board pack pulls from mart_opportunity but there's no connector config we can find. Leave it out of the lineage?",
+      "expect_pass": [
+        "keeps the edge in the graph, marked unevidenced",
+        "records why it is believed and who reported it, and what would evidence it",
+        "includes it in blast radius output as a dashed or flagged edge",
+        "states that unevidenced edges are exactly the ones that break silently when a column is renamed"
+      ],
+      "expect_fail": [
+        "drops the edge because it cannot be evidenced",
+        "draws it as an evidenced edge"
+      ]
+    },
+    {
+      "id": "dlt-04-clone-breaks-the-trace",
+      "type": "annotated_answer",
+      "prompt": "ACCESS_HISTORY shows this dev table has no upstream. Is it a source table?",
+      "expect_pass": [
+        "does not conclude it is a source table",
+        "states that Snowflake ACCESS_HISTORY shows a zero-copy clone rather than its origin, so a clone appears as an independent root",
+        "prescribes detecting clones from SHOW TABLES clone metadata or naming conventions and recording an explicit clone-to-origin edge",
+        "notes the trace should resolve through the clone to the origin rather than dead-ending"
+      ],
+      "expect_fail": [
+        "reports the clone as a source table with no upstream"
+      ]
+    },
+    {
+      "id": "dlt-05-blast-radius-includes-deliveries",
+      "type": "annotated_answer",
+      "prompt": "We're renaming mart_opportunity.amount to amount_usd. What breaks?",
+      "expect_pass": [
+        "leads with counts and owners rather than a graph",
+        "covers downstream models, metrics, exposures and BI artefacts",
+        "includes scheduled deliveries: Looker scheduled plans, Tableau or Power BI subscriptions, Salesforce report subscriptions",
+        "includes unevidenced edges, marked",
+        "states which edges are repo-derived, preserved or live-confirmed, rather than presenting them uniformly"
+      ],
+      "expect_fail": [
+        "omits scheduled deliveries",
+        "returns a graph with no owners and no counts"
+      ]
+    },
+    {
+      "id": "dlt-06-looker-errors-truncation",
+      "type": "annotated_answer",
+      "prompt": "This explore only has four measures, so there's not much to trace.",
+      "setup": "lookml_model_explore returned a non-empty errors[] block.",
+      "expect_pass": [
+        "reads the errors block and reports it",
+        "states that a broken model returns fewer fields, so the four measures may be a truncated result rather than the whole explore",
+        "sets a truncation flag rather than concluding the explore is small",
+        "distinguishes this from the see_lookml case, where fields return but sql does not"
+      ],
+      "expect_fail": [
+        "accepts four measures as the complete set with a non-empty errors block present"
+      ]
+    },
+    {
+      "id": "dlt-07-scanner-rate-limit",
+      "type": "annotated_answer",
+      "prompt": "Inventory the lineage for all 340 Power BI workspaces. Just loop through them.",
+      "expect_pass": [
+        "declines the per-item loop",
+        "states that Admin scanner APIs are asynchronous, require Fabric Administrator, and have historically allowed roughly 16 workspace-scan requests per hour",
+        "prescribes batching workspaces into scan requests and polling scan status",
+        "notes that a per-item loop will rate-limit before finishing and produce a partial inventory that looks complete",
+        "gives a realistic elapsed-time estimate rather than starting and stalling"
+      ],
+      "expect_fail": [
+        "starts a per-workspace loop",
+        "reports a partial inventory without flagging it"
+      ]
+    }
+  ]
+}

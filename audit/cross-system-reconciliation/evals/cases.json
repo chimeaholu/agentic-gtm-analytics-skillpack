@@ -1,0 +1,133 @@
+{
+  "skill": "cross-system-reconciliation",
+  "cases": [
+    {
+      "id": "csr-01-never-average",
+      "type": "refusal",
+      "prompt": "The ad platform says 1,240 conversions and our warehouse says 1,113. Just give me the average so we can move on.",
+      "expect_pass": [
+        "refuses to average",
+        "reports both figures with their basis",
+        "works the cause register and quantifies what it can: attribution window, removed entities, timezone edge days",
+        "reports the remainder as a residual with its likely composition named",
+        "says which figure is the right one for the decision at hand and why, keeping the other visible"
+      ],
+      "expect_fail": [
+        "reports 1,176 or any blended figure",
+        "silently prefers one source without saying why"
+      ]
+    },
+    {
+      "id": "csr-02-ga4-ui-not-reconcilable",
+      "type": "refusal",
+      "prompt": "Make the GA4 Data API number match what I see in the GA4 UI. Keep iterating until it does.",
+      "expect_pass": [
+        "states that exact GA4 Data API to GA4 UI reconciliation is not achievable: different computation paths, attribution models, session definitions and key-event counting",
+        "names the limit rather than iterating",
+        "reports both numbers and the size of the gap",
+        "checks and reports the response integrity flags that also bear on it: samplingMetadatas, subjectToThresholding, dataLossFromOtherRow",
+        "offers what does reconcile: the BigQuery export for unsampled event-level data, if the property has one"
+      ],
+      "expect_fail": [
+        "keeps adjusting parameters attempting to close the gap",
+        "claims to have reconciled the two"
+      ]
+    },
+    {
+      "id": "csr-03-three-different-questions",
+      "type": "annotated_answer",
+      "prompt": "Why do these three revenue numbers disagree? CRM, ad platform, warehouse.",
+      "setup": "Different attribution models, different date endpoints (one inclusive one exclusive, one in account timezone one in UTC), and one is platform-reported including modelled conversions.",
+      "expect_pass": [
+        "runs the comparison contract first and reports a mismatch on date endpoints, source medium and attribution",
+        "returns the verdict three_different_questions rather than producing a reconciliation table",
+        "states that these are three answers to three questions, not one broken number",
+        "lists concretely what can still be done: normalise the endpoints and re-pull, request a comparable attribution basis if exposed, and accept that the modelled component is not derivable",
+        "still reports all three figures"
+      ],
+      "expect_fail": [
+        "builds a reconciliation table implying the gap is closable",
+        "picks one as correct"
+      ]
+    },
+    {
+      "id": "csr-04-no-leg-skipping",
+      "type": "refusal",
+      "prompt": "Check CRM, MAP and the warehouse. Actually the MAP doesn't expose that field, I remember from last time, so skip it.",
+      "expect_pass": [
+        "reads all three legs in the current turn rather than relying on the remembered gap",
+        "states that a remembered capability gap is not evidence and capabilities change",
+        "if the MAP leg genuinely fails on this read, marks that leg unavailable with the current evidence and still reports the other two",
+        "does not let the failed leg erase the successful ones"
+      ],
+      "expect_fail": [
+        "skips the MAP read on the strength of the recollection",
+        "abandons the whole answer because one leg failed"
+      ]
+    },
+    {
+      "id": "csr-05-fabricated-intersection",
+      "type": "refusal",
+      "prompt": "Give me revenue by channel by device from this source.",
+      "setup": "The source exposes channel totals and device totals as separate aggregate dimensions, not their intersection.",
+      "expect_pass": [
+        "returns the supported marginal totals: channel totals and device totals",
+        "explains that the intersection is not computable deterministically from this source's aggregate dimensions",
+        "does not paginate indefinitely attempting to construct it",
+        "does not invent a join or an allocation to produce a plausible cross-tab",
+        "names the route to the real number: the event-level export if one exists"
+      ],
+      "expect_fail": [
+        "produces a channel-by-device table from the marginals",
+        "returns nothing"
+      ]
+    },
+    {
+      "id": "csr-06-destination-filter-not-a-pipeline-fault",
+      "type": "annotated_answer",
+      "prompt": "Segment says it sent 412,000 events and the destination shows 338,000. Open a pipeline incident.",
+      "expect_pass": [
+        "checks the destination's own filters and transformations before escalating",
+        "states that an egress-versus-destination gap is usually a filter someone added in the destination configuration, not a dropped event",
+        "quantifies by reading the filter and counting what it excludes",
+        "escalates only if the filter does not account for the gap",
+        "gives the current best explanation rather than withholding pending investigation"
+      ],
+      "expect_fail": [
+        "opens the incident without checking destination-side filters"
+      ]
+    },
+    {
+      "id": "csr-07-permission-direction-opposite",
+      "type": "annotated_answer",
+      "prompt": "Our integration reports fewer records from Salesforce and more from HubSpot than the UI. One of the integrations must be broken.",
+      "expect_pass": [
+        "states that neither is necessarily broken and the directions are expected",
+        "Salesforce report output honours the running user's sharing, role hierarchy and field-level security, so the API commonly shows less, with fields omitted rather than nulled",
+        "HubSpot private-app tokens are portal-scoped and ignore user roles and field permissions, so the API commonly shows more",
+        "recommends the two-identity diff as the way to quantify each effect",
+        "requires the credential identity to be logged in the provenance block on every number"
+      ],
+      "expect_fail": [
+        "diagnoses a broken integration",
+        "treats both directions as the same failure"
+      ]
+    },
+    {
+      "id": "csr-08-provisional-window",
+      "type": "annotated_answer",
+      "prompt": "Reconcile last week's Meta conversions against our warehouse and tell me if we have a tracking problem.",
+      "expect_pass": [
+        "flags that Meta settles over roughly 28 days, so last week's figure is provisional and will rise",
+        "labels the answer provisional rather than presenting it as final",
+        "still gives the current gap and its likely causes",
+        "recommends re-reading the same window later and diffing, which measures the restatement directly",
+        "notes that there is no date on which all sources are simultaneously final except roughly 90 days back"
+      ],
+      "expect_fail": [
+        "concludes a tracking problem exists from a figure inside the settlement window",
+        "refuses to give any current figure"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "skill": "semantic-layer-builder",
+  "cases": [
+    {
+      "id": "slb-01-ga4-dashboard-impossible",
+      "type": "refusal",
+      "prompt": "Build me a GA4 dashboard showing channel performance by week.",
+      "expect_pass": [
+        "states plainly that GA4 dashboard and Exploration authoring has no public API at all, and that the Admin API creates dimensions, audiences and channel groups, not reports",
+        "does not attempt a workaround or imply one exists",
+        "offers the nearest real targets in the same response: extract GA4 data and build the artefact in a tool that can author, or a Tableau Pulse metric definition, or a warehouse metric plus a Looker Studio link a human opens",
+        "does not end by asking the user to pick from a menu without a recommendation"
+      ],
+      "expect_fail": [
+        "agrees to build a GA4 dashboard",
+        "refuses with no alternative offered"
+      ]
+    },
+    {
+      "id": "slb-02-tmdl-does-not-deploy",
+      "type": "annotated_answer",
+      "prompt": "Generate the TMDL for this measure and push it to our Power BI model.",
+      "setup": "Workspace is on shared capacity with Pro licences.",
+      "expect_pass": [
+        "produces the TMDL",
+        "states that TMDL is the git-friendly format and does not deploy directly; TMSL over XMLA is what deploys",
+        "checks or asks about capacity and states that XMLA requires Fabric, Premium or PPU, and a Pro licence in a shared workspace cannot use it at all",
+        "concludes that on this workspace the artefact is reviewable but not deployable by this route, and names what would change that",
+        "does not report the measure as created"
+      ],
+      "expect_fail": [
+        "reports the measure as deployed",
+        "pushes TMDL to an XMLA endpoint and reports success"
+      ]
+    },
+    {
+      "id": "slb-03-looker-dev-mode-noop",
+      "type": "refusal",
+      "prompt": "You updated the LookML file and it returned 200. Tell the team the new measure is live.",
+      "expect_pass": [
+        "refuses to report it as live",
+        "states that a dev-mode file write returns success while remaining invisible to everyone outside the developer branch",
+        "names the missing step: deploy_to_production, as a separate deliberate call",
+        "requires a production-mode read back plus an empty errors block from lookml_model_explore before reporting the change as live"
+      ],
+      "expect_fail": [
+        "announces the measure is live on the strength of the 200"
+      ]
+    },
+    {
+      "id": "slb-04-redefinition-versions-not-overwrites",
+      "type": "annotated_answer",
+      "prompt": "We're raising the MQL score threshold from 70 to 85. Update the metric definition.",
+      "expect_pass": [
+        "inserts a new version rather than editing the existing row, and sets effective_to and is_current on the superseded one",
+        "states that MQL volume will step down at the boundary and that this is a definition change, not a demand decline",
+        "requires the boundary to be marked on every trendline that crosses it",
+        "runs or recommends a blast-radius trace to find the artefacts that render MQL and need the boundary marked"
+      ],
+      "expect_fail": [
+        "updates the definition in place",
+        "does not flag the discontinuity in existing trendlines"
+      ]
+    },
+    {
+      "id": "slb-05-semi-additive-arr",
+      "type": "annotated_answer",
+      "prompt": "Add an ARR measure to the dbt semantic model. It's just sum of arr_amount.",
+      "expect_pass": [
+        "flags that ARR is semi-additive: it is a balance at a point in time, not a flow",
+        "adds non_additive_dimension on the snapshot date with window_choice max",
+        "states the consequence of omitting it: summing across three months returns three times the ARR, silently",
+        "also sets agg_time_dimension explicitly and writes a stakeholder-sentence description"
+      ],
+      "expect_fail": [
+        "authors a plain sum measure with no additivity rule"
+      ]
+    },
+    {
+      "id": "slb-06-round-trip-required",
+      "type": "refusal",
+      "prompt": "The PostHog insight creation call returned 201. Mark the task complete.",
+      "expect_pass": [
+        "declines to mark complete on the status code alone",
+        "states that PostHog insights created via the API bypass UI validation, so it is possible to create an insight the UI cannot render",
+        "requires a round-trip read, and where possible a render or a query, through the path a user would take",
+        "names the three artefacts an authoring run owes: the diff, the review reference, the round-trip result"
+      ],
+      "expect_fail": [
+        "marks the task complete on the 201"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "skill": "funnel-model-designer",
+  "cases": [
+    {
+      "id": "fmd-01-snapshot-is-not-a-conversion-rate",
+      "type": "annotated_answer",
+      "prompt": "Our MQL to SQL conversion rate is 34%. Why did it jump from 21% last month?",
+      "setup": "The 34% is computed from current-stage counts. No stage history exists.",
+      "expect_pass": [
+        "identifies that the figure is a snapshot ratio, not a conversion rate, because it divides two populations observed at the same instant",
+        "names the specific alternative explanation: the rate rises when the MQL stage drains, for example when top-of-funnel volume fell or sales worked through a backlog, with no conversion behaviour change",
+        "gives the cheap diagnostic: in a snapshot funnel the stage counts sum to the population, in a cohort funnel they do not",
+        "states what a cohort rate would need: fact_lead_stage with entry timestamps, and a declared conversion window",
+        "still reports what the snapshot is good for: where volume is sitting, capacity and coverage"
+      ],
+      "expect_fail": [
+        "explains the jump as improved conversion",
+        "refuses to engage with the number at all"
+      ]
+    },
+    {
+      "id": "fmd-02-sal-not-instrumented",
+      "type": "refusal",
+      "prompt": "Break down our MQL to SQL drop-off by whether sales rejected the lead or never worked it.",
+      "setup": "No SAL acceptance event exists in the CRM: no status value, no task type, no timestamp.",
+      "expect_pass": [
+        "returns unavailable for the rejected-versus-untouched split",
+        "names the missing instrumentation as the finding: SAL is not instrumented, which is why MQL-to-SQL looks noisy in this org",
+        "states that rejected and untouched have opposite fixes, so the blended rate averages two different problems",
+        "names the resolving change concretely: a lead status value or a task type logged on acceptance",
+        "offers the computable proxy with its bias named, for example leads with zero logged sales activity as a floor on untouched"
+      ],
+      "expect_fail": [
+        "computes a rejected-versus-untouched split from available fields without flagging that the distinction is not instrumented",
+        "returns unavailable and offers nothing"
+      ]
+    },
+    {
+      "id": "fmd-03-incomplete-cohort-read-as-decline",
+      "type": "annotated_answer",
+      "prompt": "Conversion has fallen three months running: 18.2%, 15.1%, 11.4%. What's going wrong?",
+      "setup": "Median cycle is 90 days. The three cohorts are 120, 75 and 34 days old.",
+      "expect_pass": [
+        "checks cohort age against the conversion window before diagnosing anything",
+        "states that only the first cohort is complete and the other two are truncated, so the sequence is not a decline",
+        "reports the two recent figures as lower bounds",
+        "offers the valid comparison: all three cohorts at a common day-30 horizon",
+        "does not silently drop the incomplete cohorts"
+      ],
+      "expect_fail": [
+        "diagnoses a conversion decline from the three figures",
+        "drops the incomplete cohorts and reports only 18.2%"
+      ]
+    },
+    {
+      "id": "fmd-04-wrong-unit-of-analysis",
+      "type": "annotated_answer",
+      "prompt": "Our person-level MQL to opportunity rate is 4%. Industry benchmark is 25%. Are we that bad?",
+      "setup": "Enterprise B2B, average six contacts per opportunity.",
+      "expect_pass": [
+        "flags the unit-of-analysis mismatch before accepting the comparison",
+        "states that a person-grain funnel on a six-person buying group produces rates roughly a sixth of the group-grain rate, so 4% times 6 is about 24%, in line with the benchmark",
+        "notes this is an approximation and the honest fix is to measure at the buying-group or opportunity grain",
+        "names what Model B requires that the org may not have: role identification within accounts and a versioned group-formation rule"
+      ],
+      "expect_fail": [
+        "accepts the comparison and concludes performance is poor",
+        "refuses to give any read on the comparison"
+      ]
+    },
+    {
+      "id": "fmd-05-small-n-segment",
+      "type": "refusal",
+      "prompt": "Give me the SQL to opportunity conversion rate for enterprise EMEA last quarter.",
+      "setup": "That slice has 7 units in the denominator.",
+      "expect_pass": [
+        "does not report a percentage for the segment",
+        "reports raw counts instead, x of 7",
+        "states the minimum cohort size used and why a rate on n=7 has a confidence interval spanning most of the possible range",
+        "gives the overall rate, which is supportable, and offers a longer window or a broader segment as the route to a segment rate"
+      ],
+      "expect_fail": [
+        "reports a percentage for the 7-unit segment"
+      ]
+    },
+    {
+      "id": "fmd-06-sessionization-gap-changed",
+      "type": "annotated_answer",
+      "prompt": "Session conversion rate dropped from 3.1% to 2.4% in March. Investigate.",
+      "setup": "The sessionization inactivity gap was changed from 30 minutes to 15 minutes on 1 March.",
+      "expect_pass": [
+        "checks the sessionization definition before investigating behaviour",
+        "states that a shorter inactivity gap creates more sessions from the same activity, which inflates the denominator and mechanically lowers conversion rate",
+        "identifies this as a metric redefinition rather than a performance change, and requires the boundary marked on the chart",
+        "notes that every session-denominated metric in the history is affected, not just this one",
+        "recommends pinning and versioning the gap in the metric contract register"
+      ],
+      "expect_fail": [
+        "investigates the drop as a conversion problem",
+        "recomputes history under the new gap without marking the boundary"
+      ]
+    },
+    {
+      "id": "fmd-07-hubspot-reentry-overwrite",
+      "type": "annotated_answer",
+      "prompt": "Build a cohort funnel from HubSpot lifecycle stage dates, first-entry-only basis.",
+      "expect_pass": [
+        "flags that HubSpot hs_lifecyclestage_*_date properties are overwritten on re-entry, so a contact that cycled twice retains only the second date",
+        "states the consequence: a first-entry-only rule is not implementable from the lifecycle date fields alone",
+        "names the two routes that do work: the property history API, or your own daily snapshot going forward",
+        "still builds what is buildable, labelled: a latest-entry-basis funnel, with the direction of its bias named"
+      ],
+      "expect_fail": [
+        "builds the first-entry funnel from lifecycle dates and presents it as accurate"
+      ]
+    }
+  ]
+}

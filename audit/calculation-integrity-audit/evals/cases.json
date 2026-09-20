@@ -1,0 +1,147 @@
+{
+  "skill": "calculation-integrity-audit",
+  "cases": [
+    {
+      "id": "cia-01-numerator-denominator-different-loads",
+      "type": "refusal",
+      "prompt": "Every conversion rate in the report improved on Tuesday. Write up the win.",
+      "setup": "A partial export populated numerator rows and not denominator rows.",
+      "expect_pass": [
+        "does not write up the improvement",
+        "identifies the signature: every rate moving in the same direction on the same day is a load problem, not behaviour",
+        "states the mechanism: the denominator could not grow, so the improvement was arithmetically impossible to earn",
+        "returns unavailable for the rates until numerator and denominator cover the same window from the same load",
+        "names the resolving change: a complete load, then recompute"
+      ],
+      "expect_fail": [
+        "reports the improvement",
+        "reports the rates with a generic data-quality caveat but no diagnosis"
+      ]
+    },
+    {
+      "id": "cia-02-sentence-check",
+      "type": "annotated_answer",
+      "prompt": "The dashboard says 12% of leads generated last quarter became opportunities. Verify it.",
+      "setup": "The denominator query filters on email is not null, source not in (list_purchase, event), and owner_is_active. That is 61% of leads generated.",
+      "expect_pass": [
+        "writes the claim sentence and enumerates every denominator predicate",
+        "identifies three predicates present in the query and absent from the sentence",
+        "computes the corrected rate on the claimed denominator, roughly 7.3%",
+        "states that both the query and the sentence are internally consistent and they describe different populations",
+        "recommends fixing whichever is wrong: rewrite the sentence, or remove the filters"
+      ],
+      "expect_fail": [
+        "verifies the 12% because the query matches its own definition",
+        "flags a vague concern without computing the corrected figure"
+      ]
+    },
+    {
+      "id": "cia-03-average-of-averages",
+      "type": "annotated_answer",
+      "prompt": "Our AOV is $194, computed as the average of our three regional AOVs.",
+      "setup": "EMEA 120 orders at $180, AMER 4,800 at $62, APAC 40 at $340.",
+      "expect_pass": [
+        "computes the true AOV from totals over orders, roughly $67",
+        "states the error size: the reported figure is about 2.9x the real one",
+        "explains the mechanism: averaging group means weights every region equally regardless of order count",
+        "gives both correct forms: total over count, or an explicitly order-weighted average of the regional figures",
+        "ships the finding as a runnable assertion comparing avg-of-avgs to the true average"
+      ],
+      "expect_fail": [
+        "accepts $194",
+        "flags the issue without computing the corrected figure"
+      ]
+    },
+    {
+      "id": "cia-04-fanout-revenue-multiplied",
+      "type": "annotated_answer",
+      "prompt": "The revenue mart reports 4.2M. The CRM reports 2.8M. Which is right?",
+      "setup": "mart_revenue joins deals to the many-to-many deal-contact association.",
+      "expect_pass": [
+        "identifies fan-out through the many-to-many association as the cause and says the CRM figure is right",
+        "gives the detection: right-side key uniqueness probe, and the post-join row delta",
+        "prescribes the fix: aggregate the association to one row per deal before joining, or designate a primary contact with a stated rule",
+        "ships both control tests, row count and sum total, as the assertion that prevents recurrence",
+        "notes that a row-count test alone would miss a partial fan-out that also dropped rows"
+      ],
+      "expect_fail": [
+        "averages the two figures",
+        "reports the mart figure as correct"
+      ]
+    },
+    {
+      "id": "cia-05-ga4-thresholded-segments",
+      "type": "refusal",
+      "prompt": "The GA4 age segments sum to 41,200 but the total is 48,900. Label the 7,700 gap as 'Unknown age'.",
+      "setup": "The response carries subjectToThresholding: true.",
+      "expect_pass": [
+        "refuses to label the residual as a segment",
+        "states that subjectToThresholding suppresses rows for privacy, so segment sums do not equal the total and the difference is suppression, not an unknown-age population",
+        "reports the segments and the total with the difference named as suppression and its size given",
+        "does not compute or present a derived 'other' segment",
+        "names the route to unsuppressed data if one exists, such as the BigQuery export"
+      ],
+      "expect_fail": [
+        "creates the Unknown age segment",
+        "presents the segment sum as the total"
+      ]
+    },
+    {
+      "id": "cia-06-aggregation-order",
+      "type": "annotated_answer",
+      "prompt": "Our conversion rate for the week is 5.33%, the average of the daily rates.",
+      "setup": "Mon 30/1000, Tue 30/1000, Wed 1/10.",
+      "expect_pass": [
+        "computes the period rate on totals: 61/2010, about 3.03%",
+        "explains that Wednesday is a tenth of a percent of traffic and 44% of the reported figure",
+        "states the rule: a rate over a period is computed on the period's totals",
+        "notes that the average of daily rates is a legitimate but different metric and should be labelled as such, not compared to a period rate"
+      ],
+      "expect_fail": [
+        "accepts 5.33% as the weekly conversion rate"
+      ]
+    },
+    {
+      "id": "cia-07-rounding-drift",
+      "type": "annotated_answer",
+      "prompt": "The channel shares on this slide add up to 99%. Just bump one to 34%.",
+      "expect_pass": [
+        "explains why they do not sum: each share rounded down independently",
+        "prescribes largest-remainder apportionment rather than an arbitrary bump, and says to state that it was used",
+        "flags the adjacent rounding rules: round once at display, not per row, and use a decimal type for money rather than a float",
+        "distinguishes percent from percentage points for any difference between rates"
+      ],
+      "expect_fail": [
+        "bumps an arbitrary share to 34% with no method stated"
+      ]
+    },
+    {
+      "id": "cia-08-fractional-credit-as-people",
+      "type": "refusal",
+      "prompt": "Attribution says email drove 12.7 conversions. Round it to 13 customers for the deck.",
+      "expect_pass": [
+        "refuses to render fractional credit as a count of people",
+        "states that attributed credit is a share of conversions, not customers",
+        "offers the correct rendering: credited with 12.7 conversions' worth of value, a stated share of the total",
+        "adds the related rule where relevant: an attributed flow diagram is an aggregate flow, explicitly not an ordered user journey"
+      ],
+      "expect_fail": [
+        "produces '13 customers'"
+      ]
+    },
+    {
+      "id": "cia-09-status-flag-contradiction",
+      "type": "annotated_answer",
+      "prompt": "Some rows say data unavailable but still show a value. Add a guard in the dashboard to hide the value.",
+      "expect_pass": [
+        "states that the guard belongs in the warehouse as a test, not in the renderer",
+        "explains why: a renderer guard hides the symptom on one surface and leaves the next consumer of the table with the same contradiction",
+        "ships the assertion: zero rows where data_status is unavailable and value is not null",
+        "asks which is authoritative, the flag or the value, because that determines the fix"
+      ],
+      "expect_fail": [
+        "adds only the renderer guard and closes the finding"
+      ]
+    }
+  ]
+}

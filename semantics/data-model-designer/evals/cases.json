@@ -1,0 +1,81 @@
+{
+  "skill": "data-model-designer",
+  "cases": [
+    {
+      "id": "dmd-01-no-snapshot-history",
+      "type": "refusal",
+      "prompt": "Show me how much pipeline slipped out of Q2 into Q3.",
+      "setup": "The warehouse has fact_opportunity (current state) only. No snapshot table, and Salesforce field history tracking was enabled two weeks ago.",
+      "expect_pass": [
+        "returns unavailable for the slippage question",
+        "states why: slippage requires the close date as it stood at the start of the period, and current state does not carry it",
+        "notes that Salesforce OpportunityFieldHistory covers tracked fields only and was enabled after the period in question, so the history does not exist",
+        "names the resolving change plainly: start daily snapshotting today, it cannot be backfilled",
+        "offers what IS computable now: deals currently closing in Q3 whose created date is before Q2 end, labelled as a proxy with its bias named"
+      ],
+      "expect_fail": [
+        "computes slippage from current close dates as if it were historical",
+        "claims the number is unavailable and offers nothing"
+      ]
+    },
+    {
+      "id": "dmd-02-fanout-diagnosis",
+      "type": "annotated_answer",
+      "prompt": "Our new revenue mart shows 4.2M but the CRM says 2.8M. What happened?",
+      "expect_pass": [
+        "leads with the most likely cause: fan-out from a one-to-many join, most commonly deal to contact or deal to company associations which are many-to-many",
+        "gives the diagnostic: compare row count and sum before and after each join, and probe the right-hand key for uniqueness",
+        "notes the 1.5x ratio is consistent with an average of 1.5 associated records per deal",
+        "prescribes the fix: aggregate the many side first, or designate a primary row with a stated rule, and add row-count plus sum-total control tests to the mart",
+        "names the secondary candidates: snapshot table without a date filter, dbt snapshot without dbt_valid_to is null"
+      ],
+      "expect_fail": [
+        "suggests averaging or reconciling the two figures",
+        "attributes the gap to a definition difference without checking join cardinality first"
+      ]
+    },
+    {
+      "id": "dmd-03-business-logic-in-staging",
+      "type": "annotated_answer",
+      "prompt": "Review this staging model: stg_crm__contacts has a CASE WHEN lead_score > 70 THEN 'MQL' ELSE 'Lead' END AS lifecycle_stage.",
+      "expect_pass": [
+        "flags it as a defect: business logic in staging",
+        "gives the two consequences concretely: the threshold cannot be changed without rebuilding history, and other models will define MQL differently because nobody can find this one",
+        "states the layering rule: staging renames and types, intermediate joins and resolves, marts define",
+        "recommends moving the rule to a mart with an effective-from date so a threshold change is versioned rather than restating history"
+      ],
+      "expect_fail": [
+        "approves it as reasonable normalisation"
+      ]
+    },
+    {
+      "id": "dmd-04-grain-collapse-read-as-loss",
+      "type": "annotated_answer",
+      "prompt": "The new orders table has 12,034 rows but the source has 40,112. We're losing 70% of our data.",
+      "expect_pass": [
+        "identifies this as grain collapse rather than data loss: the source is one row per order line, the mart is one row per order",
+        "reconciles the counts explicitly: 40,112 lines over 12,034 orders is 3.33 lines per order",
+        "recommends the sum-total control test as the check that actually proves nothing was lost",
+        "recommends publishing the grain sentence next to the table and retaining contributing line ids in a column"
+      ],
+      "expect_fail": [
+        "agrees that data is being lost without checking the grain"
+      ]
+    },
+    {
+      "id": "dmd-05-currency-has-no-type",
+      "type": "annotated_answer",
+      "prompt": "Design the ad spend fact table for our multi-region campaigns.",
+      "expect_pass": [
+        "declares the grain: one row per platform per campaign per day",
+        "includes a currency_original column next to amount_original, and states that no BI or warehouse platform has a currency type so it cannot be inferred later",
+        "puts FX conversion in a mart, not in staging, with the fx_rate_date convention declared explicitly",
+        "notes that platform account currency is a platform-level attribute and must be captured at extract time"
+      ],
+      "expect_fail": [
+        "designs a single amount column with no currency column",
+        "converts currency in staging"
+      ]
+    }
+  ]
+}

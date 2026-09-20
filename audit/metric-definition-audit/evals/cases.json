@@ -1,0 +1,113 @@
+{
+  "skill": "metric-definition-audit",
+  "cases": [
+    {
+      "id": "mda-01-do-not-add-a-third-definition",
+      "type": "refusal",
+      "prompt": "Marketing and sales both have a win rate and they disagree. Tell us the right formula.",
+      "expect_pass": [
+        "does not supply its own preferred formula as the answer",
+        "inventories both existing definitions with their denominators and computes the numeric impact of the difference on the same source rows",
+        "states which of the four defensible win-rate denominators each corresponds to",
+        "frames the recommendation as a decision for a human where both are defensible, with what each implies",
+        "names explicitly that adding a third definition would make the problem worse"
+      ],
+      "expect_fail": [
+        "asserts a single canonical win rate formula without reference to the two in use",
+        "averages the two reported rates"
+      ]
+    },
+    {
+      "id": "mda-02-blind-spot-declared",
+      "type": "annotated_answer",
+      "prompt": "Audit every definition of revenue across our stack and tell me if the reporting can be trusted.",
+      "setup": "The Power BI credential is a workspace viewer. INFO.MEASURES() returns nothing, with no error.",
+      "expect_pass": [
+        "delivers the audit for the systems it could read, rather than stopping",
+        "reports the Power BI gap as a finding, not a footnote: INFO.* returned nothing which is the viewer-identity signature, not evidence that no measures exist",
+        "names the resolving change: semantic-model admin on the named workspaces",
+        "the coverage statement distinguishes reached, unreachable and not-attempted",
+        "does not describe the audit as complete"
+      ],
+      "expect_fail": [
+        "reports that Power BI has no revenue measures",
+        "presents the audit as covering the whole estate"
+      ]
+    },
+    {
+      "id": "mda-03-report-level-measures-missed",
+      "type": "annotated_answer",
+      "prompt": "I pulled INFO.MEASURES() for the model. That's every Power BI definition, right?",
+      "expect_pass": [
+        "says no",
+        "names what is missing: report-level measures in thin/PBIR reports, implicit measures created by dragging a column onto a visual, visual-level and page-level filters, slicer defaults, and calculation-group composition",
+        "states that these together are the number one API-versus-UI discrepancy in Power BI",
+        "names the route to them: the report definition via Fabric REST PBIR, or the .pbip folder from git"
+      ],
+      "expect_fail": [
+        "confirms INFO.MEASURES() is exhaustive"
+      ]
+    },
+    {
+      "id": "mda-04-numeric-impact-computed",
+      "type": "annotated_answer",
+      "prompt": "Two win rate definitions differ on whether no-decision is in the denominator. How much does it matter?",
+      "setup": "Warehouse access is available. Q2 has 412 no-decision opportunities.",
+      "expect_pass": [
+        "recomputes both definitions against the same source rows, same window, same load",
+        "reports both values, the delta in percentage points, and the row count driving it",
+        "does not stop at a qualitative description of the difference",
+        "states that both are defensible and answer different questions, citing the four win-rate denominators"
+      ],
+      "expect_fail": [
+        "describes the difference qualitatively when recomputation was possible",
+        "estimates a numeric impact without computing it and presents it as measured"
+      ]
+    },
+    {
+      "id": "mda-05-usage-is-the-tiebreak",
+      "type": "annotated_answer",
+      "prompt": "The documented definition is in the data dictionary. That settles it, doesn't it?",
+      "setup": "The documented view is queried 12 times in 90 days. An undocumented view is queried 340 times.",
+      "expect_pass": [
+        "reports both, with their usage counts and the source of the usage signal",
+        "states that empirical usage is the tiebreak when documentation and behaviour disagree",
+        "does not treat documentation as authoritative on its own",
+        "notes that the undocumented view is the one actually driving decisions, so consolidating onto the documented one is a restatement that must be communicated"
+      ],
+      "expect_fail": [
+        "accepts the documented definition as in use without checking usage"
+      ]
+    },
+    {
+      "id": "mda-06-spreadsheet-definitions",
+      "type": "annotated_answer",
+      "prompt": "We've inventoried every definition in Looker, dbt and Salesforce. The audit is complete.",
+      "expect_pass": [
+        "asks directly which numbers in the exec or board pack are computed in a spreadsheet",
+        "states that it is almost never zero, and that spreadsheets routinely carry an exclusion, a manual mapping or a typed FX rate that exists nowhere else",
+        "requires those to appear in the crosswalk with evidence_status reported-by-a-person and the person named",
+        "does not certify the audit complete until the spreadsheet layer is either inventoried or listed as not-attempted"
+      ],
+      "expect_fail": [
+        "agrees the audit is complete"
+      ]
+    },
+    {
+      "id": "mda-07-different-questions-not-a-divergence",
+      "type": "annotated_answer",
+      "prompt": "Reconcile our cohort win rate of 19% with our close-date win rate of 24%.",
+      "expect_pass": [
+        "verdict is different_questions rather than one_is_wrong or both_defensible",
+        "states that these are two metrics sharing one name, not two implementations of one metric",
+        "recommends naming rather than consolidation: win_rate_cohort and win_rate_close_date",
+        "explains what each answers: of deals we start how many we win, versus of deals that closed how many we won",
+        "notes the cohort figure is a lower bound if the cohort has not fully closed out"
+      ],
+      "expect_fail": [
+        "attempts to reconcile them to a single number",
+        "declares one of them wrong"
+      ]
+    }
+  ]
+}

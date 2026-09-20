@@ -1,0 +1,100 @@
+{
+  "skill": "relationship-discovery",
+  "cases": [
+    {
+      "id": "rd-01-fuzzy-match-prohibited",
+      "type": "refusal",
+      "prompt": "Join our CRM accounts to the ad platform advertiser list by company name similarity so we can get spend per account.",
+      "expect_pass": [
+        "refuses the fuzzy name join outright",
+        "gives the concrete failure shapes: Acme Corp vs Acme Corporation probably the same, Acme Holdings vs Acme Ltd often different legal entities, short common names colliding",
+        "names why the failure is dangerous: a false merge inflates one account and deletes another from the customer count, and the totals still reconcile so nothing errors",
+        "returns the marginal totals from each side separately as the computable answer",
+        "names the resolving change: a maintained mapping field or a shared advertiser id on the account record"
+      ],
+      "expect_fail": [
+        "performs the similarity join",
+        "performs it with a confidence score attached and calls that sufficient"
+      ]
+    },
+    {
+      "id": "rd-02-weakest-edge-carried",
+      "type": "annotated_answer",
+      "prompt": "Get me revenue by marketing channel. The path is order to person to touchpoint to campaign to channel.",
+      "setup": "order-person 0.90 declared, person-touchpoint 0.90 declared one-to-many, touchpoint-campaign 0.30 naming convention only, campaign-channel 0.85 dbt relationships test.",
+      "expect_pass": [
+        "reports path min_confidence as 0.30, not an average of the edges",
+        "names the weakest edge explicitly: touchpoint to campaign, inferred from a shared column name",
+        "labels the whole path inferred, not discovered",
+        "flags the one-to-many person-to-touchpoint edge as requiring aggregation before order amounts are joined, or the revenue will fan out",
+        "still produces a number or a scoped number rather than stopping"
+      ],
+      "expect_fail": [
+        "reports an averaged confidence such as 0.74",
+        "runs the join and reports revenue by channel with no path caveat"
+      ]
+    },
+    {
+      "id": "rd-03-coverage-remainders-disclosed",
+      "type": "annotated_answer",
+      "prompt": "What was total pipeline by account segment?",
+      "setup": "The opportunity-to-account join matches 94% of rows, but the 6% unmatched carry 31% of the pipeline amount.",
+      "expect_pass": [
+        "gives the segmented total",
+        "discloses matched, unmatched and ambiguous counts",
+        "specifically discloses unmatched_amount, and notes that 94% row coverage corresponds to only 69% amount coverage",
+        "labels the segmented total a lower bound and names the direction of the error",
+        "offers the unsegmented total, which does not depend on the join, as the reconciling figure"
+      ],
+      "expect_fail": [
+        "reports 94% coverage as good without checking the amount-weighted coverage",
+        "reports the segmented totals with no remainder disclosure"
+      ]
+    },
+    {
+      "id": "rd-04-declared-cardinality-contradicted",
+      "type": "annotated_answer",
+      "prompt": "The Looker explore declares contacts as many_to_one, so this join is safe, right?",
+      "setup": "Profiling dim_contact shows 12,400 rows over 11,980 distinct contact_ids.",
+      "expect_pass": [
+        "states that a declared relationship is a claim about the model, not a guarantee about the data",
+        "reports the profiled contradiction: 420 duplicate rows means the join is not many-to-one in the current data",
+        "quantifies the effect: left-side measures over-stated by roughly 3.5% through this join, and not uniformly",
+        "raises it as a finding for the model owner, because it affects every query run through that explore",
+        "downgrades the edge confidence rather than trusting the declaration"
+      ],
+      "expect_fail": [
+        "confirms the join is safe on the strength of the declaration"
+      ]
+    },
+    {
+      "id": "rd-05-tableau-joins-not-exposed",
+      "type": "annotated_answer",
+      "prompt": "Read the join graph from our Tableau data source so we can rebuild the logic in the warehouse.",
+      "expect_pass": [
+        "states that Tableau does not expose join keys, cardinality or referential-integrity settings, and that logicalTableId is only a hint",
+        "does not present inferred joins as read from Tableau",
+        "recommends querying through VizQL Data Service instead, so Tableau resolves its own joins",
+        "if a warehouse rebuild is genuinely required, names parsing the .twb XML as the remaining option and calls it fragile rather than supported"
+      ],
+      "expect_fail": [
+        "claims to have read the Tableau join graph",
+        "produces a warehouse rebuild with cardinality asserted"
+      ]
+    },
+    {
+      "id": "rd-06-amount-multiplied-across-touches",
+      "type": "refusal",
+      "prompt": "Join opportunities to their touchpoints and give me revenue per channel.",
+      "expect_pass": [
+        "refuses to sum opportunity amount across the joined rows",
+        "states that a deal with four touches produces four rows carrying the full amount, giving 4x revenue",
+        "offers the three correct handlings: aggregate the touch side first, allocate with a stated attribution model producing fractional credit that sums to the original, or keep the two grains separate",
+        "notes that fractional credit is not a count of deals and must not be rendered as one"
+      ],
+      "expect_fail": [
+        "returns revenue per channel from the fanned-out join"
+      ]
+    }
+  ]
+}

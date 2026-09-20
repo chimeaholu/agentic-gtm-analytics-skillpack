@@ -1,0 +1,130 @@
+{
+  "skill": "temporal-integrity-audit",
+  "cases": [
+    {
+      "id": "tia-01-timezone-unconfirmed-day-comparison",
+      "type": "refusal",
+      "prompt": "The CRM shows 41 deals closed yesterday and the warehouse shows 38. Which is wrong?",
+      "setup": "The integration user's timezone has not been confirmed. timezone_status is unconfirmed for the CRM.",
+      "expect_pass": [
+        "returns unavailable for the day-boundary comparison specifically",
+        "states that Salesforce report output uses the running user's timezone, so the integration user's zone determines the day boundary, and it has not been confirmed",
+        "states that doing the warehouse arithmetic in UTC does not establish that the CRM reports in UTC",
+        "names the exact resolving input: the integration user's TimeZoneSidKey",
+        "still gives the comparison at a coarser grain, such as the week or month total, which is not sensitive to the boundary"
+      ],
+      "expect_fail": [
+        "declares one source wrong",
+        "converts to UTC and reports the comparison as reconciled",
+        "withholds the aggregate comparison as well"
+      ]
+    },
+    {
+      "id": "tia-02-six-platforms-six-rules",
+      "type": "annotated_answer",
+      "prompt": "Build a daily cross-channel dashboard from GA4, Google Ads, Meta, the CRM, Klaviyo and Snowflake.",
+      "expect_pass": [
+        "flags that these six sources have six different timezone rules and none defaults to UTC",
+        "names the specific rules: GA4 property timezone, Google Ads and Meta account timezone, Salesforce running-user timezone, Klaviyo account timezone with only metric-aggregates accepting an explicit timezone, Snowflake session TIMEZONE often defaulting to America/Los_Angeles",
+        "prescribes confirming each from its response field or setting, and recording timezone_status per source",
+        "prescribes converting once at the boundary and storing both the UTC and local values with the zone name",
+        "still builds the dashboard rather than blocking on it"
+      ],
+      "expect_fail": [
+        "assumes UTC across the sources",
+        "assumes the warehouse is UTC without checking the session parameter"
+      ]
+    },
+    {
+      "id": "tia-03-restatement-read-as-trend",
+      "type": "annotated_answer",
+      "prompt": "Meta conversions for last month came in 14% higher than we reported at the time. Great improvement.",
+      "expect_pass": [
+        "identifies this as restatement, not improvement: Meta settles over roughly 28 days and attributes conversions back to earlier clicks",
+        "states that the number reported at the time was provisional and the growth is the backfill",
+        "prescribes comparing at equal maturity, both periods measured the same number of days after their close",
+        "recommends storing every read so the restatement curve can be measured directly rather than assumed"
+      ],
+      "expect_fail": [
+        "reports a 14% improvement",
+        "attributes the change to campaign performance"
+      ]
+    },
+    {
+      "id": "tia-04-equal-window-unequal-coverage",
+      "type": "annotated_answer",
+      "prompt": "Q3 is down 6% on Q2. What happened?",
+      "setup": "Q2 has 91 covered days. Q3 has 88: a three-day tracking outage in August.",
+      "expect_pass": [
+        "computes covered-day counts on both sides before interpreting the change",
+        "states that equal window length is not equal coverage, and Q3 is missing three days",
+        "recomputes on a per-covered-day basis, or suppresses the raw comparison and says why",
+        "names the direction: the raw comparison overstates the decline",
+        "still gives the corrected comparison rather than stopping"
+      ],
+      "expect_fail": [
+        "explains the 6% decline as a business change",
+        "refuses to compare at all"
+      ]
+    },
+    {
+      "id": "tia-05-incomplete-last-bar",
+      "type": "refusal",
+      "prompt": "Bookings are falling off a cliff this month. Put this chart in the board deck.",
+      "setup": "It is the 8th of the month. The current month bar includes 8 days.",
+      "expect_pass": [
+        "refuses to ship the chart with the partial bar unmarked",
+        "states that the last bar is always short and this one covers 8 of the month's days",
+        "gives the three acceptable treatments: drop it, render it distinctly and label it, or prorate it and label it as prorated",
+        "cautions against proration for bookings specifically, because B2B bookings load at quarter end and are not evenly distributed",
+        "offers the comparable figure: the same 8 days of prior months"
+      ],
+      "expect_fail": [
+        "ships the chart as is",
+        "prorates the partial month without labelling it"
+      ]
+    },
+    {
+      "id": "tia-06-object-metadata-is-not-freshness",
+      "type": "annotated_answer",
+      "prompt": "The table was modified 20 minutes ago so the data is current.",
+      "expect_pass": [
+        "states that an object's last-modified timestamp is metadata about the object, not about the business dates inside it",
+        "gives the concrete failure: a model that ran at 06:00 against a source that stopped delivering at midnight has a fresh bake time, stale data and a green pipeline",
+        "prescribes asserting freshness on max(event_date), the business date",
+        "requires the three clocks shown separately: deployment time, extract time, source data freshness"
+      ],
+      "expect_fail": [
+        "accepts the modification timestamp as evidence of data freshness"
+      ]
+    },
+    {
+      "id": "tia-07-hardcoded-endpoints",
+      "type": "annotated_answer",
+      "prompt": "This scheduled query compares 2026-01-01 to 2026-06-30 against the same range last year. Review it.",
+      "expect_pass": [
+        "flags the hardcoded date literals as a finding on a scheduled query",
+        "states that a hardcoded endpoint silently invalidates every record added after it was chosen, and the query still runs and still returns rows, which is why it survives",
+        "gives both correct forms: parameterised endpoints, and per-row derivation with lag",
+        "allows the exception: a deliberate historical boundary such as a migration or definition-change date, provided it is commented as such"
+      ],
+      "expect_fail": [
+        "passes the query as correct"
+      ]
+    },
+    {
+      "id": "tia-08-week-convention-unstated",
+      "type": "annotated_answer",
+      "prompt": "Pull this week's pipeline from BigQuery and compare it to what the CRM dashboard shows.",
+      "expect_pass": [
+        "states that BigQuery DATE_TRUNC with WEEK starts on Sunday unless WEEK(MONDAY) is specified, while most business conventions and ISO 8601 use Monday",
+        "checks the CRM or BI tool's week-start setting rather than assuming a match",
+        "states the convention alongside the number in the output",
+        "notes that a one-day boundary difference is systematic, not random, and concentrates the discrepancy in one seventh of the data"
+      ],
+      "expect_fail": [
+        "compares the two week figures without establishing the week-start convention on each side"
+      ]
+    }
+  ]
+}

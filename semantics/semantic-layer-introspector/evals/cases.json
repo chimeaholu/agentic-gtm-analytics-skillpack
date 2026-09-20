@@ -1,0 +1,116 @@
+{
+  "skill": "semantic-layer-introspector",
+  "cases": [
+    {
+      "id": "sli-01-cannot-see-vs-does-not-exist",
+      "type": "refusal",
+      "prompt": "I connected you to Looker. Is there a definition of Net Revenue in the model? If not, write me one.",
+      "setup": "The credential lacks see_lookml. Field names return; the sql property is absent on every field.",
+      "expect_pass": [
+        "does not conclude that no definition exists",
+        "reports that the field list came back but sql was absent on every field, which is the see_lookml signature",
+        "names the exact permission that would resolve it (see_lookml on the model)",
+        "offers run_inline_query as the route that still works, because calling the metric does not require reading it",
+        "does not write a replacement definition"
+      ],
+      "expect_fail": [
+        "states the metric does not exist",
+        "writes a new Net Revenue definition"
+      ]
+    },
+    {
+      "id": "sli-02-bigquery-has-no-metric-semantics",
+      "type": "annotated_answer",
+      "prompt": "Read the semantic layer in our BigQuery project and tell me how MRR is defined.",
+      "expect_pass": [
+        "states plainly that BigQuery has no metric semantics: no CREATE METRIC, no additivity declaration, no measure type",
+        "proceeds anyway by reading INFORMATION_SCHEMA.VIEWS.view_definition and ROUTINES.routine_definition, which is where the logic actually lives",
+        "labels whatever it finds as inferred from SQL, not as a declared definition",
+        "notes that the metric cannot be called by name on BigQuery, so any use of it is re-implementation"
+      ],
+      "expect_fail": [
+        "describes a BigQuery semantic layer as if one exists",
+        "refuses to look because no semantic layer is present",
+        "presents the parsed SQL definition as the customer's declared metric"
+      ]
+    },
+    {
+      "id": "sli-03-tableau-partial-call-dont-reimplement",
+      "type": "annotated_answer",
+      "prompt": "Pull the Tableau calculated field for Net Sales and rebuild it in our warehouse so we can slice it by region.",
+      "expect_pass": [
+        "returns the formula from the Metadata API CalculatedField.formula",
+        "states that Tableau does not reliably expose join conditions or relationship cardinality, so the formula alone is not enough to reproduce the number",
+        "recommends calling the metric through VizQL Data Service query-datasource with fieldCaption and a Region dimension instead of re-implementing",
+        "flags that LOD expressions and table calculations depend on viz context if the formula contains them"
+      ],
+      "expect_fail": [
+        "hands over a warehouse SQL re-implementation with no cardinality caveat",
+        "claims the Tableau join graph was read successfully"
+      ]
+    },
+    {
+      "id": "sli-04-no-semantic-layer-is-a-real-outcome",
+      "type": "annotated_answer",
+      "prompt": "Introspect our dbt project's metrics.",
+      "setup": "The repo has models/ and schema.yml but no semantic_models: block anywhere.",
+      "expect_pass": [
+        "reports no semantic layer found as a finding, with introspection depth 2",
+        "notes this is the common case rather than implying the customer did something wrong",
+        "proceeds to the fallback: model SQL, column descriptions, tests as grain and foreign-key declarations, and exposures to find consumed models",
+        "offers warehouse query history as an empirical proxy for which metrics matter"
+      ],
+      "expect_fail": [
+        "reports an error or stops",
+        "invents metric entries that are not in the artefacts"
+      ]
+    },
+    {
+      "id": "sli-05-currency-not-determinable",
+      "type": "refusal",
+      "prompt": "What currency is the Revenue measure in our Power BI model reported in?",
+      "expect_pass": [
+        "returns unavailable for the currency question",
+        "explains that no platform in the stack has a currency type: Power BI's Currency is a 4-decimal data type, Looker's is a value_format string, Cube's is format: currency",
+        "states that currency must be supplied as an explicit human input and recorded in the provenance block",
+        "still reports what it did find: the format string, the measure's DAX expression, and the partition source if readable"
+      ],
+      "expect_fail": [
+        "infers a currency from the format string or the currency symbol",
+        "assumes USD"
+      ]
+    },
+    {
+      "id": "sli-06-stale-manifest",
+      "type": "annotated_answer",
+      "prompt": "Here's our manifest.json, list the metrics.",
+      "setup": "metadata.generated_at is 7 months old.",
+      "expect_pass": [
+        "lists the metrics it found",
+        "leads with or immediately flags that metadata.generated_at is 7 months old, so this describes the model as of that parse, not production",
+        "names the direction of the risk: metrics may have been added, renamed or removed since",
+        "offers the route to a current artefact (dbt Admin API get_job_run_artifacts from a recent production run, or a fresh dbt parse)"
+      ],
+      "expect_fail": [
+        "presents the list as the current production model with no freshness caveat",
+        "refuses to list the metrics"
+      ]
+    },
+    {
+      "id": "sli-07-illegal-dimension-slice",
+      "type": "refusal",
+      "prompt": "Slice the Snowflake semantic view metric total_pipeline by product_category.",
+      "setup": "SHOW SEMANTIC DIMENSIONS FOR METRIC total_pipeline does not list product_category.",
+      "expect_pass": [
+        "refuses the slice rather than constructing a join to get it",
+        "cites SHOW SEMANTIC DIMENSIONS FOR METRIC as the authoritative answer to which dimensions a metric is legally sliceable by",
+        "explains that slicing by an unjoined dimension produces fan-out, which multiplies the amount silently rather than erroring",
+        "lists the dimensions that are valid, and offers a separate product-grain metric if one exists"
+      ],
+      "expect_fail": [
+        "builds the join anyway",
+        "returns a number sliced by product_category"
+      ]
+    }
+  ]
+}
