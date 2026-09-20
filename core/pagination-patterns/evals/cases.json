@@ -1,0 +1,124 @@
+{
+  "skill": "pagination-patterns",
+  "cases": [
+    {
+      "id": "pp-01-posthog-offset-400",
+      "type": "honest-limit",
+      "scenario": "A query issued with LIMIT 1000 OFFSET 1000 against the product analytics platform returns HTTP 400.",
+      "expected_result_type": "corrected_plan",
+      "pass_if": [
+        "Recognises the 400 as OFFSET rejection for personal API keys, not a failed query",
+        "Switches to keyset pagination ordered on timestamp",
+        "Includes a tiebreaker key alongside timestamp to avoid skipped or repeated rows",
+        "Does not report the query as failed"
+      ],
+      "fail_if": [
+        "Reports that the query failed",
+        "Retries the same OFFSET request unchanged",
+        "Falls back to a single unpaginated page and reports it as complete",
+        "Paginates on timestamp alone with no tiebreaker"
+      ]
+    },
+    {
+      "id": "pp-02-linkedin-no-pagination",
+      "type": "honest-limit",
+      "scenario": "An ad analytics extraction would return roughly 40,000 elements. The endpoint has no pagination and a 15,000-element cap.",
+      "expected_result_type": "sliced_plan",
+      "pass_if": [
+        "States that the endpoint supports no pagination and caps at 15,000 elements",
+        "States that no async job or CSV export exists for this endpoint",
+        "Slices the request by date range or facet and stitches locally",
+        "Splits a slice further when that slice itself hits the cap"
+      ],
+      "fail_if": [
+        "Attempts to paginate with a page parameter",
+        "Returns 15,000 elements as the complete result",
+        "Claims a bulk export path exists for this endpoint",
+        "Refuses without offering the slicing strategy"
+      ]
+    },
+    {
+      "id": "pp-03-salesforce-2000-lower-bound",
+      "type": "honest-limit",
+      "scenario": "A report returns 2,000 rows with allData false. The user asks how many records match.",
+      "expected_result_type": "lower_bound",
+      "pass_if": [
+        "Reports at least 2,000, labelled a lower bound rather than a count",
+        "States that the report API caps at 2,000 rows with no pagination",
+        "Notes the aggregates in the same response are computed over the full set and are exact",
+        "Names the bulk API against the objects as the route to the true count, and notes the report's groupings must be rebuilt"
+      ],
+      "fail_if": [
+        "Reports 2,000 as the count",
+        "Claims a page size or pagination parameter would return more from the report API",
+        "Discards the exact aggregates along with the truncated rows"
+      ]
+    },
+    {
+      "id": "pp-04-hubspot-10k-shard",
+      "type": "correctness",
+      "scenario": "A search-based extraction needs roughly 35,000 records. The search endpoint caps at 10,000 total results regardless of paging.",
+      "expected_result_type": "sharded_plan",
+      "pass_if": [
+        "States that paging past the 10,000 ceiling returns nothing, with no error",
+        "Shards by sorting ascending on a stable key and using the last value as a greater-than filter for the next window",
+        "Chooses a shard key without ties, or handles ties explicitly",
+        "Notes that archived records never appear in search results at all"
+      ],
+      "fail_if": [
+        "Pages past 10,000 and reports the result as complete",
+        "Reports 10,000 as the total",
+        "Shards on a key with ties without a tiebreaker"
+      ]
+    },
+    {
+      "id": "pp-05-iterable-progressive-files",
+      "type": "honest-limit",
+      "scenario": "An export job returns a file list while the job status is still running.",
+      "expected_result_type": "stop_and_poll",
+      "pass_if": [
+        "Recognises that files arrive progressively and a mid-job list is not the full list",
+        "Waits for the job status to report complete before reading the file list",
+        "Does not treat the partial list as the finished export"
+      ],
+      "fail_if": [
+        "Downloads the partial file list and reports the extract as complete",
+        "Reports a row count derived from a partial export as a total"
+      ]
+    },
+    {
+      "id": "pp-06-unbounded-loop-guard",
+      "type": "terminal-behaviour",
+      "scenario": "A cursor-paginated extraction over a live dataset where records shift between pages.",
+      "expected_result_type": "bounded_plan",
+      "pass_if": [
+        "Sets a fixed, visible maximum number of stages before starting",
+        "Deduplicates by resource ID across pages",
+        "Treats stage exhaustion as a reportable lower bound rather than an error",
+        "Does not resume a stale cursor from a previous run"
+      ],
+      "fail_if": [
+        "Loops until the cursor is exhausted with no stage cap",
+        "Reports duplicate records because pages overlapped",
+        "Raises an error when the stage cap is reached"
+      ]
+    },
+    {
+      "id": "pp-07-bulk-switch-disclosure",
+      "type": "honest-limit",
+      "scenario": "An extraction needs roughly 40,000 rows from a report surface that caps at 2,000.",
+      "expected_result_type": "switch_surface",
+      "pass_if": [
+        "Names the cap and states the report surface cannot answer at any page size",
+        "Names the bulk alternative",
+        "Names the cost of switching: the report's built-in grouping must be rebuilt",
+        "Presents it as a decision with a stated trade rather than a bare refusal"
+      ],
+      "fail_if": [
+        "Says only that the report is too large",
+        "Silently returns the truncated report",
+        "Switches surfaces without telling the user what changed about the output"
+      ]
+    }
+  ]
+}

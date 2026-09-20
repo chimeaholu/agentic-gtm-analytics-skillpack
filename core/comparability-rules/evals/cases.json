@@ -1,0 +1,130 @@
+{
+  "skill": "comparability-rules",
+  "cases": [
+    {
+      "id": "cr-01-annotated-total-not-refusal",
+      "type": "honest-limit",
+      "scenario": "User asks for total conversions across four advertising and analytics platforms. No shared identity key exists across them.",
+      "expected_result_type": "annotated_total",
+      "pass_if": [
+        "The summed figure appears first, before any caveat",
+        "Every component is listed with how that platform counts: date basis, window, model",
+        "The direction of the error is named as overstating",
+        "The magnitude is stated as unquantified without a shared key, with no invented percentage",
+        "Warehouse deduplication on a shared key is named as the better number",
+        "A holdout or geo test is named as the route to a causal number",
+        "The output states when the rough figure is fine"
+      ],
+      "fail_if": [
+        "The total is withheld",
+        "The user is asked to acknowledge a warning before receiving the total",
+        "An overlap percentage is stated without a shared key to measure it",
+        "The total ships with no annotation",
+        "Caveats appear above the number"
+      ]
+    },
+    {
+      "id": "cr-02-linkedin-per-campaign-double-count",
+      "type": "honest-limit",
+      "scenario": "Campaign-level conversion rows from the professional network are summed to an account total. The default attribution basis counts once per campaign.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Identifies that the default basis counts a conversion once per campaign",
+        "States that summing campaign rows double-counts people touched by several campaigns, by design",
+        "Distinguishes this from cross-platform overlap as a separate, additional source of overstatement",
+        "Offers the account-level query as the correct route to an account total"
+      ],
+      "fail_if": [
+        "Reports the campaign sum as the account total with no disclosure",
+        "Attributes the discrepancy to a tracking problem",
+        "Claims the other platforms have the same behaviour"
+      ]
+    },
+    {
+      "id": "cr-03-normalisation-both-series",
+      "type": "normalisation",
+      "scenario": "Three ad platforms are compared. All three support a 7-day click window. Their defaults are 30, 7 and 30 days.",
+      "expected_result_type": "comparable_after_normalisation",
+      "pass_if": [
+        "Re-queries all three at a 7-day click window and labels that the comparable series",
+        "Retains the platform-default numbers as a separate labelled series",
+        "Presents both",
+        "Names the residuals normalisation did not fix: date basis, event set, per-campaign counting, modelled components"
+      ],
+      "fail_if": [
+        "Presents only the normalised series",
+        "Presents only the platform-default series",
+        "Claims the normalised series is fully comparable",
+        "Silently picks one series without labelling it"
+      ]
+    },
+    {
+      "id": "cr-04-unequal-coverage",
+      "type": "honest-limit",
+      "scenario": "A 30-day before-and-after comparison where the earlier window has 30 days of data and the later has 22, because of a tracking outage.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Computes and displays covered-day counts on both sides",
+        "States that equal calendar windows do not mean equal coverage here",
+        "Uses an observed-day rate, or suppresses the raw comparison and says why",
+        "Names the coverage gap rather than reporting the shortfall as a decline"
+      ],
+      "fail_if": [
+        "Reports the difference as a performance change",
+        "Compares the raw totals without a coverage check",
+        "Extrapolates the 22 days to 30 without labelling the result as estimated"
+      ]
+    },
+    {
+      "id": "cr-05-three-questions-not-one-number",
+      "type": "honest-limit",
+      "scenario": "A CRM influence model reports 4.2M marketing-sourced pipeline. The marketing platform's own attribution reports 6.8M. The user asks which is correct.",
+      "expected_result_type": "not_comparable",
+      "pass_if": [
+        "States that both are real and they answer different questions",
+        "Names the mechanism of each: one campaign per opportunity against credit to every touching campaign",
+        "Names the direction of each figure's bias",
+        "Names the defensible alternative: a multi-touch model over an assembled journey, credit summing to one per opportunity",
+        "Does not iterate attempting to reconcile them to a single figure"
+      ],
+      "fail_if": [
+        "Declares one figure correct and the other wrong without stating the definitions",
+        "Attempts to reconcile the two to a single number",
+        "Averages them",
+        "Reports the discrepancy as a data quality defect"
+      ]
+    },
+    {
+      "id": "cr-06-hardcoded-endpoints",
+      "type": "correctness",
+      "scenario": "A period-over-period comparison is being generated for repeated use. The prior window could be written as literal dates or derived per row.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Derives the comparison endpoints from each row's own event date",
+        "Does not write literal date boundaries into a reusable query",
+        "States that a hardcoded endpoint is correct on the authoring day and silently wrong after"
+      ],
+      "fail_if": [
+        "Writes literal date boundaries into a query intended for repeated use",
+        "Relies on the current date being the authoring date"
+      ]
+    },
+    {
+      "id": "cr-07-metric-name-collision",
+      "type": "honest-limit",
+      "scenario": "An in-house qualified-lead definition and a platform metric of the same name are about to be charted on one axis.",
+      "expected_result_type": "not_comparable",
+      "pass_if": [
+        "Refuses the shared axis without both denominators and definitions labelled",
+        "Names the in-house metric distinctly from the vendor metric",
+        "States explicitly that the two are not comparable despite the shared name",
+        "Still charts both, separately labelled, rather than dropping one"
+      ],
+      "fail_if": [
+        "Charts both on one axis under the shared name",
+        "Drops one series instead of labelling both",
+        "Treats the name match as evidence of a definition match"
+      ]
+    }
+  ]
+}

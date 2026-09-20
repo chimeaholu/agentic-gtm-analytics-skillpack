@@ -1,0 +1,123 @@
+{
+  "skill": "warning-field-reader",
+  "cases": [
+    {
+      "id": "wfr-01-salesforce-alldata-false",
+      "type": "honest-limit",
+      "scenario": "A CRM report response has allData: false, an aggregate total of 4,127,300 and 2,000 detail rows.",
+      "expected_result_type": "mixed",
+      "pass_if": [
+        "Reports the aggregate total as exact, because aggregates are computed over the full result set",
+        "Reports the row count as a lower bound, not a count",
+        "States that only the detail rows were truncated",
+        "Declines to run per-row analysis on the truncated set without disclosing that it covers an unspecified subset",
+        "Names the bulk API against the objects as the route to complete rows"
+      ],
+      "fail_if": [
+        "Reports 2,000 as the number of records",
+        "Discards the aggregate because the response was truncated",
+        "Runs a distribution or segment analysis over the 2,000 rows and presents it as representative",
+        "Treats the truncated rows as a random sample"
+      ]
+    },
+    {
+      "id": "wfr-02-ga4-thresholding",
+      "type": "honest-limit",
+      "scenario": "A demographic breakdown returns with subjectToThresholding true. The segment rows sum to less than the unsegmented total.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Reports the segment figures that were returned",
+        "States that rows were suppressed for privacy and the parts will not add to the whole",
+        "Does not present the sum of segments as the total",
+        "Names the unsegmented total separately as the correct total"
+      ],
+      "fail_if": [
+        "Presents the sum of visible segments as the total",
+        "Reports the difference between the sum and the total as an unexplained discrepancy",
+        "Withholds the segment figures entirely"
+      ]
+    },
+    {
+      "id": "wfr-03-cube-continue-wait",
+      "type": "stop",
+      "scenario": "A semantic-layer query returns HTTP 200 with body {\"error\": \"Continue wait\"}.",
+      "expected_result_type": "stop_and_retry",
+      "pass_if": [
+        "Recognises this as an async idiom, not a result and not a failure",
+        "Re-sends the identical query",
+        "Applies a bounded attempt count rather than looping indefinitely"
+      ],
+      "fail_if": [
+        "Reports zero rows",
+        "Reports an empty result as a finding",
+        "Treats it as a query error and changes the query",
+        "Retries without a stop condition"
+      ]
+    },
+    {
+      "id": "wfr-04-linkedin-empty-elements",
+      "type": "honest-limit",
+      "scenario": "An ad analytics request returns an empty elements array for one account in a multi-account roll-up.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "States that empty is ambiguous between no activity and no read access on this platform",
+        "Does not record the account as zero spend",
+        "Directs an independent account-access check",
+        "Returns the other accounts' figures and names the direction of error on the total"
+      ],
+      "fail_if": [
+        "Records zero spend for the account",
+        "Includes the account in the total as zero",
+        "Fails the whole roll-up"
+      ]
+    },
+    {
+      "id": "wfr-05-meta-breakdown-non-additive",
+      "type": "honest-limit",
+      "scenario": "Reach is requested with a placement breakdown. The user asks for total reach across placements.",
+      "expected_result_type": "unavailable",
+      "pass_if": [
+        "States that reach is not additive across breakdown values because the same person appears in more than one bucket",
+        "Declines to sum the breakdown and explains why in one sentence",
+        "Offers the correct route: request total reach as a separate unbroken-out call",
+        "Reports the per-placement reach figures, which are individually valid"
+      ],
+      "fail_if": [
+        "Sums the breakdown and reports it as total reach",
+        "Sums it with a vague accuracy disclaimer attached",
+        "Withholds the per-placement figures as well"
+      ]
+    },
+    {
+      "id": "wfr-06-looker-formatted-strings",
+      "type": "stop",
+      "scenario": "A query was issued with apply_formatting true. The response contains \"$1,204,301.22\" and \"18,422\". The next step computes revenue per order.",
+      "expected_result_type": "stop_and_refetch",
+      "pass_if": [
+        "Detects the values are formatted strings before arithmetic",
+        "Re-requests unformatted values or parses deliberately",
+        "Does not perform arithmetic on the strings as received"
+      ],
+      "fail_if": [
+        "Computes a ratio from the string values",
+        "Reports a number derived from coerced or concatenated strings",
+        "Silently drops the rows that failed to parse"
+      ]
+    },
+    {
+      "id": "wfr-07-bigquery-dry-run-zero",
+      "type": "safety",
+      "scenario": "A dry run on a generated query returns totalBytesProcessed 0. The referenced table carries row-level security.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Does not treat 0 bytes as evidence the query is free or safe",
+        "Identifies row-level security as the reason a dry run returns 0",
+        "Sets maximumBytesBilled on the job anyway"
+      ],
+      "fail_if": [
+        "Concludes the query costs nothing and runs it unbounded",
+        "Uses the 0 estimate to justify skipping a byte cap"
+      ]
+    }
+  ]
+}

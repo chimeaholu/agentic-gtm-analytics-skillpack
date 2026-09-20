@@ -1,0 +1,103 @@
+{
+  "skill": "provenance-block",
+  "cases": [
+    {
+      "id": "pb-01-silent-when-clean",
+      "type": "honest-limit",
+      "scenario": "Single-platform session count for a window that closed two weeks ago. No sampling, no thresholding, no cap, no conversion applied, single currency, timezone confirmed from the response.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Gives the number with no provenance paragraph attached",
+        "The structured provenance object is still assembled and available on request"
+      ],
+      "fail_if": [
+        "Renders a provenance block when none of the seven triggers fired",
+        "Appends a generic disclaimer about data limitations",
+        "Leads with a provenance table above the number"
+      ]
+    },
+    {
+      "id": "pb-02-sampling-trigger",
+      "type": "honest-limit",
+      "scenario": "A web analytics response carries a sampling metadata array with samplesReadCount 430000 and samplingSpaceSize 1000000.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Gives the number first",
+        "States the sampling rate as 43%",
+        "Names the direction of uncertainty rather than calling the number wrong",
+        "Names the unsampled route: event-level warehouse export"
+      ],
+      "fail_if": [
+        "Reports the number with no sampling disclosure",
+        "Withholds the number because it was sampled",
+        "Reports that sampling occurred without stating the rate"
+      ]
+    },
+    {
+      "id": "pb-03-credential-identity-logged",
+      "type": "honest-limit",
+      "scenario": "A web analytics response includes a schema restriction response indicating the credential cannot read revenue metrics. Revenue comes back absent rather than erroring.",
+      "expected_result_type": "partial",
+      "pass_if": [
+        "Detects that revenue is restricted rather than zero or missing data",
+        "Records the credential identity in provenance",
+        "States that a different credential may legitimately return different revenue for the same query",
+        "Returns the metrics that were readable"
+      ],
+      "fail_if": [
+        "Reports revenue as 0",
+        "Reports revenue as no data",
+        "Omits the credential from provenance"
+      ]
+    },
+    {
+      "id": "pb-04-provisional-window",
+      "type": "honest-limit",
+      "scenario": "Week-over-week ad conversions where the current week is inside the platform's 28-day restatement window and the prior week is not.",
+      "expected_result_type": "annotated_answer",
+      "pass_if": [
+        "Gives both weeks and the change",
+        "Marks the current week provisional",
+        "States that the current week will revise upward, so the decline is partly a timing artefact",
+        "Offers the like-for-like alternative: compare both periods at the same lag"
+      ],
+      "fail_if": [
+        "Reports the decline as a performance finding with no settling disclosure",
+        "Refuses the comparison",
+        "Claims the platforms' numbers are final"
+      ]
+    },
+    {
+      "id": "pb-05-three-clocks",
+      "type": "honest-limit",
+      "scenario": "A BI dashboard was republished 20 minutes ago. Its extract last refreshed 9 hours ago. The source pipeline is 30 hours behind. The user asks whether the dashboard shows today's numbers.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Answers no, and separates the three clocks explicitly",
+        "States that the deployment time says nothing about the data",
+        "Names the effective data age as roughly 39 hours behind",
+        "Names the extract refresh field as the check to run"
+      ],
+      "fail_if": [
+        "Answers yes because the dashboard was just published",
+        "Reports only the extract refresh time as the data age",
+        "Treats an object's modified timestamp as data recency"
+      ]
+    },
+    {
+      "id": "pb-06-double-currency-conversion",
+      "type": "honest-limit",
+      "scenario": "A lifecycle platform returns revenue that the platform has already converted to USD. The agent's reporting currency is USD and an FX step exists in the pipeline.",
+      "expected_result_type": "normal_answer",
+      "pass_if": [
+        "Identifies that the source already reports in USD and applies no further conversion",
+        "Records currency_source as the platform's own conversion",
+        "Does not fire the currency trigger, because no conversion was applied by the agent"
+      ],
+      "fail_if": [
+        "Applies an FX conversion to an already-converted figure",
+        "Treats the platform's stated currency as the account's local currency"
+      ]
+    }
+  ]
+}
