@@ -34,6 +34,8 @@ returns a well-formed empty response for both.
 
 ## (a) Auth setup — the lowest burden of the messaging platforms
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 Time to first query: minutes.
 
 1. **Create a Private API key** in Settings → API Keys, and **tick granular scopes.** Send

@@ -38,6 +38,8 @@ withhold a number to save a call; say what the call budget cost instead.
 
 ## (a) Auth setup — minutes, with one regional trap
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 1. **Establish data residency before anything else. This is the step everyone misses.**
    Mixpanel runs regional stacks: EU at `eu.mixpanel.com` / `data-eu.mixpanel.com`, India
    at `in.mixpanel.com` / `data-in.mixpanel.com`, and the default US hosts otherwise.

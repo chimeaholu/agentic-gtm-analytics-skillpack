@@ -35,6 +35,8 @@ Look result is fine and you should say so rather than forcing a fresh run.
 
 ## (a) Auth setup
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 Time to first query: roughly 30 minutes, assuming an admin is available. Setup burden:
 medium.
 

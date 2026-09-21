@@ -32,6 +32,10 @@ say so rather than insisting on an event-property rewrite.
 
 ## (a) Auth setup — the fastest in the pack
 
+> **Setting this up with someone who has not done it before? `references/connect.md` is
+> the same setup as a guided walkthrough — read aloud one step at a time, with the exact
+> screens, the scopes to choose and why, a verification call, and the common failures.**
+
 Time to first query: minutes. No app review, no approval queue, no cloud project.
 
 1. **Get the region and base URL from the user before anything else. This is the step

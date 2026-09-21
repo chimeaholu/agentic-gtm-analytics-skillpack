@@ -38,6 +38,8 @@ programmatic coverage of dashboard delivery metrics is thinner than the UI.**
 
 ## (a) Auth setup
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 1. **Create a workspace or personal access token** in the RudderStack dashboard. Basic or
    Bearer, depending on the API.
 2. **Supply the data-plane URL, which is per-workspace. This is the step everyone misses,

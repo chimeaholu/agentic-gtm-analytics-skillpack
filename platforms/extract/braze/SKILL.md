@@ -35,6 +35,8 @@ reconstructed, and saying so is the honest answer rather than a smaller number.
 
 ## (a) Auth setup
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 1. **Create a REST API key** in Dashboard → Settings → API Keys, sent as
    `Authorization: Bearer`.
 2. **Tick exactly the endpoints the key may call. This is the step everyone misses, and it

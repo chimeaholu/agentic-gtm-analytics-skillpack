@@ -40,6 +40,8 @@ forensics beyond that window are not possible via API.**
 
 ## (a) Auth setup
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 1. **Create a workspace-scoped API token** in Settings → Access Management → Tokens, with
    an assigned role — Workspace Owner, Read-only, and so on. Bearer auth. No app review.
 2. **Match the token's role to the work, and know that the role bounds the answer silently.

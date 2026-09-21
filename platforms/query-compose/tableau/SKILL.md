@@ -42,6 +42,8 @@ module exists to prevent.
 
 ## (a) Auth setup
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 1. **Create a Personal Access Token** — the default for scripts. `POST /api/3.x/auth/signin`
    with `personalAccessTokenName`, `personalAccessTokenSecret` and `site.contentUrl`
    returns an `X-Tableau-Auth` token good for roughly 240 minutes idle.

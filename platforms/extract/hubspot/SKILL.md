@@ -36,6 +36,10 @@ shard plan rather than returning a partial number as if it were whole.
 
 ## (a) Auth setup — the fastest in the pack
 
+> **Setting this up with someone who has not done it before? `references/connect.md` is
+> the same setup as a guided walkthrough — read aloud one step at a time, with the exact
+> screens, the scopes to choose and why, a verification call, and the common failures.**
+
 Time to first query: minutes.
 
 1. **Create a Private App:** Settings → Integrations → Private Apps → create → **tick

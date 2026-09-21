@@ -40,6 +40,10 @@ subscription's retention, or a field the API user's role cannot see.
 
 ## (a) Auth setup — straightforward, but admin-only
 
+> **Setting this up with someone who has not done it before? `references/connect.md` is
+> the same setup as a guided walkthrough — read aloud one step at a time, with the exact
+> screens, the scopes to choose and why, a verification call, and the common failures.**
+
 A marketer cannot self-serve this. Get an admin involved from the start.
 
 1. **Create an API-Only user role** in Admin → Users & Roles with the permissions the work

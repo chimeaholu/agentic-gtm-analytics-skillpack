@@ -35,6 +35,10 @@ breakdown combination Meta rejects.
 
 ## (a) Auth setup
 
+> **Setting this up with someone who has not done it before? `references/connect.md` is
+> the same setup as a guided walkthrough — read aloud one step at a time, with the exact
+> screens, the scopes to choose and why, a verification call, and the common failures.**
+
 Time to first query: **days, not minutes**, because App Review is a human process. Start it
 on day one, in parallel with everything else.
 

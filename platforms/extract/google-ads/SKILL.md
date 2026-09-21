@@ -34,6 +34,10 @@ thresholds, or a UI-layer column with no GAQL equivalent.
 
 ## (a) Auth setup — the heaviest onboarding in the pack
 
+> **Setting this up with someone who has not done it before? `references/connect.md` is
+> the same setup as a guided walkthrough — read aloud one step at a time, with the exact
+> screens, the scopes to choose and why, a verification call, and the common failures.**
+
 **Time to first query: three days to three weeks.** Say this up front, before any plan that
 depends on Google Ads data. The approval is the critical path and it cannot be accelerated.
 

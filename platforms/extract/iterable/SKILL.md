@@ -34,6 +34,8 @@ push or SMS A/B result is absent rather than zero, and saying so is the answer.
 
 ## (a) Auth setup — the easiest of the messaging platforms
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 1. **Create an API key per project** in the dashboard and **send it in the `Api-Key` HTTP
    header.**
 2. **Pick the right key type. Server-side keys are what reporting needs.** JWT-enabled keys

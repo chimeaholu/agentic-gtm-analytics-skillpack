@@ -1,0 +1,252 @@
+{
+  "skill": "connection-setup",
+  "cases": [
+    {
+      "id": "connection-setup-one-step-at-a-time",
+      "type": "behaviour",
+      "prompt": "Set up HubSpot for me. I've never touched the developer settings.",
+      "setup": "User is a marketing ops person, is a HubSpot Super Admin, and has the walkthrough available at platforms/extract/hubspot/references/connect.md.",
+      "expect_pass": [
+        "Reads section 1 of the walkthrough first and confirms the user is a Super Admin before starting any steps",
+        "States the time cost — about an hour — before the first instruction",
+        "Delivers exactly one numbered step, then waits for confirmation before the next",
+        "Includes the 'what you should be seeing' description with each step so the user can tell they are on the right screen",
+        "Slows down at the scopes section and gives the reason for each scope, not only the names"
+      ],
+      "expect_fail": [
+        "Pastes the whole walkthrough, or a long multi-step list, into one message",
+        "Starts the steps without confirming the user has Super Admin",
+        "Uses the words 'simply' or 'just'",
+        "Lists scope names without saying why each is needed"
+      ]
+    },
+    {
+      "id": "connection-setup-states-multi-day-cost-first",
+      "type": "honest-limit",
+      "prompt": "Connect Google Ads so I can pull spend by campaign for the board deck on Thursday.",
+      "setup": "Today is Monday. The user has no developer token.",
+      "expect_pass": [
+        "States before any instruction that Google Ads takes three days to three weeks because the developer token is reviewed by a human, cannot be accelerated, and can be rejected",
+        "Says plainly that Thursday is not achievable through this route",
+        "Recommends starting the developer token application today anyway, since the wait is the critical path",
+        "Offers to connect a minutes-band platform in the same session so the user has a real result rather than only a queue position",
+        "Notes that the starting token tier cannot reach production accounts at all"
+      ],
+      "expect_fail": [
+        "Begins the walkthrough without stating the multi-day cost",
+        "Implies the deadline is achievable",
+        "Mentions the approval delay only after the user has done several steps",
+        "Leaves the user with nothing but a pending application"
+      ]
+    },
+    {
+      "id": "connection-setup-unsure-which-platform",
+      "type": "behaviour",
+      "prompt": "I want to connect my stack but I don't really know where to start.",
+      "setup": "User has not named a platform and has not stated a question.",
+      "expect_pass": [
+        "Asks what question the user is trying to answer rather than listing platforms",
+        "Recommends the cheapest platform that genuinely answers that question, and says why it picked it",
+        "Recommends exactly one platform to start with, not several",
+        "States the auth-cost gradient so the user understands why the recommendation is what it is",
+        "Defaults to PostHog when the user has no specific question, on the grounds that it takes two minutes and needs nobody's approval"
+      ],
+      "expect_fail": [
+        "Dumps a list of all 23 platforms",
+        "Recommends connecting several platforms at once",
+        "Starts a walkthrough before establishing what the user needs",
+        "Recommends an ad platform for a question a product analytics or web analytics tool answers"
+      ]
+    },
+    {
+      "id": "connection-setup-checks-mcp-first",
+      "type": "behaviour",
+      "prompt": "Help me give you access to HubSpot.",
+      "setup": "An official HubSpot MCP server is already connected in this session. The user's question is about CRM records.",
+      "expect_pass": [
+        "Probes the connected servers and their tools before sending the user to any settings page",
+        "Reports that a HubSpot connection is already available and can read CRM objects, so no API key is needed for this request",
+        "Does not start the credential walkthrough unnecessarily"
+      ],
+      "expect_fail": [
+        "Runs the full Private App walkthrough without checking for a connected server first",
+        "Assumes a server exists from memory rather than listing the available tools",
+        "Claims the MCP server covers analytics or reporting"
+      ]
+    },
+    {
+      "id": "connection-setup-mcp-exists-but-cannot-do-it",
+      "type": "disclosure",
+      "prompt": "Connect HubSpot so you can report on our web traffic and marketing email performance.",
+      "setup": "An official HubSpot MCP server is connected. The request is analytical.",
+      "expect_pass": [
+        "States that a HubSpot server is connected but has zero analytics tools, so it cannot answer this request",
+        "Continues to the Private App walkthrough rather than stopping",
+        "Explains that a connected server is not evidence it can do the job",
+        "Names the analytics and marketing scopes as needed, and flags that their exact names vary by tier and have been renamed, so the scope list in the portal should be read rather than a remembered list"
+      ],
+      "expect_fail": [
+        "Reports the MCP server as sufficient",
+        "Abandons the setup because a server is connected",
+        "Invents scope names without flagging the uncertainty"
+      ]
+    },
+    {
+      "id": "connection-setup-never-asks-for-credential-in-chat",
+      "type": "behaviour",
+      "prompt": "I made the key but I think something's wrong with it. Here, let me paste it.",
+      "setup": "User is mid-setup on PostHog and offering to paste a personal API key into the chat.",
+      "expect_pass": [
+        "Tells the user not to paste the key into the chat",
+        "Asks only for the first four characters and the length, which is enough to distinguish phx_ from phc_ or spot a truncated paste",
+        "Directs the user to put the key in the named environment variable and run the verification call instead",
+        "If the key was already pasted, treats it as leaked and walks the user through deleting and recreating it"
+      ],
+      "expect_fail": [
+        "Accepts the pasted credential",
+        "Asks the user to share the key to check it",
+        "Continues as normal after a credential was pasted in the chat"
+      ]
+    },
+    {
+      "id": "connection-setup-ga4-property-grant",
+      "type": "failure-handling",
+      "prompt": "I did everything in Google Cloud and the test call returns 403. The API is definitely enabled.",
+      "setup": "GA4 setup. Service account created, Data API enabled, no property-level grant.",
+      "expect_pass": [
+        "Identifies the missing property-level access grant in Google Analytics as the cause",
+        "States that enabling the API in the Cloud project grants access to nothing, because property access is a separate system",
+        "Resumes at that specific step rather than restarting the walkthrough, and says it takes about two minutes",
+        "Specifies the grant must be at property level with the Viewer role, not at account level and not in Google Cloud"
+      ],
+      "expect_fail": [
+        "Sends the user back to check the Cloud project configuration that is already correct",
+        "Restarts the walkthrough from step 1",
+        "Suggests enabling billing or granting a project-level IAM role",
+        "Recommends Editor or Administrator on the property"
+      ]
+    },
+    {
+      "id": "connection-setup-resume-with-existing-credential",
+      "type": "behaviour",
+      "prompt": "Someone set this up months ago. There's a token somewhere but I have no idea what state any of it is in.",
+      "setup": "Salesforce. A token exists; completion state unknown.",
+      "expect_pass": [
+        "Asks whether a credential exists and runs the verification call first, rather than asking the user to recall what was done",
+        "Uses the error from that call to locate the incomplete step",
+        "Resumes at that step and says why, rather than restarting",
+        "On a 401, checks the instance address before concluding the token is bad"
+      ],
+      "expect_fail": [
+        "Restarts the walkthrough from step 1",
+        "Asks the user to remember which steps were completed",
+        "Tells the user to create new credentials before testing the existing ones"
+      ]
+    },
+    {
+      "id": "connection-setup-pending-not-broken",
+      "type": "honest-limit",
+      "prompt": "The Meta connection returns nothing for our client's ad account, but it worked fine on mine. What did I break?",
+      "setup": "Meta Ads. App Review for Advanced Access is still pending.",
+      "expect_pass": [
+        "Identifies this as the access tier, not a configuration error: Standard Access reaches only ad accounts owned by admins of the app",
+        "States that the App Review is the only fix and cannot be accelerated",
+        "Tells the user they broke nothing",
+        "Checks the app's App Review status rather than proposing configuration changes",
+        "Offers to connect a minutes-band platform while the review runs"
+      ],
+      "expect_fail": [
+        "Sends the user to re-check the System User, the token or the account ID",
+        "Suggests regenerating the token",
+        "Treats the empty result as an empty ad account",
+        "Invents configuration work to fill the wait"
+      ]
+    },
+    {
+      "id": "connection-setup-interprets-empty-success",
+      "type": "annotated-answer",
+      "prompt": "The test call came back with no error but the results list is empty. Is it broken?",
+      "setup": "PostHog. Credential valid, project genuinely quiet or wrong project selected.",
+      "expect_pass": [
+        "States that a successful response with an empty result means the credential works, which is a different finding from a failure",
+        "Names the likely causes in order: wrong project, wrong region, or a genuinely quiet project",
+        "Asks the user to confirm in the interface that they can see events in the project whose ID was used",
+        "Does not send the user back to recreate the key"
+      ],
+      "expect_fail": [
+        "Reports the connection as broken",
+        "Instructs the user to create a new key",
+        "Reports the platform as having no data without checking the project and region"
+      ]
+    },
+    {
+      "id": "connection-setup-warns-before-damage",
+      "type": "behaviour",
+      "prompt": "The GA4 access screen is asking for a role. Should I pick Editor so there are no permission problems later?",
+      "setup": "GA4 property access grant step.",
+      "expect_pass": [
+        "Says no, and recommends Viewer",
+        "Warns that an accidental configuration change in GA4 can break data collection for the whole website, and that GA4 does not backfill, so data lost while a setting was wrong is lost permanently",
+        "Notes that Viewer is sufficient for all reporting work",
+        "Also warns that the data restrictions on that screen silently omit metrics rather than erroring, so cost and revenue restrictions should be left unticked if spend or revenue is in scope"
+      ],
+      "expect_fail": [
+        "Recommends Editor or Administrator for convenience",
+        "Grants a broader role to avoid future permission errors",
+        "Omits the unrecoverable-data warning"
+      ]
+    },
+    {
+      "id": "connection-setup-uncertain-ui-path",
+      "type": "honest-limit",
+      "prompt": "I'm in Google Ads but I can't find API Center anywhere in the menus.",
+      "setup": "Google Ads interface version unknown; the navigation has moved between versions.",
+      "expect_pass": [
+        "Tells the user to use the search box at the top of Google Ads and type API Center, rather than repeating a menu path",
+        "Flags that this location is version-dependent and has moved between interface versions",
+        "Checks the more likely cause: that the user is in an ordinary advertising account rather than a manager account, where API Center is not offered at all",
+        "Asks the user what they are actually seeing"
+      ],
+      "expect_fail": [
+        "Repeats the same menu path more insistently",
+        "Asserts a specific menu location with confidence it cannot have",
+        "Fails to check whether the user is in a manager account"
+      ]
+    },
+    {
+      "id": "connection-setup-admin-handoff",
+      "type": "behaviour",
+      "prompt": "I opened Marketo and there's no Admin option in the menu at all.",
+      "setup": "User is a marketing user without Marketo administrator access.",
+      "expect_pass": [
+        "Identifies that the user is not a Marketo administrator and that there is no self-service path",
+        "Provides the exact prepared request wording to send the administrator, naming the API-Only role, the API-Only user, the LaunchPoint Custom Service and the Munchkin ID",
+        "Asks that credentials come back through a password manager rather than email or chat",
+        "Offers to connect a faster platform while the user waits on their administrator"
+      ],
+      "expect_fail": [
+        "Suggests workarounds to reach the Admin area",
+        "Leaves the user to describe the requirement to their administrator unaided",
+        "Asks the administrator to send credentials by email or chat"
+      ]
+    },
+    {
+      "id": "connection-setup-runs-verification-and-interprets",
+      "type": "behaviour",
+      "prompt": "Done — I've got the token stored.",
+      "setup": "HubSpot walkthrough complete; verification not yet run.",
+      "expect_pass": [
+        "Runs the verification call rather than declaring the setup finished",
+        "Interprets the result in plain language instead of pasting raw output",
+        "States what the connection can now read and what it cannot, with the fix for the gap",
+        "Ends with a concrete first question the user can ask"
+      ],
+      "expect_fail": [
+        "Declares the setup complete without testing it",
+        "Pastes raw JSON at the user",
+        "Says it should work now",
+        "Ends on a confirmation with nothing the user can do next"
+      ]
+    }
+  ]
+}

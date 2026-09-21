@@ -40,6 +40,8 @@ RLS-protected table is deliberate, not free.**
 
 ## (a) Auth setup
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 1. **A GCP project with the BigQuery API enabled and billing enabled. BigQuery will not run
    without billing, even in the free tier.**
 2. **A service account** with minimally **`roles/bigquery.jobUser`** (to run jobs, billed

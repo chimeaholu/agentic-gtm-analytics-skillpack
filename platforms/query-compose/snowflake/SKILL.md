@@ -36,6 +36,8 @@ nothing because the role lacks access to a new object**, which is indistinguisha
 
 ## (a) Auth setup — the most agent-friendly in the pack
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 No app registration, no tenant admin, no consent screen. Time to first query: minutes.
 
 1. **Key-pair JWT, which is the recommended path.** Generate an RSA keypair,

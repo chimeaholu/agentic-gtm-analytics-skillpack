@@ -33,6 +33,8 @@ can inject mandatory filters you will never see in the response.
 
 ## (a) Auth setup — low burden, and the cleanest multi-tenant story in the pack
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 Time to first query: minutes.
 
 1. **Get the API URL and the deployment.** Cube Cloud gives each deployment its own REST

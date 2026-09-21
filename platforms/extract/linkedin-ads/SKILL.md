@@ -33,6 +33,10 @@ array means either no activity or no access and **the two are indistinguishable.
 
 ## (a) Auth setup — the most fragile of the ad platforms
 
+> **Setting this up with someone who has not done it before? `references/connect.md` is
+> the same setup as a guided walkthrough — read aloud one step at a time, with the exact
+> screens, the scopes to choose and why, a verification call, and the common failures.**
+
 1. **Create a LinkedIn Developer app and associate it with a LinkedIn Page you
    administer.** This is a hard requirement and it trips people up: no Page admin rights,
    no app.

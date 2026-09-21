@@ -37,6 +37,10 @@ before the property started collecting.
 
 ## (a) Auth setup
 
+> **Setting this up with someone who has not done it before? `references/connect.md` is
+> the same setup as a guided walkthrough — read aloud one step at a time, with the exact
+> screens, the scopes to choose and why, a verification call, and the common failures.**
+
 Time to first query: roughly 30 minutes. Scope `https://www.googleapis.com/auth/analytics.readonly`
 for reads, `analytics.edit` for Admin writes.
 

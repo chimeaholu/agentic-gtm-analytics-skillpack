@@ -36,6 +36,8 @@ project started collecting.
 
 ## (a) Auth setup — by far the lowest friction in the pack
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 Time to first query: about two minutes.
 
 1. **HTTP Basic auth with `{api_key}:{secret_key}` base64-encoded.** Keys are **per-project**,

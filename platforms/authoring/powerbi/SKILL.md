@@ -37,6 +37,8 @@ OLS-hidden measure as absent is the failure this module exists to prevent.
 
 ## (a) Auth setup — the hardest in the pack
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 Time to first query: hours to days, because a **tenant admin** must act and an agent-builder
 cannot self-serve the critical step. Budget a tenant-admin conversation before you promise
 a date.

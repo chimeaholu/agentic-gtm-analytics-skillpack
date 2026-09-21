@@ -38,6 +38,8 @@ no exposed history, or a collection field, which cannot be exported at all.
 
 ## (a) Auth setup
 
+> **Setting this up for the first time, or walking a non-technical user through it?** Read `references/connect.md` — the same steps written out screen by screen, with what to choose and why, how to verify it, and what the failures actually mean.
+
 Roughly Salesforce-level complexity, plus one header.
 
 1. **Salesforce OAuth only. There is no Pardot-native auth any more** — it was disabled in
