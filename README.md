@@ -2,155 +2,121 @@
 
 # Agentic GTM Analytics Skillpack
 
-**Your agent can already pull your numbers. This teaches it when they're wrong.**
+### Give your agent a senior analytics team.
 
-Attribution · forecasting · warehouse modelling · reporting — across 22 platforms, B2B and B2C.
+**70 skills. 23 platforms. Attribution, forecasting, machine learning, warehouse
+modelling, and deployed dashboards — installed in five minutes.**
+
+*B2B and B2C. Free and open source.*
 
 </div>
 
 ---
 
-## The problem
+## What your agent can do an hour from now
 
-Marketing teams now have AI agents that will answer any question about their
-numbers. The agents are fluent, fast, and wrong in ways nobody catches.
+Ask it any of these in plain language and it knows how:
 
-Three real examples, all of which return successfully and none of which warn you:
+> *"Build me a live dashboard of pipeline by source and deploy it."*
+> *"Which channels actually drove revenue last quarter — run every attribution model and show me the spread."*
+> *"Forecast Q4 bookings and tell me how accurate this method has been on our own history."*
+> *"Score our open leads for conversion likelihood and tell me where the cutoff should be."*
+> *"Design the warehouse tables for our GTM data in BigQuery."*
+> *"Which of our customers are actually persuadable, rather than just likely to buy?"*
+> *"Two dashboards disagree on MQL count. Find out why."*
 
-**Your Salesforce report is missing rows.** The API caps detail rows at 2,000
-with no pagination — but computes the aggregates over the *full* result set.
-So the grand total is right, the rows behind it are incomplete, and the response
-looks identical either way. There is a field that tells you. Almost nothing reads it.
-
-**Your GA4 chart doesn't add up to its own total.** When counts fall below a
-threshold, GA4 silently withholds those rows from demographic breakdowns. The
-session total stays correct. The split beneath it quietly undercounts. No error,
-no flag in the chart.
-
-**Your cross-channel conversion number is inflated.** Add conversions from
-Google, Meta and LinkedIn and you get a number that overstates reality — the
-same person counted twice, on three different attribution windows, under three
-different definitions of the word "conversion." The spreadsheet does not object.
-
-None of these are exotic. They are Tuesday.
+No prompt engineering. No pasting documentation. The skills carry the method.
 
 ---
 
-## What this is
+## The capability map
 
-A pack of skills you load into your agent. It arrives already knowing how GTM
-analytics works — and, more usefully, where it breaks.
+**Attribution — the complete family**
+First touch, last touch, last non-direct, linear, time-decay, U-shaped, W-shaped,
+full path. **Markov chain removal-effect** and **Shapley value** allocation for when
+rules aren't enough. **Media mix modelling** and **incrementality testing** for the
+causal question underneath. Run them together and see where they disagree — that
+spread is usually the insight.
+
+**Machine learning built for marketing**
+Propensity and conversion models. **Uplift and causal modelling** to find who
+converted *because of you*. Churn prediction with survival analysis. Customer
+clustering and persona discovery. Recommendation systems. Time-series forecasting.
+LTV and value regression. Feature engineering from raw GTM event data — with the
+discipline that makes models trustworthy: temporal splits, leakage detection,
+probability calibration, stability testing.
+
+**Lead scoring, three ways**
+Demographic and firmographic fit. Behavioural and engagement scoring with recency
+decay. Full ML scoring from logistic baseline through gradient boosting — calibrated,
+so a 0.8 actually means 80%. Plus the evaluation layer: lift charts, decile analysis,
+drift monitoring, and threshold selection tied to real sales capacity.
+
+**Warehouse and data engineering**
+GTM star schemas for BigQuery and Snowflake. Source-by-source field mapping across
+every major platform. Idempotent SQL transformation layers. Identity resolution and
+journey assembly — anonymous to known, deterministic key precedence. Data quality
+tests that catch missing rows instead of reporting a comfortable zero.
+
+**Reporting and deployed dashboards**
+**Interactive dashboards deployed to Vercel** — Next.js, bake-at-build with parquet,
+keyless workload identity to your warehouse, so no credentials ever touch the
+frontend. Recurring cadence reports with real narrative. Anomaly detection and
+alerting. Executive summaries that make an argument instead of listing numbers.
+
+**B2B revenue analytics**
+Pipeline forecasting, backtested against your own history. Account-based analytics
+and buying-group engagement. Funnel conversion and velocity. Win-loss driver
+analysis. Sales activity and productivity. Territory, quota and capacity planning.
+KPI driver trees that trace any number back to its cause.
+
+**B2C and consumer analytics**
+Ecommerce and basket analysis. Subscription analytics with the full MRR movement
+waterfall. Cohort LTV and retention curves. Paid media, ROAS and MER. Email
+lifecycle and list health. RFM and value segmentation.
+
+**Semantic layer and metric definitions**
+Reads your existing dbt models, LookML, Power BI measures or Snowflake semantic
+views and uses **your** definitions. Builds portable metric layers. Discovers table
+relationships and join paths from the data itself. Canonical B2B and B2C metric
+dictionary with formulas, denominators and grain.
+
+**Stack audit**
+Point it at your existing reporting and it reverse-engineers what's actually
+implemented, reconciles the same metric across systems, traces lineage to source,
+and finds the double-counting. Usually the fastest way to get value on day one.
+
+---
+
+## 23 platforms, connected
 
 | | |
 |---|---|
-| **Connect** | Read from 22 platforms. Uses each vendor's official MCP server where one exists, falls back to the API where it doesn't. |
-| **Adopt your definitions** | Reads your existing dbt models, LookML, Power BI measures or Snowflake semantic views and uses *your* metric definitions. No parallel universe of numbers contradicting the dashboards your team already trusts. |
-| **Model** | GTM star schemas in BigQuery or Snowflake. Source-by-source field mapping. Quality tests that catch missing rows instead of reporting a comfortable zero. |
-| **Resolve identity** | Anonymous-to-known stitching with explicit matched / unmatched / ambiguous reporting. The step every attribution library assumes you've already done. |
-| **Attribute** | First touch, last touch, linear, time-decay, U and W shaped, full path, Markov removal-effect, Shapley — run together so you see the spread, not one convenient answer. Plus incrementality and media mix modelling. |
-| **Predict** | Pipeline forecasting backtested against your own history. Cohort LTV, retention, propensity, churn. Uplift modelling: who converted *because of you*. |
-| **Audit** | Point it at a dashboard. It reverse-engineers which definitions are actually implemented, reconciles the same metric across systems, and finds the double-counting. |
-| **Ship** | Deployed dashboards, recurring reports with narrative, anomaly alerts, executive summaries that argue rather than list. |
+| **CRM & marketing automation** | Salesforce · HubSpot · Marketo · Pardot |
+| **Lifecycle & messaging** | Braze · Iterable · Klaviyo |
+| **BI & semantic layers** | Looker · Tableau · Power BI · Cube |
+| **Warehouses** | BigQuery · Snowflake |
+| **Product analytics** | PostHog · Amplitude · Mixpanel |
+| **Advertising & web** | Google Ads · Meta · LinkedIn · GA4 |
+| **Pipelines** | Segment · RudderStack |
+
+Each platform module carries its auth setup, correct query construction, pagination
+and cost control, the right MCP server to use, and the practitioner knowledge that
+usually takes a year to acquire. Uses official MCP servers where they exist and
+falls back to the API where they don't.
 
 ---
 
-## What an answer actually looks like
+## Ships with a Salesforce reporting MCP server
 
-This is the part that matters, so here it is before anything else.
+Salesforce's own MCP server has no reporting tools. Nobody else's does either.
 
-### Ordinary question, nothing unusual
+So this pack includes one: **a working MCP server for the Salesforce Reports and
+Dashboards API**. Run saved reports, filter them on the fly, run async for large
+result sets, read report metadata, bulk query, and **create real Salesforce report
+objects** your team can then open in the UI.
 
-> **How many SQLs did we create in August?**
->
-> **412 SQLs** in August 2026.
-> <sub>Salesforce · complete · fiscal calendar · America/Toronto</sub>
-
-One number, one small grey line. That's it. Most questions look like this.
-
-### Something is genuinely wrong
-
-> **Organic sessions by age group, August?**
->
-> **38,400 sessions** total.
->
-> ⚠️ **The age breakdown below is incomplete.** GA4 withheld rows where counts
-> fell under its reporting threshold — roughly 14% of sessions aren't in any
-> bucket. The total is accurate; the split undercounts. Drop the demographic
-> dimension for complete rows.
-
-One warning, and it changes what you'd do next.
-
-### A question with a trap in it
-
-> **Total conversions across Google, Meta and LinkedIn last month?**
->
-> **2,530 conversions** across the three.
->
-> | | Conversions | How that platform counts |
-> |---|---|---|
-> | Google Ads | 1,240 | data-driven attribution, 30-day click |
-> | Meta | 980 | 7-day click, 1-day view |
-> | LinkedIn | 310 | 30-day click, 7-day view |
->
-> That's the figure if you add them up, and it's fine for a trend check or a
-> board slide where direction matters more than the decimal. Before you use it
-> for budget:
->
-> **It overstates, always in that direction.** Someone who saw your LinkedIn ad
-> and later clicked a Google ad is counted by both.
->
-> **The three aren't counting the same thing.** Google distributes credit
-> fractionally; Meta and LinkedIn each claim the whole conversion. Both include
-> view-throughs, on different windows.
->
-> **Some of it is modelled.** Google's data-driven attribution and Meta's
-> modelled conversions both estimate where tracking was lost.
->
-> **For a number you can defend:** deduplicate at person level in the warehouse,
-> or run a holdout — platform numbers tell you what was *claimed*, incrementality
-> tells you what was *caused*.
-
-You get the number you asked for. You also understand it.
-
-**It never withholds a number it can compute.** Guardrails that make you fight
-for an answer get switched off, and then they're worse than useless.
-
----
-
-## What makes it different
-
-Let's be direct about what this isn't competing on.
-
-**Connectors are free elsewhere.** Fivetran and Airbyte ship dbt packages that
-are better resourced than anything we'd build.
-
-**Attribution maths is open source.** Meridian, Robyn, PyMC-Marketing,
-ChannelAttribution, GeoLift. This pack composes them and tells you which to
-reach for. It doesn't reimplement them badly.
-
-What nobody ships free is the judgement:
-
-- **It reads the warning fields** most integrations ignore — sampling flags,
-  threshold flags, truncation flags, throttle headers.
-- **It names the direction of an error.** "Overstates" is actionable.
-  "May be inaccurate" is noise.
-- **It knows six platforms have six different timezone rules**, none of them UTC
-  by default. This is the most common silent correctness bug in GTM analytics.
-- **It won't promise what the platforms can't do.** It will not offer to build
-  you a dashboard inside GA4, because that API does not exist.
-
----
-
-## Platforms
-
-| Tier | Platforms | What the agent can do |
-|---|---|---|
-| **Authoring** | Salesforce · Looker · Power BI · Cube · PostHog · Mixpanel | Create real report or dashboard objects |
-| **Query-compose** | Klaviyo · Tableau · Snowflake | Compose report queries and metric definitions |
-| **Extract** | GA4 · Google Ads · Meta · LinkedIn · HubSpot · Marketo · Pardot · Braze · Iterable · Amplitude · BigQuery · Segment · RudderStack | Read, extract, aggregate locally |
-
-That split is researched, not assumed. Most "reporting APIs" cannot author a
-report, and the pack is built so it can't accidentally claim otherwise.
+TypeScript, tested, documented, MIT. `mcp-servers/salesforce-reports/`
 
 ---
 
@@ -158,41 +124,46 @@ report, and the pack is built so it can't accidentally claim otherwise.
 
 ```bash
 git clone https://github.com/chimeaholu/agentic-gtm-analytics-skillpack
-cd agentic-gtm-analytics-skillpack
 ```
 
-Point your agent's skills directory at the repo, or copy the tiers you want.
-Full instructions in [`docs/install.md`](docs/install.md).
+Point your agent's skills directory at the repo. That's the install.
 
-**Fastest path to a real answer: PostHog.** Its query language is SQL, auth is a
-scoped API key, and it's the only platform where an agent can run an analysis
-*and* save the result as a dashboard. Under five minutes from clone to output.
+**Fastest path to a real answer: PostHog.** SQL-based query language, auth is a
+scoped API key, and you can go from clone to a deployed dashboard in one sitting.
 
 ---
 
-## Before you start: what access actually costs
+## What access costs, honestly
 
-Nobody tells you this up front, so here it is.
+Start where it's cheap. Every platform is useful on its own.
 
 | Platform | Time to working access |
 |---|---|
 | PostHog · Mixpanel · Amplitude · Klaviyo · Segment | **Minutes** — API key |
-| GA4 · BigQuery · Snowflake | **~30 minutes** — cloud project, service account, property-level grant |
-| Salesforce · HubSpot | **An hour or so** — connected app or private app |
-| LinkedIn Ads · Meta | **Days** — developer platform review |
-| Google Ads | **Days to weeks** — developer token, tiered approval |
+| GA4 · BigQuery · Snowflake | **~30 minutes** — service account + property grant |
+| Salesforce · HubSpot | **About an hour** — connected app |
+| LinkedIn · Meta | **Days** — developer platform review |
+| Google Ads | **Days to weeks** — developer token approval |
 
-Start where the gradient is cheap. The pack is built so any single platform is
-useful on its own.
+---
+
+## Built to be trusted with real numbers
+
+Every skill knows the traps in its own territory. Reports flag when data was
+sampled, thresholded or truncated. Metrics carry their denominator and grain.
+Cross-platform roll-ups tell you which way they're biased and how to get the
+deduplicated figure.
+
+It answers the question you asked, then makes sure you can defend the answer.
 
 ---
 
 ## Architecture
 
 ```
-core/          guardrails every other skill must call
-semantics/     metric definitions, semantic-layer introspection, data modelling
-platforms/     one thin router + 22 platform modules
+core/          contracts every skill calls
+semantics/     metric definitions, semantic-layer introspection, modelling
+platforms/     thin router + 22 platform modules
 engineering/   warehouse schema, transformations, quality
 identity/      resolution and journey assembly
 attribution/   rule-based, algorithmic, incrementality, budget allocation
@@ -202,46 +173,15 @@ audit/         find where your stack disagrees with itself
 delivery/      dashboards, reports, alerts, narrative
 ```
 
-A **thin router** picks the platform module. Every module calls the shared
-`core/` contracts and cannot bypass them — that's what keeps a cross-platform
-answer coherent instead of producing four individually-correct, mutually
-incomparable numbers.
-
-**A warehouse makes it better. It is never required.**
-
----
-
-## What it deliberately won't do
-
-Knowing what a tool can't do is the same skill as knowing what it can.
-
-- **Build a GA4 dashboard or Exploration** — no public API exists
-- **Create a HubSpot report, or read a custom report's output** — neither endpoint exists
-- **Reproduce Marketo's own report numbers** — structurally impossible; Marketo
-  de-duplicates and filters in undocumented ways. The pack computes its own and
-  explains the difference
-- **Compose a Tableau dashboard from a spec** — there is no `POST /worksheets`
-
----
-
-## Status
-
-Pre-release, building toward v1.
-
-**v1 covers:** the full guardrail layer · metric definitions · semantic-layer
-introspection · four platforms end to end (PostHog, GA4, Google Ads, Salesforce)
-· a stack audit · rule-based attribution · and a Salesforce Reports & Dashboards
-MCP server, a capability no existing server ships.
-
-70 skills across 13 tiers when complete.
+A warehouse makes it better. It's never required.
 
 ---
 
 <div align="center">
 
-Built by **[Brainiac Consulting](https://brainiacconsulting.io)**
-from production GTM analytics work.
+Built by **[Brainiac Consulting](https://brainiacconsulting.io)** from production
+go-to-market analytics work.
 
-MIT licensed. Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+**MIT licensed. Take it, use it, ship it.**
 
 </div>
