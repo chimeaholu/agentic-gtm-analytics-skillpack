@@ -7,7 +7,7 @@
 **70 skills. 23 platforms. Attribution, forecasting, machine learning, warehouse
 modelling, and deployed dashboards — installed in five minutes.**
 
-*B2B and B2C. Free and open source.*
+*Guided setup for every platform. B2B and B2C. Free and open source.*
 
 </div>
 
@@ -24,8 +24,45 @@ Ask it any of these in plain language and it knows how:
 > *"Design the warehouse tables for our GTM data in BigQuery."*
 > *"Which of our customers are actually persuadable, rather than just likely to buy?"*
 > *"Two dashboards disagree on MQL count. Find out why."*
+> *"Connect my HubSpot — walk me through it, I've never done this before."*
 
 No prompt engineering. No pasting documentation. The skills carry the method.
+
+---
+
+## It sets itself up
+
+The hardest part of any analytics tool is the part before it works: finding the right
+settings page, knowing whether you need a Private App or an OAuth app, picking the
+scopes that won't fail three hours later, and working out why the token you just made
+returns 403.
+
+**Ask the agent to connect a platform and it walks you through it, one step at a time.**
+
+> *"Connect my HubSpot."*
+>
+> It checks whether you have the right permission level, tells you this takes about
+> an hour, then takes you through it step by step: where Private Apps live, exactly
+> which granular scopes to tick and why each one matters, what the token looks like,
+> where to put it. Then it runs a test call, confirms the connection works, and tells
+> you what to do if it doesn't.
+
+Every one of the 23 platforms ships with a guided setup walkthrough covering:
+
+- **What you need before you start** — the admin role required, and exactly what to
+  ask your admin for if you don't have it
+- **Every step named** — the menu path, the button, what the screen should look like
+- **Which options to choose and why** — scopes, permissions and roles, with the reason
+  for each, because wrong scopes fail silently later rather than at setup
+- **A verification test** — one call, the success response to expect, and what failure
+  looks like
+- **The common errors** — what each message actually means, in plain language, and the fix
+- **Credential handling** — where to store it, how to rotate it, how to revoke it
+
+It'll also check whether an official MCP server already exists for that platform,
+since connecting through one is usually easier than issuing raw API credentials.
+
+**You don't need to know any of this in advance. That's the point.**
 
 ---
 
