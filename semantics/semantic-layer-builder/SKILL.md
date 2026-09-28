@@ -65,6 +65,28 @@ metrics:
       denominator: closed_count
 ```
 
+The example's `ref('mart_opportunity')` model must define every referenced
+column. For this example, the model contract is explicit:
+
+```sql
+-- models/mart_opportunity.sql; stg_opportunity supplies the source columns.
+select
+  opportunity_id,
+  account_id,
+  close_date,
+  snapshot_date,
+  stage,
+  segment,
+  amount,
+  (stage = 'Closed Won') as is_won,
+  (stage in ('Closed Won', 'Closed Lost')) as is_closed
+from {{ ref('stg_opportunity') }}
+```
+
+`stg_opportunity` must expose those seven source columns; `is_won` and
+`is_closed` are defined here. This supplies the fields used by the measures,
+dimensions and `snapshot_date` additivity declaration above.
+
 Note what the YAML carries that SQL alone would not: the aggregation time
 dimension, the additivity rule, and a description written as the sentence a
 stakeholder would say.
@@ -176,27 +198,34 @@ A warehouse table whose rows are metric **definitions**, not metric values.
 
 ```sql
 create table metric_contract_versions (
-  metric_key              text        not null,
+  metric_key              varchar(200) not null,
   version                 int         not null,
-  human_name              text        not null,
-  stakeholder_sentence    text        not null,
-  source_system           text        not null,
-  formula                 text        not null,
-  numerator_definition    text,
-  denominator_definition  text,
-  grain                   text        not null,
-  time_basis              text        not null,
-  additivity              text        not null,
-  valid_dimensions        text[],
-  convention_notes        text,
+  human_name              varchar(2000)        not null,
+  stakeholder_sentence    varchar(2000)        not null,
+  source_system           varchar(2000)        not null,
+  formula                 varchar(2000)        not null,
+  numerator_definition    varchar(2000),
+  denominator_definition  varchar(2000),
+  grain                   varchar(2000)        not null,
+  time_basis              varchar(2000)        not null,
+  additivity              varchar(2000)        not null,
+  valid_dimensions        varchar(2000), -- delimited list; ANSI SQL has no portable array type
+  convention_notes        varchar(4000),
   effective_from          date        not null,
   effective_to            date,
   is_current              boolean     not null,
-  approver                text        not null,
+  approver                varchar(2000)        not null,
   created_at              timestamp   not null default current_timestamp,
   primary key (metric_key, version)
 );
 ```
+
+This registry DDL is an ANSI SQL variant: store `valid_dimensions` as a
+delimited string (for example, `segment|region|owner`) and split it in the
+application. It avoids PostgreSQL-only arrays and partial unique indexes; the
+versioning transaction below keeps one current version per metric. If native
+array types or filtered indexes are desired, label that separate DDL with the
+specific database dialect.
 
 **A redefinition inserts a new version. Nothing is ever overwritten.**
 

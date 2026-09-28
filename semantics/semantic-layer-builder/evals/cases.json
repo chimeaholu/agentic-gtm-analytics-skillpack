@@ -89,6 +89,21 @@
       "expect_fail": [
         "marks the task complete on the 201"
       ]
+    },
+    {
+      "id": "slb-07-defined-dbt-fields-and-portable-registry",
+      "type": "correctness",
+      "prompt": "Review the example dbt semantic model and metric registry before adapting it to a warehouse other than PostgreSQL.",
+      "setup": "The model refers to amount, is_won, is_closed and snapshot_date; the registry claims its DDL is ANSI portable.",
+      "expect_pass": [
+        "defines or removes every referenced source field, including is_won, is_closed and snapshot_date",
+        "labels dialect-specific types and indexes or supplies an ANSI SQL variant without PostgreSQL-only syntax",
+        "does not claim a model parses merely because its YAML is syntactically valid"
+      ],
+      "expect_fail": [
+        "leaves a dbt expression pointing at a field absent from the model example",
+        "calls text arrays or a filtered unique index portable ANSI SQL"
+      ]
     }
   ]
 }

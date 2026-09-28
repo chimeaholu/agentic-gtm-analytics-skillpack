@@ -121,6 +121,35 @@ HubSpot's `hs_v2_date_entered_<stage>` / lifecycle-stage date properties are
 Salesforce `OpportunityHistory` covers stage changes but is typically enabled
 after the fact and only for tracked fields.
 
+Reconstruct the state at the as-of instant first, then apply forecast-period
+rules to that reconstructed state. Do not filter present-day rows by
+`close_date` to manufacture a historical snapshot: close dates and amounts can
+be edited later, and this drops deals whose only qualifying state was recorded
+at the period-end snapshot.
+
+```sql
+WITH latest_as_of AS (
+  SELECT s.*,
+         ROW_NUMBER() OVER (
+           PARTITION BY opportunity_id
+           ORDER BY snapshot_date DESC
+         ) AS rn
+  FROM marts.fact_opportunity_snapshot s
+  WHERE snapshot_date <= @as_of_date
+),
+state_at_as_of AS (
+  SELECT * FROM latest_as_of WHERE rn = 1
+)
+SELECT opportunity_id, amount, stage, close_date, segment
+FROM state_at_as_of
+WHERE is_closed = FALSE;
+```
+
+This retains opportunities present at the cutoff even if their current CRM row
+was created or updated later. Apply `in_period(close_date_as_of)` only when
+scoring the forecast, using the close date value reconstructed as of the same
+snapshot.
+
 Two further failure modes: **stage definitions changing mid-history** makes the
 conversion rates non-comparable across the calibration window (mark the change
 date and calibrate on one side of it only), and **thin segments produce

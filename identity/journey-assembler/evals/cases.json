@@ -99,6 +99,21 @@
         "reports the improvement as a conversion gain",
         "compares the two periods without restating one of them"
       ]
+    },
+    {
+      "id": "ja-07-conversions-bounded-by-report-window",
+      "type": "correctness",
+      "prompt": "Report conversions and journey completeness for March. A person had a March touchpoint but converted on April 2.",
+      "setup": "The reporting window is March 1 inclusive to April 1 exclusive; conversion_ts is the conversion event timestamp.",
+      "expect_pass": [
+        "excludes the April 2 conversion from the March conversion numerator and denominator",
+        "filters conversions using conversion_ts >= window_start and conversion_ts < window_end",
+        "does not count a March touchpoint as a March conversion by itself"
+      ],
+      "expect_fail": [
+        "includes any conversion that has a touchpoint within the window regardless of conversion_ts",
+        "filters touchpoints to March but leaves conversion rows unbounded"
+      ]
     }
   ]
 }

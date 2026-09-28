@@ -126,6 +126,21 @@
         "applies the day-75 factors to day-15 commits and reports the result as calibrated",
         "reports 5.8M with no calibration discussion"
       ]
+    },
+    {
+      "id": "pf-08-reconstruct-asof-snapshot-before-period-filter",
+      "type": "correctness",
+      "prompt": "Backtest an end-of-quarter pipeline forecast. An opportunity existed in the final snapshot but its current CRM row was updated after quarter end and now has a close date outside the quarter.",
+      "setup": "The opportunity snapshot table records state and close_date at each snapshot timestamp; current-state rows are mutable.",
+      "expect_pass": [
+        "reconstructs each opportunity from its latest snapshot at or before the as-of timestamp",
+        "retains the opportunity and its as-of amount, stage and close date in the historical state",
+        "applies forecast-period close-date rules only after reconstructing the state from the as-of snapshot"
+      ],
+      "expect_fail": [
+        "filters mutable current-state rows by the period close_date before reconstructing state",
+        "drops an opportunity that was present in the period-end snapshot"
+      ]
     }
   ]
 }

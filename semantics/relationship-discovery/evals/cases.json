@@ -95,6 +95,21 @@
       "expect_fail": [
         "returns revenue per channel from the fanned-out join"
       ]
+    },
+    {
+      "id": "rd-07-disjoint-coverage-buckets",
+      "type": "correctness",
+      "prompt": "Report join coverage for three left records: one has exactly one right match, one has no right match, and one has two right matches.",
+      "setup": "The ambiguous record must not be resolved by an arbitrary choice. Total left records = 3.",
+      "expect_pass": [
+        "reports matched=1, unmatched=1, ambiguous=1 as mutually exclusive counts",
+        "states that matched plus unmatched plus ambiguous equals the total of 3",
+        "does not count the ambiguous record in matched"
+      ],
+      "expect_fail": [
+        "uses count of any non-null joined key as matched and also counts ambiguous separately",
+        "reports bucket totals greater than three"
+      ]
     }
   ]
 }

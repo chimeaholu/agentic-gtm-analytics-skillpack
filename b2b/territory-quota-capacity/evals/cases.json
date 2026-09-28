@@ -127,6 +127,20 @@
         "flags the mismatch but produces no corrected figures",
         "describes pipeline velocity as a duration"
       ]
+    },
+    {
+      "id": "tqc-08-ramp-capacity-recomputed",
+      "type": "correctness",
+      "prompt": "Reconcile the first-year ramp-adjusted capacity for ten reps hired evenly through the year, each with a $1M annual quota.",
+      "setup": "The worked hiring schedule totals 36.90 quota-months. Monthly quota capacity is $1,000,000 divided by 12.",
+      "expect_pass": [
+        "shows 36.90 times ($1,000,000 divided by 12) equals $3,075,000, approximately $3.08M",
+        "distinguishes the $10M naive annual capacity from ramp-adjusted capacity"
+      ],
+      "expect_fail": [
+        "reports $4.1M as the result of the stated inputs",
+        "does not show how quota-months convert to dollars"
+      ]
     }
   ]
 }

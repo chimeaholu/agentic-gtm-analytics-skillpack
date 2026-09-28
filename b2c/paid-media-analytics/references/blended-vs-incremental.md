@@ -46,7 +46,7 @@ When the rough figure is fine           channel-versus-itself trends, scale sani
 MER                      = total revenue ÷ total marketing spend
 Break-even MER           = 1 ÷ contribution margin
 aMER                     = new-customer revenue ÷ total marketing spend
-Blended new-customer CAC = total marketing spend ÷ new customers
+Blended new-customer CAC = acquisition spend in the period ÷ new customers acquired in that period
 Contribution after spend = revenue × CM − spend
 ```
 

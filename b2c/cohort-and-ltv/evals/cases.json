@@ -129,6 +129,20 @@
         "drops the thin channel silently",
         "refuses the whole breakdown"
       ]
+    },
+    {
+      "id": "clv-08-cac-spend-over-new-customers",
+      "type": "correctness",
+      "prompt": "In April we spent $120,000 on acquisition and acquired 600 new customers. What is April cohort CAC?",
+      "setup": "Use that same April period for the spend and acquired-customer denominator; no other acquisition costs are supplied.",
+      "expect_pass": [
+        "calculates CAC as $120,000 / 600 = $200 per new customer",
+        "uses total acquisition spend as numerator and new customers acquired in the period as denominator"
+      ],
+      "expect_fail": [
+        "inverts the ratio or divides spend by orders, active customers or all customers",
+        "reports $0.005 CAC or another reciprocal result"
+      ]
     }
   ]
 }

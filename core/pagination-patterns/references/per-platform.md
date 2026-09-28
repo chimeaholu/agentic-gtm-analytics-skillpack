@@ -13,16 +13,19 @@ specific case, reports "the query failed" rather than paginating. This is the
 single most misread error in the register.
 
 ```
-last_ts = window_start
+last_ts = null
 last_id = null
 rows = []
 for stage in 1..MAX_STAGES:            # fixed, visible cap
     q = f"""
       select id, timestamp, event, properties
       from events
-      where timestamp >= '{last_ts}'
+      where timestamp >= '{window_start}'
         and timestamp <  '{window_end}'
-        and (timestamp > '{last_ts}' or id > '{last_id}')   -- tiebreaker
+        and (
+          {"TRUE" if last_ts is null else
+           f"(timestamp, id) > ('{last_ts}', '{last_id}')"}
+        )
       order by timestamp asc, id asc
       limit 10000
     """
@@ -36,6 +39,11 @@ for stage in 1..MAX_STAGES:            # fixed, visible cap
 else:
     capped = True                      # stages exhausted → lower_bound
 ```
+
+The first page has no cursor predicate, so rows exactly at `window_start` are
+included. Every later page seeks lexicographically on the non-null `(timestamp,
+id)` pair. Never compare `id` with an uninitialised `NULL` cursor: SQL's unknown
+result would silently drop rows at that first timestamp boundary.
 
 - Default limit 100 rows. Maximum 50,000 with an explicit `LIMIT`.
 - Use `refresh: async` for non-trivial HogQL or the HTTP layer times out first.

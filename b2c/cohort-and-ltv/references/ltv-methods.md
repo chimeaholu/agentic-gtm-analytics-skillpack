@@ -99,7 +99,13 @@ horizon figure.
 LTV:CAC        = LTV_H ÷ CAC
 CAC payback    = months until cumulative gross profit per acquired customer
                  reaches CAC
+CAC            = acquisition spend in the acquisition period ÷ new customers
+                 acquired in that same period
 ```
+
+This spend-per-new-customer definition follows the customer profitability and
+acquisition-spending treatment in Farris et al., *Marketing Metrics*, 4th ed.
+(Pearson, 2021).
 
 - **The 3:1 rule has no empirical basis.** It propagated through blog posts.
 - **Present payback first.** A 3:1 ratio coexists happily with a 24-month

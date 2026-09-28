@@ -126,6 +126,21 @@
         "describes the truncated counts as a lower bound with no further caveat",
         "discards the entire report including the valid aggregates"
       ]
+    },
+    {
+      "id": "fca-08-stage-event-after-cohort-entry",
+      "type": "correctness",
+      "prompt": "Calculate A-to-B conversion for records that entered stage A during April. One record reached B in February, later re-entered A in April, and reached B again in May.",
+      "setup": "The cohort uses first entry to A within April and the conversion window starts at cohort_entry_time.",
+      "expect_pass": [
+        "counts only a stage-B event whose timestamp is at or after the cohort entry timestamp",
+        "excludes the February B event from the April cohort and may count the May event",
+        "enforces stage_event_time >= cohort_entry_time in the event-to-cohort join"
+      ],
+      "expect_fail": [
+        "counts the February event as conversion for the April cohort",
+        "joins on record id and target stage without a time-order constraint"
+      ]
     }
   ]
 }

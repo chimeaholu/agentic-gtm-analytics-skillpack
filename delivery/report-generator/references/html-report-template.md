@@ -1,8 +1,23 @@
-# The self-contained HTML report, end to end
+# The single-file HTML report, end to end
 
-One file. Inline data, inline styles, a pinned chart library, a `<details>`
-provenance footer. It opens from an email attachment, offline, on a phone, in
-three years.
+One HTML file with inline data and styles, a pinned chart library loaded from a
+CDN, and a `<details>` provenance footer. The report text and data work offline;
+the interactive chart requires network access to the CDN.
+
+Before writing the HTML, serialize embedded values with this helper:
+
+```js
+function safeJsonForHtmlScript(value) {
+  return JSON.stringify(value)
+    .replace(/<\/script/gi, '<\\u002fscript')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+```
+
+The replacements ensure a literal `</script>` cannot close the data element,
+and U+2028/U+2029 do not break JavaScript parsing. Apply this on the generator
+side before interpolating the string into HTML.
 
 ## 1. The skeleton
 
@@ -113,11 +128,7 @@ three years.
      sum exactly to the quarter figure.</p>
 </details>
 
-<script id="report-data" type="application/json">
-{"months":["2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],
- "pipeline":[3510000,3720000,3640000,3890000,3980220,4203118,1340000],
- "incomplete_from_index":6}
-</script>
+<script id="report-data" type="application/json">${safeJsonForHtmlScript(reportData)}</script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
@@ -259,7 +270,8 @@ const p=await b.newPage();await p.goto('file://'+process.cwd()+'/report.html');
 await p.pdf({path:'report.pdf',format:'A4',printBackground:true});await b.close()})()"
 ```
 
-Two differences to handle deliberately:
+The `${...}` expression is evaluated by the report generator before the file
+is written. Two differences to handle deliberately:
 
 - **`<details>` does not print its collapsed content.** Either add
   `details { display:block } details > summary { list-style:none }` plus forced

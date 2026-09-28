@@ -138,6 +138,21 @@
         "The new definition is applied with no marker and the drop is narrated as a decline",
         "The definition change appears only in prose and not in the sidecar"
       ]
+    },
+    {
+      "id": "rg-09-html-cdn-disclosure-and-safe-json",
+      "type": "correctness",
+      "prompt": "Generate a report HTML file with a pinned CDN chart library and user-provided labels embedded in an application/json script element.",
+      "setup": "A label may contain the literal </script>, U+2028 or U+2029. The HTML advertises offline use.",
+      "expect_pass": [
+        "states the interactive chart requires network access to the CDN or provides a truly offline alternative",
+        "serializes embedded JSON with a function that escapes </script>, U+2028 and U+2029 before interpolation",
+        "keeps the data in the JSON script element without premature closing"
+      ],
+      "expect_fail": [
+        "claims the CDN-dependent interactive chart is fully offline/self-contained",
+        "embeds JSON.stringify output directly without escaping the dangerous sequences"
+      ]
     }
   ]
 }

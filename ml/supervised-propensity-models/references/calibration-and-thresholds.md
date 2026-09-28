@@ -125,16 +125,19 @@ while the top bin, the only one anyone acts on, is badly off.
 
 ## 6. Prior correction after undersampling
 
-If the majority class was undersampled by factor `r` (kept fraction `r` of
-negatives), the model's output `p_obs` relates to the true probability by:
+If sampling changes the class prior while class-conditional feature
+distributions remain stable, correct the training posterior using the
+population and training positive-class priors:
 
 ```
-p_true = p_obs / (p_obs + (1 − p_obs) / r)
+p_pop = p_train / (p_train + (1 − p_train) × ((1 − π_pop)/π_pop) × (π_train/(1 − π_train)))
 ```
 
-Worked: base rate 2%, negatives undersampled to `r = 0.1` (training base rate
-~17%). A model outputs `p_obs = 0.50`. Then
-`p_true = 0.5 / (0.5 + 0.5/0.1) = 0.5 / 5.5 ≈ 0.091` — about 9%, not 50%.
+Here `π_pop` is the population positive prior, `π_train` is the training
+positive prior, and `p_train` is the model posterior under the training prior.
+For example, with `π_pop = 0.02`, `π_train = 0.17`, and `p_train = 0.50`,
+`p_pop = 0.50 / (0.50 + 0.50 × (0.98/0.02) × (0.17/0.83)) ≈ 0.091`.
+This is the Bayes prior-probability correction (Elkan, 2001, §2).
 
 **Prefer refitting a calibration map on a set with the true base rate.** The
 formula corrects the prior shift only; it does not correct the shape distortion

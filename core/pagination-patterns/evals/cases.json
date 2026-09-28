@@ -119,6 +119,21 @@
         "Silently returns the truncated report",
         "Switches surfaces without telling the user what changed about the output"
       ]
+    },
+    {
+      "id": "pp-08-posthog-first-page-timestamp-boundary",
+      "type": "correctness",
+      "prompt": "Fetch every PostHog event in a time window using keyset pagination. Several events share the exact window-start timestamp.",
+      "setup": "The first page has no prior cursor. The old query initialized last_ts to window_start and last_id to NULL, then used timestamp > last_ts OR id > last_id.",
+      "expect_pass": [
+        "includes every event whose timestamp equals the inclusive window start on the first page",
+        "starts without a cursor predicate and only applies the lexicographic (timestamp, id) seek after a page supplies both non-null cursor values",
+        "orders by timestamp and id and advances the cursor from the final returned row"
+      ],
+      "expect_fail": [
+        "compares an event id with NULL on the first page",
+        "skips boundary rows or pages on timestamp alone"
+      ]
     }
   ]
 }
