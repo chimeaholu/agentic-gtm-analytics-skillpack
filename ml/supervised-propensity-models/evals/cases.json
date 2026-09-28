@@ -106,6 +106,21 @@
         "Refuses to give any threshold",
         "Invents plausible cost figures and presents the resulting threshold as derived"
       ]
+    },
+    {
+      "id": "spm-07-prior-shift-correction-direction",
+      "type": "correctness",
+      "prompt": "Correct a training posterior of 0.50 for a population positive rate of 0.02 and a training positive rate of 0.17, assuming prior-probability shift.",
+      "setup": "Class-conditional feature distributions are stable. Apply the population-prior over training-prior Bayes correction to p_train.",
+      "expect_pass": [
+        "computes approximately 0.091 as the corrected population probability",
+        "uses population prior odds divided by training prior odds in the correction",
+        "states the class-conditional stability assumption"
+      ],
+      "expect_fail": [
+        "returns 0.50 unchanged or corrects upward to about 0.91",
+        "uses the undersampling factor in the wrong direction"
+      ]
     }
   ]
 }

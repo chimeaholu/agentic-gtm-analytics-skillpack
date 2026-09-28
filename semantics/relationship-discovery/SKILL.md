@@ -81,15 +81,20 @@ remainders**.
 ```sql
 select
   count(*)                                              as left_rows,
-  count(r.key)                                          as matched_rows,
-  count(*) - count(r.key)                               as unmatched_rows,
+  sum(case when r.n = 1 then 1 else 0 end)              as matched_rows,
+  sum(case when r.n is null then 1 else 0 end)           as unmatched_rows,
   sum(case when r.n > 1 then 1 else 0 end)              as ambiguous_rows,
   sum(l.amount)                                         as left_amount,
-  sum(case when r.key is null then l.amount else 0 end) as unmatched_amount
+  sum(case when r.n is null then l.amount else 0 end)   as unmatched_amount,
+  sum(case when r.n > 1 then l.amount else 0 end)       as ambiguous_amount
 from left_table l
 left join (select key, count(*) n from right_table group by 1) r
   on l.key = r.key;
 ```
+
+These are mutually exclusive buckets: `matched_rows + unmatched_rows +
+ambiguous_rows = left_rows`. Ambiguous means more than one right-side match and
+is excluded from `matched_rows` until resolved.
 
 **`unmatched_amount` is the field that matters.** 8% of rows unmatched sounds
 tolerable until those rows carry 40% of the revenue, which is the usual shape:

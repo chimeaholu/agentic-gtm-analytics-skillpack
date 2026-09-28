@@ -161,8 +161,8 @@ with right_counts as (
 )
 select
   count(*)                                                as left_rows,
-  count(r.key)                                            as matched,
-  count(*) - count(r.key)                                 as unmatched,
+  count(*) filter (where r.n = 1)                         as matched,
+  count(*) filter (where r.n is null)                     as unmatched,
   count(*) filter (where r.n > 1)                         as ambiguous,
   sum(l.amount)                                           as left_total,
   sum(l.amount) filter (where r.key is null)              as unmatched_total,
@@ -170,6 +170,11 @@ select
 from left_table l
 left join right_counts r on l.key = r.key;
 ```
+
+The three row buckets are disjoint and exhaustive:
+`matched + unmatched + ambiguous = left_rows`. Ambiguous records are not
+counted as matched unless a deterministic resolution rule has reduced them to
+one right-side row.
 
 Then say it in one sentence:
 

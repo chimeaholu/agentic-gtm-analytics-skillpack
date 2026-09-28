@@ -132,6 +132,21 @@
         "accepts the 22% improvement",
         "notes the settling issue without re-pulling or quantifying its effect"
       ]
+    },
+    {
+      "id": "pma-08-settled-cpa-same-interaction-cohort",
+      "type": "correctness",
+      "prompt": "A click-date cohort generated $30,000 spend and 400 conversions initially. After the attribution delay window settles, the same cohort has 500 conversions. Compute settled CPA.",
+      "setup": "Spend and conversions are both assigned to the same click-date cohort and attribution settings; no spend changed after the cohort ended.",
+      "expect_pass": [
+        "uses cost divided by settled conversions: $30,000 / 500 = $60 CPA",
+        "matches cost and delayed conversions to the same interaction cohort and window",
+        "uses the settled 500 conversion count rather than the in-flight 400"
+      ],
+      "expect_fail": [
+        "divides conversions by cost",
+        "divides this period spend by conversions grouped into a different conversion-event period"
+      ]
     }
   ]
 }

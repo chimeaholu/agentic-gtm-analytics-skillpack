@@ -56,7 +56,7 @@ Ten reps hired evenly through a year, 1M annual quota each, 6-month ramp:
 
 ```
 Naive plan:        10 reps × 1M                      = 10.0M of capacity
-Ramp-adjusted:     Σ months of ramp_factor × 1M/12   ≈  4.1M in year one
+Ramp-adjusted:     36.90 quota-months × (1M ÷ 12)    ≈  3.075M ≈ 3.08M in year one
 ```
 
 The gap is not a rounding error, and it is the most-omitted parameter in GTM
@@ -190,7 +190,7 @@ produces scenarios that cannot happen.
 > the current headcount plan.**
 >
 > Ten reps hired evenly through the year with a six-month ramp deliver about
-> 4.1M of productive capacity in year one, against 10M on the naive
+> 3.08M of productive capacity in year one, against 10M on the naive
 > headcount × quota arithmetic. The ramp curve is this org's own: median
 > bookings by tenure month over the last two years of hires.
 >

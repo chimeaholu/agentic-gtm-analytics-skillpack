@@ -16,6 +16,19 @@ so the four decisions below are made explicitly and emitted with the result.
 Use first entry unless the org's process genuinely recycles records through a
 stage as a matter of course, in which case say so and show both.
 
+When events are joined to cohort entry, constrain every candidate progression
+event to occur at or after that entry. Otherwise an old visit to stage B can be
+incorrectly credited to a later stage-A cohort:
+
+```sql
+SELECT e.record_id, e.stage_event_time
+FROM stage_events e
+JOIN cohort_entries c USING (record_id)
+WHERE e.stage = 'B'
+  AND e.stage_event_time >= c.cohort_entry_time
+  AND e.stage_event_time < TIMESTAMP_ADD(c.cohort_entry_time, INTERVAL @window_days DAY);
+```
+
 ### (b) Conversion window
 
 ```

@@ -47,18 +47,28 @@ SELECT
   m.last_successful_load,
   TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), m.last_successful_load, HOUR) AS hours_stale,
   m.expected_max_staleness_hours,
-  t.tests_run, t.tests_failed, t.tests_not_run,
+  COALESCE(t.tests_run, 0) AS tests_run,
+  COALESCE(t.tests_failed, 0) AS tests_failed,
+  COALESCE(t.tests_not_run, r.required_tests) AS tests_not_run,
+  r.required_tests,
   CASE
     WHEN m.last_successful_load IS NULL                                   THEN 'NEVER_LOADED'
     WHEN TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), m.last_successful_load, HOUR)
          > m.expected_max_staleness_hours                                 THEN 'STALE'
+    WHEN t.mart_name IS NULL                                              THEN 'NOT_READY'
     WHEN t.tests_failed > 0                                               THEN 'FAILED'
-    WHEN t.tests_not_run > 0                                              THEN 'PARTIAL'
+    WHEN t.tests_not_run > 0 OR COALESCE(t.tests_run, 0) < r.required_tests THEN 'NOT_READY'
     ELSE 'READY'
   END AS readiness
 FROM quality.mart_load_state m
+JOIN quality.mart_required_test_counts r USING (mart_name)
 LEFT JOIN quality.test_results_latest t USING (mart_name);
 ```
+
+`mart_required_test_counts` contains one row per mart with `required_tests`,
+and `test_results_latest` contains one aggregate row only after checks finish.
+The left join means a missing required-test result stays visible and forces
+`NOT_READY`; absence of a failure row is not evidence that every check passed.
 
 **The status badge is asserted here, in the warehouse, not in the renderer.**
 Failure mode F17 is a green badge above a stale number, and it happens whenever

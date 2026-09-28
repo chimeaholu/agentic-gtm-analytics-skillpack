@@ -1,6 +1,6 @@
 ---
 name: report-generator
-description: Use when producing a recurring or one-off report as a deliverable file — a weekly GTM report, a monthly exec pack, a QBR deck input or a self-contained HTML or PDF artefact that needs no hosting. Applies the cadence discipline — leading indicators weekly, finance-reconciled monthly, forecast-accuracy postmortem quarterly — and attaches the definition, window and caveats to every number. Prevents a chart dump nobody reads, and prevents a report whose numbers quietly contradict the dashboard.
+description: Use when producing a recurring or one-off report as a deliverable file — a weekly GTM report, a monthly exec pack, a QBR deck input or an HTML or PDF artefact. HTML reports may use a CDN for interactive charts and must disclose that network requirement. Applies the cadence discipline — leading indicators weekly, finance-reconciled monthly, forecast-accuracy postmortem quarterly — and attaches the definition, window and caveats to every number. Prevents a chart dump nobody reads, and prevents a report whose numbers quietly contradict the dashboard.
 ---
 
 # Report Generator
@@ -281,18 +281,18 @@ state of `unavailable` is a valid, complete metric entry.** Zero is not.
 
 ---
 
-## 8. Self-contained HTML is the lowest-friction deliverable
+## 8. Single-file HTML with network-dependent charts
 
-Inline data, inline styles, a chart library from a CDN, one file. No hosting, no
-auth, no build. It opens from an email attachment on a phone, on a laptop with no
-network, and in three years.
+Inline data and styles, with the interactive chart library loaded from a CDN.
+The report text and data remain readable offline; the interactive chart needs a
+network connection. For a fully offline report, use static SVG instead.
 
 ```html
 <!doctype html>
 <meta charset="utf-8">
 <title>GTM monthly — August 2026</title>
 <style>/* inline; no external stylesheet */</style>
-<script id="data" type="application/json">{"pipeline_created":[...]}</script>
+<script id="data" type="application/json">${safeJsonForHtmlScript(reportData)}</script>
 <main>
   <h1>Pipeline created was 4.2M in August, up 6% on July</h1>
   <p>...narrative...</p>
@@ -303,13 +303,30 @@ network, and in three years.
 <script>/* read #data, render */</script>
 ```
 
+Serialize data before inserting it into the `application/json` script element.
+This helper escapes a closing script sequence and JavaScript line separators,
+so untrusted values cannot terminate the element or break parsing:
+
+```js
+function safeJsonForHtmlScript(value) {
+  return JSON.stringify(value)
+    .replace(/<\/script/gi, '<\\u002fscript')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+```
+
+The `${...}` expression is evaluated by the report generator before writing the
+HTML file, not by the browser.
+
 Two properties that matter more than they look:
 
-- **Inline the data, do not fetch it.** A report that fetches is a report that
-  breaks the moment the endpoint moves, the token expires or the reader is
-  offline. The artefact must be true in three years with no infrastructure.
+- **Inline the data, do not fetch it.** A report that fetches its data breaks
+  when the endpoint moves or a token expires. The report data remains available
+  offline; the CDN-hosted interactive chart does not.
 - **Pin the CDN version** (`chart.js@4`, not `chart.js@latest`). A floating tag
-  means the chart renders differently next year, or not at all.
+  means the chart renders differently next year, or not at all; even a pinned
+  CDN dependency still requires network access.
 
 If the CDN is unacceptable — an air-gapped reader, a strict email gateway — inline
 the library too and accept the file size, or render static SVG server-side. Say
@@ -378,7 +395,8 @@ deliberately retired with a note.
 
 ## Files
 
-- `references/html-report-template.md` — the full self-contained HTML skeleton,
+- `references/html-report-template.md` — the single-file HTML skeleton with an
+  interactive chart that requires its pinned CDN library,
   the `<details>` provenance footer, and the sidecar writer
 - `references/cadence-playbooks.md` — what goes in the weekly, monthly and
   quarterly reports, with the finance reconciliation procedure and the

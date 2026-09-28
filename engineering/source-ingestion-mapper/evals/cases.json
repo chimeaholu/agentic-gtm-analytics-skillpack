@@ -81,6 +81,21 @@
         "assumes duplication without checking the ledger",
         "recommends deduplicating the target table as the fix rather than checking idempotency"
       ]
+    },
+    {
+      "id": "sim-06-overlap-replace-scoped-to-tenant",
+      "type": "correctness",
+      "prompt": "Replace tenant A?s fact rows for source googleads and dates June 1?30 in a shared multi-tenant target table.",
+      "setup": "Tenant B has rows with the same source and date range. The delete and insert run in one transaction.",
+      "expect_pass": [
+        "includes tenant_id in the DELETE predicate together with source and date range",
+        "loads replacement rows for the same tenant scope",
+        "preserves tenant B rows"
+      ],
+      "expect_fail": [
+        "deletes by source and date range without tenant_id",
+        "deletes or replaces rows for another tenant"
+      ]
     }
   ]
 }

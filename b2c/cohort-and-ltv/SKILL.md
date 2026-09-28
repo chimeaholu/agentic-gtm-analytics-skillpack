@@ -177,6 +177,11 @@ makes it a leading indicator.
 
 ## Answering
 
+For each acquisition cohort, calculate `CAC = total acquisition spend in the
+cohort's acquisition period ÷ number of new customers acquired in that same
+period`. State which sales and marketing costs are included, and cohort-match
+CAC with LTV.
+
 > **The 12-month cohort LTV is 148 in gross profit, against a blended CAC of
 > 71, so payback lands around month 7.**
 >

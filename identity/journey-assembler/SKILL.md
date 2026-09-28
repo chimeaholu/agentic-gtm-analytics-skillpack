@@ -193,6 +193,8 @@ WITH person_paths AS (
     ON  c.canonical_person_id = t.canonical_person_id
     AND t.event_ts <= c.conversion_ts
     AND t.event_ts >  TIMESTAMP_SUB(c.conversion_ts, INTERVAL @lookback_days DAY)
+    AND c.conversion_ts >= @window_start
+    AND c.conversion_ts <  @window_end
   WHERE t.canonical_person_id IS NOT NULL
     AND t.event_date BETWEEN @window_start AND @window_end
   GROUP BY 1, 2

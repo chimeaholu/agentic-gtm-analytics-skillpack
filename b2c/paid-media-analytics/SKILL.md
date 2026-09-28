@@ -85,7 +85,7 @@ platforms and must never be silently merged into one column.
 MER            = total revenue ÷ total marketing spend
 Break-even MER = 1 ÷ contribution margin
 aMER           = new-customer revenue ÷ total marketing spend
-Blended new-customer CAC = total marketing spend ÷ new customers
+Blended new-customer CAC = acquisition spend in the period ÷ new customers acquired in that period
 ```
 
 | Contribution margin | Break-even MER |
@@ -126,6 +126,12 @@ Yesterday's numbers change for days or weeks.
 compare to a fresh pull.** A month-over-month comparison where one month was
 pulled in-flight and the other after settling is a comparison of settling, not
 performance.
+
+For a settled CPA, use `CPA = cost for a defined interaction cohort ÷
+conversions attributed to that same cohort`. Keep the platform's attribution
+basis and conversion window fixed, then re-pull the cohort after its delay
+window has matured. Do not divide current-period spend by conversions grouped
+by conversion-event date from a different cohort or period.
 
 ## Six platform-specific traps that produce confident wrong numbers
 

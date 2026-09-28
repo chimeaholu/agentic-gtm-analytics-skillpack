@@ -138,8 +138,9 @@ buyers. The effect on every metric here is in one direction:
 - retention **understated**
 - cohort size **overstated** (duplicates inflate it)
 - LTV per acquired customer **understated**
-- CAC **overstated** (more apparent customers per unit of spend — but also more
-  apparent customers, so the net effect on payback depends on the mix)
+- CAC **understated** (duplicate identities inflate the new-customer denominator,
+  lowering spend per apparent customer; the net effect on payback depends on
+  the mix)
 
 **Report the identity match rate with every cohort analysis.** Guest checkout,
 multiple email addresses, cross-device behaviour and tracking restrictions all

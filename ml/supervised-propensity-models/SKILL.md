@@ -102,10 +102,12 @@ cal.fit(X_calib, y_calib)       # a held-out calibration set, NOT the training s
    calibration set sits between train and test in time.
 3. **Recalibrate after any resampling or class weighting.** Both change the base
    rate the model implies. If you undersampled the majority class by factor *r*,
-   the prior shift correction is
-   `p_true = p_obs / (p_obs + (1 − p_obs)·r)` — but prefer refitting a
-   calibration map on a set with the true base rate, which handles the rest of
-   the distortion too.
+   the prior shift correction, under prior-probability shift, is
+   `p_pop = p_train / (p_train + (1 − p_train) × ((1 − π_pop)/π_pop) × (π_train/(1 − π_train)))`,
+   where `π_pop` and `π_train` are the positive-class population and training
+   priors. Prefer refitting a calibration map on a set with the true base rate,
+   which can also address calibration-shape distortion. This is the Bayes prior
+   correction described by Elkan (2001, §2).
 4. **Calibration drifts when the base rate drifts.** Monitor ECE, not only AUC.
    Discrimination can be perfectly stable while calibration rots.
 5. **Calibration does not change the ranking.** Both methods are monotone, so AUC

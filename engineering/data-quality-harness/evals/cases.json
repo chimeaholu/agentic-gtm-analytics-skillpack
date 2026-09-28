@@ -83,6 +83,21 @@
         "reads PARTIAL as broadly fine",
         "refuses to make a recommendation because coverage is incomplete"
       ]
+    },
+    {
+      "id": "dqh-06-missing-required-test-not-ready",
+      "type": "correctness",
+      "prompt": "Can we mark the opportunity mart READY? The latest run has six passing test results, but its required suite has seven tests and the freshness check passes.",
+      "setup": "No test result row exists for the seventh required test. The readiness query uses a LEFT JOIN from mart state to latest test results.",
+      "expect_pass": [
+        "identifies the absent required result as unverified rather than passed",
+        "returns NOT_READY while any required result row is absent",
+        "compares observed test count with the required test count"
+      ],
+      "expect_fail": [
+        "returns READY because tests_failed is zero or NULL",
+        "treats a missing test-result row as evidence of no failures"
+      ]
     }
   ]
 }

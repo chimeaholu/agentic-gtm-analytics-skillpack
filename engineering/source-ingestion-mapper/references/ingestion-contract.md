@@ -102,7 +102,7 @@ The normalisation log is an artefact, not a debug print:
 | Shape | Procedure |
 |---|---|
 | Snapshot | insert rows whose `(entity_id, snapshot_date)` is not already present |
-| Fact | `BEGIN` → `DELETE FROM target WHERE source = ? AND event_date BETWEEN ? AND ?` → `INSERT` from temp → `COMMIT` |
+| Fact | `BEGIN` → `DELETE FROM target WHERE tenant_id = ? AND source = ? AND event_date BETWEEN ? AND ?` → `INSERT` from temp for the same tenant → `COMMIT` |
 | Governed log / config | upsert on the natural key |
 
 One advisory lock per target table, acquired before the delete and released
